@@ -1,16 +1,20 @@
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
 
-if (!process.env.GEMINI_API_KEY) {
-  throw new Error(
-    'GEMINI_API_KEY is not set. Please set it in your .env file.'
+// WARNING: It is strongly recommended to use environment variables to store your API key.
+// Hardcoding the key in your source code can be a security risk.
+const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY_HERE';
+
+if (GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY_HERE') {
+  console.warn(
+    'Gemini API key is not set. Please replace "YOUR_GEMINI_API_KEY_HERE" in src/ai/genkit.ts with your actual API key.'
   );
 }
 
 export const ai = genkit({
   plugins: [
     googleAI({
-      apiKey: process.env.GEMINI_API_KEY,
+      apiKey: GEMINI_API_KEY,
     }),
   ],
   model: 'googleai/gemini-2.5-flash',
