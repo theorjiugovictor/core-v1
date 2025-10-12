@@ -14,7 +14,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const GenerateBusinessInsightsInputSchema = z.object({
-  businessData: z.string().describe('A JSON string containing the business data, including inventory, sales, and recipes.'),
+  businessData: z.string().describe('A JSON string containing the business data, including materials, sales, and products.'),
 });
 export type GenerateBusinessInsightsInput = z.infer<typeof GenerateBusinessInsightsInputSchema>;
 
@@ -38,9 +38,9 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateBusinessInsightsOutputSchema},
   prompt: `You are an AI-powered business advisor for small and medium businesses, particularly those in the food and catering industry.
 
-  Analyze the provided business data (inventory, sales, and recipes) and generate relevant insights and suggestions to improve their business.
+  Analyze the provided business data (materials, sales, and products) and generate relevant insights and suggestions to improve their business.
   Provide actionable recommendations tailored to their specific situation.
-  Consider profitability of meals by comparing recipe cost vs. selling price.
+  Consider profitability of meals by comparing product cost vs. selling price.
   Include a relevance score for each insight, indicating how important it is for the user to consider.
 
   Business Data: {{{businessData}}}
@@ -50,11 +50,11 @@ const prompt = ai.definePrompt({
   {
     "insights": [
       {
-        "message": "Your 'Classic Cake' recipe is highly profitable. Consider promoting it more.",
+        "message": "Your 'Classic Cake' product is highly profitable. Consider promoting it more.",
         "relevanceScore": 0.8
       },
       {
-        "message": "You have low stock for 'Tomatoes'. Consider reordering soon as it's used in multiple recipes.",
+        "message": "You have low stock for 'Tomatoes'. Consider reordering soon as it's used in multiple products.",
         "relevanceScore": 0.9
       }
     ]

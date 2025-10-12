@@ -137,15 +137,9 @@ export default function ProductsPage() {
                 </CardContent>
                 <Separator />
                 <CardFooter className="pt-4">
-                    {product.materials.length > 0 ? (
-                        <p className="text-sm font-semibold text-muted-foreground">
-                            Estimated Cost: {formatCurrency(calculateCost(product))}
-                        </p>
-                    ) : (
-                        <p className="text-sm font-semibold text-muted-foreground">
-                            No materials defined.
-                        </p>
-                    )}
+                    <p className="text-sm font-semibold text-muted-foreground">
+                        Estimated Cost: {formatCurrency(calculateCost(product))}
+                    </p>
                 </CardFooter>
             </Card>
             ))}

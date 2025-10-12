@@ -13,7 +13,6 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
-  SidebarInset,
 } from '@/components/ui/sidebar';
 import { Logo } from '@/components/logo';
 import { Separator } from '@/components/ui/separator';
@@ -41,14 +40,12 @@ const pageTitles: { [key: string]: string } = {
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   
-  // A simple way to derive the title from the path
   const deriveTitle = (path: string) => {
     for (const item of navItems) {
       if (path.startsWith(item.href)) {
         return pageTitles[item.href];
       }
     }
-    // Handle settings page separately as it's not in navItems for the main menu
     if (path.startsWith('/settings')) {
         return pageTitles['/settings'];
     }
@@ -86,8 +83,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               ))}
           </SidebarMenu>
           </SidebarContent>
-          <Separator className="my-2" />
           <SidebarFooter>
+            <Separator className="my-2" />
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton

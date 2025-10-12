@@ -18,9 +18,9 @@ export async function getBusinessInsights() {
   try {
     const businessData: GenerateBusinessInsightsInput = {
       businessData: JSON.stringify({
-        inventory: mockMaterials,
+        materials: mockMaterials,
         sales: mockSales,
-        recipes: mockProducts,
+        products: mockProducts,
       }),
     };
     const result = await generateBusinessInsights(businessData);
