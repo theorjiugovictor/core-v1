@@ -14,7 +14,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const GenerateBusinessInsightsInputSchema = z.object({
-  businessData: z.string().describe('A JSON string containing the business data, including inventory, sales, expenses, and revenue.'),
+  businessData: z.string().describe('A JSON string containing the business data, including inventory, sales, and recipes.'),
 });
 export type GenerateBusinessInsightsInput = z.infer<typeof GenerateBusinessInsightsInputSchema>;
 
@@ -36,10 +36,11 @@ const prompt = ai.definePrompt({
   name: 'generateBusinessInsightsPrompt',
   input: {schema: GenerateBusinessInsightsInputSchema},
   output: {schema: GenerateBusinessInsightsOutputSchema},
-  prompt: `You are an AI-powered business advisor for small and medium businesses.
+  prompt: `You are an AI-powered business advisor for small and medium businesses, particularly those in the food and catering industry.
 
-  Analyze the provided business data and generate relevant insights and suggestions to improve their business.
+  Analyze the provided business data (inventory, sales, and recipes) and generate relevant insights and suggestions to improve their business.
   Provide actionable recommendations tailored to their specific situation.
+  Consider profitability of meals by comparing recipe cost vs. selling price.
   Include a relevance score for each insight, indicating how important it is for the user to consider.
 
   Business Data: {{{businessData}}}
@@ -49,11 +50,11 @@ const prompt = ai.definePrompt({
   {
     "insights": [
       {
-        "message": "Consider increasing the price of your top-selling product, as it has a high demand.",
+        "message": "Your 'Classic Cake' recipe is highly profitable. Consider promoting it more.",
         "relevanceScore": 0.8
       },
       {
-        "message": "You have low stock for [product]. Consider reordering soon.",
+        "message": "You have low stock for 'Tomatoes'. Consider reordering soon as it's used in multiple recipes.",
         "relevanceScore": 0.9
       }
     ]

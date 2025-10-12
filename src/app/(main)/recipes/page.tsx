@@ -9,6 +9,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
 import {
   DropdownMenu,
@@ -31,6 +32,7 @@ import { Label } from '@/components/ui/label';
 import { mockRecipes, mockIngredients } from '@/lib/data';
 import type { Recipe } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
 export default function RecipesPage() {
   const [recipes, setRecipes] = React.useState<Recipe[]>(mockRecipes);
@@ -94,7 +96,7 @@ export default function RecipesPage() {
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {recipes.map((recipe) => (
-            <Card key={recipe.id}>
+            <Card key={recipe.id} className="flex flex-col">
                 <CardHeader>
                     <div className="flex justify-between items-start">
                         <div>
@@ -102,7 +104,7 @@ export default function RecipesPage() {
                                 <UtensilsCrossed className="h-5 w-5 text-primary" />
                                 {recipe.name}
                             </CardTitle>
-                            <CardDescription>{formatCurrency(recipe.sellingPrice)}</CardDescription>
+                            <CardDescription>Selling Price: {formatCurrency(recipe.sellingPrice)}</CardDescription>
                         </div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -119,7 +121,7 @@ export default function RecipesPage() {
                         </DropdownMenu>
                     </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-grow">
                     <div className="space-y-2">
                         <h4 className="font-semibold text-sm">Ingredients</h4>
                         <div className="flex flex-wrap gap-2">
@@ -129,11 +131,14 @@ export default function RecipesPage() {
                                 </Badge>
                             ))}
                         </div>
-                         <p className="text-xs text-muted-foreground pt-2">
-                            Estimated Cost: {formatCurrency(calculateCost(recipe))}
-                        </p>
                     </div>
                 </CardContent>
+                <Separator />
+                <CardFooter className="pt-4">
+                     <p className="text-sm font-semibold text-muted-foreground">
+                        Estimated Cost: {formatCurrency(calculateCost(recipe))}
+                    </p>
+                </CardFooter>
             </Card>
             ))}
         </div>

@@ -2,7 +2,7 @@
 
 import { generateBusinessInsights, GenerateBusinessInsightsInput } from '@/ai/flows/generate-business-insights';
 import { parseBusinessCommand, ParseBusinessCommandInput } from '@/ai/flows/parse-business-command';
-import { mockIngredients, mockSales } from './data';
+import { mockIngredients, mockRecipes, mockSales } from './data';
 
 export async function getParsedCommand(input: ParseBusinessCommandInput) {
   try {
@@ -20,6 +20,7 @@ export async function getBusinessInsights() {
       businessData: JSON.stringify({
         inventory: mockIngredients,
         sales: mockSales,
+        recipes: mockRecipes,
       }),
     };
     const result = await generateBusinessInsights(businessData);
