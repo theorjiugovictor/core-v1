@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Boxes, LayoutDashboard, Lightbulb, Settings, ShoppingCart } from 'lucide-react';
+import { Boxes, LayoutDashboard, Lightbulb, Settings, ShoppingCart, UtensilsCrossed } from 'lucide-react';
 
 import {
   SidebarProvider,
@@ -18,13 +18,13 @@ import {
 import { Logo } from '@/components/logo';
 import { Separator } from '@/components/ui/separator';
 import { mockUser } from '@/lib/data';
-import { cn } from '@/lib/utils';
 import { Header } from '@/components/header';
 import { UserNav } from '@/components/user-nav';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/inventory', icon: Boxes, label: 'Inventory' },
+  { href: '/recipes', icon: UtensilsCrossed, label: 'Recipes' },
   { href: '/sales', icon: ShoppingCart, label: 'Sales' },
   { href: '/insights', icon: Lightbulb, label: 'Insights' },
   { href: '/settings', icon: Settings, label: 'Settings' },
@@ -32,7 +32,8 @@ const navItems = [
 
 const pageTitles: { [key: string]: string } = {
   '/dashboard': 'Dashboard',
-  '/inventory': 'Inventory Management',
+  '/inventory': 'Ingredient Inventory',
+  '/recipes': 'Meal Recipes',
   '/sales': 'Sales Records',
   '/insights': 'Business Insights',
   '/settings': 'Settings',

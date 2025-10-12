@@ -37,11 +37,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-import { mockProducts } from '@/lib/data';
-import type { Product } from '@/lib/types';
+import { mockIngredients } from '@/lib/data';
+import type { Ingredient } from '@/lib/types';
 
 export default function InventoryPage() {
-  const [products, setProducts] = React.useState<Product[]>(mockProducts);
+  const [ingredients, setIngredients] = React.useState<Ingredient[]>(mockIngredients);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
 
   const formatCurrency = (amount: number) => {
@@ -51,45 +51,47 @@ export default function InventoryPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Products</CardTitle>
-        <CardDescription>Manage your products and view their inventory status.</CardDescription>
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between">
+            <div>
+                <CardTitle>Ingredient Inventory</CardTitle>
+                <CardDescription>Manage your raw ingredients and their stock levels.</CardDescription>
+            </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" className="gap-1">
                   <PlusCircle className="h-3.5 w-3.5" />
                   <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                    Add Product
+                    Add Ingredient
                   </span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                  <DialogTitle>Add Product</DialogTitle>
+                  <DialogTitle>Add Ingredient</DialogTitle>
                   <DialogDescription>
-                    Add a new product to your inventory. Click save when you're done.
+                    Add a new raw material to your inventory. Click save when you're done.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="name" className="text-right">Name</Label>
-                    <Input id="name" placeholder="e.g. Carton of Milo" className="col-span-3" />
+                    <Input id="name" placeholder="e.g. Flour" className="col-span-3" />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="quantity" className="text-right">Quantity</Label>
                     <Input id="quantity" type="number" placeholder="0" className="col-span-3" />
                   </div>
+                   <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="unit" className="text-right">Unit</Label>
+                    <Input id="unit" placeholder="e.g. kg, pcs" className="col-span-3" />
+                  </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="cost-price" className="text-right">Cost Price (₦)</Label>
                     <Input id="cost-price" type="number" placeholder="0.00" className="col-span-3" />
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="selling-price" className="text-right">Selling Price (₦)</Label>
-                    <Input id="selling-price" type="number" placeholder="0.00" className="col-span-3" />
-                  </div>
                 </div>
                 <DialogFooter>
-                  <Button type="submit" onClick={() => setIsDialogOpen(false)}>Save product</Button>
+                  <Button type="submit" onClick={() => setIsDialogOpen(false)}>Save ingredient</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -100,21 +102,19 @@ export default function InventoryPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead className="text-right">Quantity</TableHead>
+              <TableHead>Quantity</TableHead>
               <TableHead className="text-right">Cost Price</TableHead>
-              <TableHead className="text-right">Selling Price</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
               </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {products.map((product) => (
-              <TableRow key={product.id}>
-                <TableCell className="font-medium">{product.name}</TableCell>
-                <TableCell className="text-right">{product.quantity}</TableCell>
-                <TableCell className="text-right">{formatCurrency(product.costPrice)}</TableCell>
-                <TableCell className="text-right">{formatCurrency(product.sellingPrice)}</TableCell>
+            {ingredients.map((ingredient) => (
+              <TableRow key={ingredient.id}>
+                <TableCell className="font-medium">{ingredient.name}</TableCell>
+                <TableCell>{ingredient.quantity} {ingredient.unit}</TableCell>
+                <TableCell className="text-right">{formatCurrency(ingredient.costPrice)}</TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

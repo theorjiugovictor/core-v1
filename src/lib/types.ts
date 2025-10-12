@@ -6,14 +6,26 @@ export type User = {
   avatarUrl?: string;
 };
 
-export type Product = {
+export type Ingredient = {
   id: string;
   name: string;
   costPrice: number;
-  sellingPrice: number;
   quantity: number;
+  unit: string;
   createdAt: string;
 };
+
+export type Recipe = {
+  id: string;
+  name: string;
+  sellingPrice: number;
+  ingredients: {
+    ingredientId: string;
+    quantity: number;
+  }[];
+  createdAt: string;
+};
+
 
 export type Sale = {
   id: string;
