@@ -29,28 +29,28 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { mockRecipes, mockIngredients } from '@/lib/data';
-import type { Recipe } from '@/lib/types';
+import { mockProducts, mockMaterials } from '@/lib/data';
+import type { Product } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
-export default function RecipesPage() {
-  const [recipes, setRecipes] = React.useState<Recipe[]>(mockRecipes);
+export default function ProductsPage() {
+  const [products, setProducts] = React.useState<Product[]>(mockProducts);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(amount);
   };
   
-  const getIngredientName = (id: string) => {
-      return mockIngredients.find(i => i.id === id)?.name || 'Unknown Ingredient';
+  const getMaterialName = (id: string) => {
+      return mockMaterials.find(i => i.id === id)?.name || 'Unknown Material';
   }
 
-  const calculateCost = (recipe: Recipe) => {
-    return recipe.ingredients.reduce((total, current) => {
-        const ingredient = mockIngredients.find(i => i.id === current.ingredientId);
-        if (!ingredient) return total;
-        return total + (ingredient.costPrice * current.quantity);
+  const calculateCost = (product: Product) => {
+    return product.materials.reduce((total, current) => {
+        const material = mockMaterials.find(i => i.id === current.materialId);
+        if (!material) return total;
+        return total + (material.costPrice * current.quantity);
     }, 0);
   }
 
@@ -58,53 +58,53 @@ export default function RecipesPage() {
     <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
             <div>
-                <h1 className="font-headline text-2xl font-bold">Meal Recipes</h1>
-                <p className="text-muted-foreground">Define the ingredients for the meals you sell.</p>
+                <h1 className="font-headline text-2xl font-bold">Products</h1>
+                <p className="text-muted-foreground">Define the materials for the products you sell, or track individual items.</p>
             </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" className="gap-1">
                   <PlusCircle className="h-3.5 w-3.5" />
                   <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                    Create Recipe
+                    Create Product
                   </span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle>Create New Recipe</DialogTitle>
+                  <DialogTitle>Create New Product</DialogTitle>
                   <DialogDescription>
-                    Define a new meal by adding ingredients. Click save when you're done.
+                    Define a new product by adding materials, or leave materials blank for standalone items. Click save when you're done.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">Meal Name</Label>
+                    <Label htmlFor="name" className="text-right">Product Name</Label>
                     <Input id="name" placeholder="e.g. Jollof Rice (Party Pack)" className="col-span-3" />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="selling-price" className="text-right">Selling Price (₦)</Label>
                     <Input id="selling-price" type="number" placeholder="0.00" className="col-span-3" />
                   </div>
-                  {/* TODO: Add ingredient selection logic here */}
+                  {/* TODO: Add material selection logic here */}
                 </div>
                 <DialogFooter>
-                  <Button type="submit" onClick={() => setIsDialogOpen(false)}>Save recipe</Button>
+                  <Button type="submit" onClick={() => setIsDialogOpen(false)}>Save product</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {recipes.map((recipe) => (
-            <Card key={recipe.id} className="flex flex-col">
+            {products.map((product) => (
+            <Card key={product.id} className="flex flex-col">
                 <CardHeader>
                     <div className="flex justify-between items-start">
                         <div>
                             <CardTitle className="text-lg flex items-center gap-2">
                                 <UtensilsCrossed className="h-5 w-5 text-primary" />
-                                {recipe.name}
+                                {product.name}
                             </CardTitle>
-                            <CardDescription>Selling Price: {formatCurrency(recipe.sellingPrice)}</CardDescription>
+                            <CardDescription>Selling Price: {formatCurrency(product.sellingPrice)}</CardDescription>
                         </div>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -122,22 +122,30 @@ export default function RecipesPage() {
                     </div>
                 </CardHeader>
                 <CardContent className="flex-grow">
-                    <div className="space-y-2">
-                        <h4 className="font-semibold text-sm">Ingredients</h4>
-                        <div className="flex flex-wrap gap-2">
-                            {recipe.ingredients.map(ing => (
-                                <Badge key={ing.ingredientId} variant="secondary">
-                                    {getIngredientName(ing.ingredientId)} ({ing.quantity})
-                                </Badge>
-                            ))}
+                    {product.materials.length > 0 && (
+                        <div className="space-y-2">
+                            <h4 className="font-semibold text-sm">Materials</h4>
+                            <div className="flex flex-wrap gap-2">
+                                {product.materials.map(mat => (
+                                    <Badge key={mat.materialId} variant="secondary">
+                                        {getMaterialName(mat.materialId)} ({mat.quantity})
+                                    </Badge>
+                                ))}
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </CardContent>
                 <Separator />
                 <CardFooter className="pt-4">
-                     <p className="text-sm font-semibold text-muted-foreground">
-                        Estimated Cost: {formatCurrency(calculateCost(recipe))}
-                    </p>
+                    {product.materials.length > 0 ? (
+                        <p className="text-sm font-semibold text-muted-foreground">
+                            Estimated Cost: {formatCurrency(calculateCost(product))}
+                        </p>
+                    ) : (
+                        <p className="text-sm font-semibold text-muted-foreground">
+                            No materials defined.
+                        </p>
+                    )}
                 </CardFooter>
             </Card>
             ))}

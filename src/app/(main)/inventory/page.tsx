@@ -37,11 +37,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-import { mockIngredients } from '@/lib/data';
-import type { Ingredient } from '@/lib/types';
+import { mockMaterials } from '@/lib/data';
+import type { Material } from '@/lib/types';
 
-export default function InventoryPage() {
-  const [ingredients, setIngredients] = React.useState<Ingredient[]>(mockIngredients);
+export default function MaterialsPage() {
+  const [materials, setMaterials] = React.useState<Material[]>(mockMaterials);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
 
   const formatCurrency = (amount: number) => {
@@ -53,21 +53,21 @@ export default function InventoryPage() {
       <CardHeader>
         <div className="flex items-center justify-between">
             <div>
-                <CardTitle>Ingredient Inventory</CardTitle>
-                <CardDescription>Manage your raw ingredients and their stock levels.</CardDescription>
+                <CardTitle>Raw Material Inventory</CardTitle>
+                <CardDescription>Manage your raw materials and their stock levels.</CardDescription>
             </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" className="gap-1">
                   <PlusCircle className="h-3.5 w-3.5" />
                   <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                    Add Ingredient
+                    Add Material
                   </span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                  <DialogTitle>Add Ingredient</DialogTitle>
+                  <DialogTitle>Add Material</DialogTitle>
                   <DialogDescription>
                     Add a new raw material to your inventory. Click save when you're done.
                   </DialogDescription>
@@ -91,7 +91,7 @@ export default function InventoryPage() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button type="submit" onClick={() => setIsDialogOpen(false)}>Save ingredient</Button>
+                  <Button type="submit" onClick={() => setIsDialogOpen(false)}>Save material</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -110,11 +110,11 @@ export default function InventoryPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {ingredients.map((ingredient) => (
-              <TableRow key={ingredient.id}>
-                <TableCell className="font-medium">{ingredient.name}</TableCell>
-                <TableCell>{ingredient.quantity} {ingredient.unit}</TableCell>
-                <TableCell className="text-right">{formatCurrency(ingredient.costPrice)}</TableCell>
+            {materials.map((material) => (
+              <TableRow key={material.id}>
+                <TableCell className="font-medium">{material.name}</TableCell>
+                <TableCell>{material.quantity} {material.unit}</TableCell>
+                <TableCell className="text-right">{formatCurrency(material.costPrice)}</TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

@@ -23,8 +23,8 @@ import { UserNav } from '@/components/user-nav';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/inventory', icon: Boxes, label: 'Inventory' },
-  { href: '/recipes', icon: UtensilsCrossed, label: 'Recipes' },
+  { href: '/materials', icon: Boxes, label: 'Materials' },
+  { href: '/products', icon: UtensilsCrossed, label: 'Products' },
   { href: '/sales', icon: ShoppingCart, label: 'Sales' },
   { href: '/insights', icon: Lightbulb, label: 'Insights' },
   { href: '/settings', icon: Settings, label: 'Settings' },
@@ -32,8 +32,8 @@ const navItems = [
 
 const pageTitles: { [key: string]: string } = {
   '/dashboard': 'Dashboard',
-  '/inventory': 'Ingredient Inventory',
-  '/recipes': 'Meal Recipes',
+  '/materials': 'Raw Material Inventory',
+  '/products': 'Finished Products',
   '/sales': 'Sales Records',
   '/insights': 'Business Insights',
   '/settings': 'Settings',
@@ -42,7 +42,17 @@ const pageTitles: { [key: string]: string } = {
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   
-  const title = pageTitles[pathname] || 'CORE Biz Manager';
+  // A simple way to derive the title from the path
+  const deriveTitle = (path: string) => {
+    for (const item of navItems) {
+      if (path.startsWith(item.href)) {
+        return pageTitles[item.href];
+      }
+    }
+    return 'CORE Biz Manager';
+  };
+  
+  const title = deriveTitle(pathname);
 
   return (
     <SidebarProvider>

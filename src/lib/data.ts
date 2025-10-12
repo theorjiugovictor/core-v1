@@ -1,4 +1,4 @@
-import type { Ingredient, Sale, Kpi, User, Recipe } from '@/lib/types';
+import type { Material, Sale, Kpi, User, Product } from '@/lib/types';
 import { TrendingUp, TrendingDown, DollarSign, Package, ShoppingCart } from 'lucide-react';
 
 export const mockUser: User = {
@@ -9,7 +9,7 @@ export const mockUser: User = {
   avatarUrl: 'https://picsum.photos/seed/100/100/100',
 };
 
-export const mockIngredients: Ingredient[] = [
+export const mockMaterials: Material[] = [
   { id: 'ing_1', name: 'Flour', costPrice: 1000, quantity: 50, unit: 'kg', createdAt: '2023-10-01T10:00:00Z' },
   { id: 'ing_2', name: 'Sugar', costPrice: 800, quantity: 25, unit: 'kg', createdAt: '2023-10-01T10:00:00Z' },
   { id: 'ing_3', name: 'Eggs', costPrice: 100, quantity: 120, unit: 'piece', createdAt: '2023-10-02T11:30:00Z' },
@@ -18,16 +18,16 @@ export const mockIngredients: Ingredient[] = [
   { id: 'ing_6', name: 'Rice', costPrice: 75000, quantity: 1, unit: 'bag (50kg)', createdAt: '2023-10-05T16:45:00Z' },
 ];
 
-export const mockRecipes: Recipe[] = [
+export const mockProducts: Product[] = [
     {
         id: 'recipe_1',
         name: 'Classic Cake',
         sellingPrice: 5000,
-        ingredients: [
-            { ingredientId: 'ing_1', quantity: 1 }, // 1kg flour
-            { ingredientId: 'ing_2', quantity: 0.5 }, // 0.5kg sugar
-            { ingredientId: 'ing_3', quantity: 6 }, // 6 eggs
-            { ingredientId: 'ing_4', quantity: 0.25 }, // 0.25kg butter
+        materials: [
+            { materialId: 'ing_1', quantity: 1 }, // 1kg flour
+            { materialId: 'ing_2', quantity: 0.5 }, // 0.5kg sugar
+            { materialId: 'ing_3', quantity: 6 }, // 6 eggs
+            { materialId: 'ing_4', quantity: 0.25 }, // 0.25kg butter
         ],
         createdAt: '2023-10-10T09:00:00Z',
     },
@@ -35,9 +35,9 @@ export const mockRecipes: Recipe[] = [
         id: 'recipe_2',
         name: 'Jollof Rice (Party Pack)',
         sellingPrice: 25000,
-        ingredients: [
-            { ingredientId: 'ing_6', quantity: 0.2 }, // 10kg rice (0.2 of 50kg bag)
-            { ingredientId: 'ing_5', quantity: 5 }, // 5kg tomatoes
+        materials: [
+            { materialId: 'ing_6', quantity: 0.2 }, // 10kg rice (0.2 of 50kg bag)
+            { materialId: 'ing_5', quantity: 5 }, // 5kg tomatoes
         ],
         createdAt: '2023-10-11T12:00:00Z',
     }
@@ -67,7 +67,7 @@ export const mockKpis: Kpi[] = [
     description: 'from last month',
   },
   { 
-    title: 'Top Selling Meal', 
+    title: 'Top Selling Product', 
     value: 'Classic Cake', 
     icon: Package,
     description: 'by sales volume',

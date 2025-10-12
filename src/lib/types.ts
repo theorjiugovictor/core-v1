@@ -6,7 +6,7 @@ export type User = {
   avatarUrl?: string;
 };
 
-export type Ingredient = {
+export type Material = {
   id: string;
   name: string;
   costPrice: number;
@@ -15,12 +15,12 @@ export type Ingredient = {
   createdAt: string;
 };
 
-export type Recipe = {
+export type Product = {
   id: string;
   name: string;
   sellingPrice: number;
-  ingredients: {
-    ingredientId: string;
+  materials: {
+    materialId: string;
     quantity: number;
   }[];
   createdAt: string;
