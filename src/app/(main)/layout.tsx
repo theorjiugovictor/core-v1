@@ -21,6 +21,7 @@ import { Separator } from '@/components/ui/separator';
 import { mockUser } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { Header } from '@/components/header';
+import { UserNav } from '@/components/user-nav';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -79,16 +80,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarContent>
         <Separator className="my-2" />
         <SidebarFooter>
-          <div className={cn("flex items-center gap-3 p-2 transition-all duration-200")}>
-            <Avatar className="h-9 w-9">
-              <AvatarImage src={mockUser.avatarUrl} alt={`@${mockUser.name}`} data-ai-hint="user avatar" />
-              <AvatarFallback>{getInitials(mockUser.name)}</AvatarFallback>
-            </Avatar>
-            <div className={cn("flex flex-col transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0")}>
-                <span className="text-sm font-medium text-foreground">{mockUser.name}</span>
-                <span className="text-xs text-muted-foreground">{mockUser.email}</span>
-            </div>
-          </div>
+          <UserNav />
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>

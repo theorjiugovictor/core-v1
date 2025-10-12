@@ -12,12 +12,19 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { mockUser } from '@/lib/data';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export function UserNav() {
+  const router = useRouter();
   const getInitials = (name: string) => {
     const names = name.split(' ');
     return names.map((n) => n[0]).join('').toUpperCase();
   };
+
+  const handleLogout = () => {
+    // In a real app, you'd clear session/token here
+    router.push('/login');
+  }
 
   return (
     <DropdownMenu>
@@ -45,11 +52,9 @@ export function UserNav() {
           </Link>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <Link href="/login">
-            <DropdownMenuItem>
-                Log out
-            </DropdownMenuItem>
-        </Link>
+        <DropdownMenuItem onClick={handleLogout}>
+            Log out
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
