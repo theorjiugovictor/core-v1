@@ -27,7 +27,6 @@ const navItems = [
   { href: '/products', icon: UtensilsCrossed, label: 'Products' },
   { href: '/sales', icon: ShoppingCart, label: 'Sales' },
   { href: '/insights', icon: Lightbulb, label: 'Insights' },
-  { href: '/settings', icon: Settings, label: 'Settings' },
 ];
 
 const pageTitles: { [key: string]: string } = {
@@ -48,6 +47,10 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       if (path.startsWith(item.href)) {
         return pageTitles[item.href];
       }
+    }
+    // Handle settings page separately as it's not in navItems for the main menu
+    if (path.startsWith('/settings')) {
+        return pageTitles['/settings'];
     }
     return 'CORE Biz Manager';
   };
@@ -85,7 +88,20 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           </SidebarContent>
           <Separator className="my-2" />
           <SidebarFooter>
-          <UserNav />
+            <SidebarMenu>
+                <SidebarMenuItem>
+                    <SidebarMenuButton
+                        asChild
+                        isActive={pathname.startsWith('/settings')}
+                        tooltip="Settings"
+                    >
+                        <Link href="/settings">
+                            <Settings />
+                            <span>Settings</span>
+                        </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+            </SidebarMenu>
           </SidebarFooter>
       </Sidebar>
       <SidebarInset>
