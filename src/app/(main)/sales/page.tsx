@@ -42,32 +42,34 @@ export default function SalesPage() {
         <CardDescription>A list of all recent sales transactions.</CardDescription>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Product</TableHead>
-              <TableHead className="text-center">Quantity</TableHead>
-              <TableHead className="text-center">Payment Method</TableHead>
-              <TableHead className="text-right">Total Amount</TableHead>
-              <TableHead className="text-right">Date</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sales.map((sale) => (
-              <TableRow key={sale.id}>
-                <TableCell className="font-medium">{sale.productName}</TableCell>
-                <TableCell className="text-center">{sale.quantity}</TableCell>
-                <TableCell className="text-center">
-                  <Badge variant={sale.paymentMethod === 'Transfer' ? 'default' : 'secondary'}>
-                    {sale.paymentMethod}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">{formatCurrency(sale.totalAmount)}</TableCell>
-                <TableCell className="text-right">{formatDate(sale.date)}</TableCell>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Product</TableHead>
+                <TableHead className="text-center">Quantity</TableHead>
+                <TableHead className="text-center">Payment Method</TableHead>
+                <TableHead className="text-right">Total Amount</TableHead>
+                <TableHead className="text-right">Date</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {sales.map((sale) => (
+                <TableRow key={sale.id}>
+                  <TableCell className="font-medium">{sale.productName}</TableCell>
+                  <TableCell className="text-center">{sale.quantity}</TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant={sale.paymentMethod === 'Transfer' ? 'default' : 'secondary'}>
+                      {sale.paymentMethod}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">{formatCurrency(sale.totalAmount)}</TableCell>
+                  <TableCell className="text-right">{formatDate(sale.date)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   );

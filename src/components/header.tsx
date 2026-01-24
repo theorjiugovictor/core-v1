@@ -12,7 +12,7 @@ export function Header({ title }: HeaderProps) {
         <div className="flex items-center gap-4">
             <h1 className="font-headline text-xl font-semibold md:text-2xl">{title}</h1>
         </div>
-        <div className="ml-auto hidden items-center gap-4 sm:flex">
+        <div className="ml-auto flex items-center gap-4">
             <UserNav />
         </div>
     </header>
