@@ -1,32 +1,37 @@
 'use server';
 
-import { generateBusinessInsights, GenerateBusinessInsightsInput } from '@/ai/flows/generate-business-insights';
-import { parseBusinessCommand, ParseBusinessCommandInput } from '@/ai/flows/parse-business-command';
+import { parseBusinessCommand as parseWithBedrock, generateBusinessInsights as generateWithBedrock } from './bedrock';
 import { mockMaterials, mockProducts, mockSales } from './data';
+
+export type ParseBusinessCommandInput = {
+  input: string;
+};
 
 export async function getParsedCommand(input: ParseBusinessCommandInput) {
   try {
-    const result = await parseBusinessCommand(input);
-    return { success: true, data: result };
+    const result = await parseWithBedrock(input.input);
+    return result;
   } catch (error) {
-    console.error(error);
-    return { success: false, error: 'Failed to parse command.' };
+    console.error('Command parsing error:', error);
+    return { success: false, error: 'Failed to parse command. Please try again.' };
   }
 }
 
 export async function getBusinessInsights() {
   try {
-    const businessData: GenerateBusinessInsightsInput = {
-      businessData: JSON.stringify({
-        materials: mockMaterials,
-        sales: mockSales,
-        products: mockProducts,
-      }),
+    const businessData = {
+      materials: mockMaterials,
+      sales: mockSales,
+      products: mockProducts,
     };
-    const result = await generateBusinessInsights(businessData);
-    return { success: true, data: result.insights };
+
+    const result = await generateWithBedrock(businessData);
+    return result;
   } catch (error) {
-    console.error(error);
-    return { success: false, error: 'Failed to generate insights.' };
+    console.error('Insights generation error:', error);
+    return {
+      success: false,
+      error: 'Failed to generate insights. Please ensure AWS Bedrock is configured.'
+    };
   }
 }
