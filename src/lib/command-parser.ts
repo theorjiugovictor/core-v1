@@ -1,6 +1,6 @@
 /**
  * Enhanced command parser with Nigerian market patterns
- * Preprocessing layer before Genkit AI fallback
+ * Preprocessing layer before AWS Bedrock AI fallback
  */
 
 // Common Nigerian business phrases
@@ -86,8 +86,20 @@ export async function parseCommand(input: string, products: any[]) {
     }
   }
 
-  // Fallback to Genkit AI for complex cases
-  return parseWithAI(input);
+  // Fallback to AWS Bedrock AI for complex cases
+  const { parseBusinessCommand } = await import('./bedrock');
+  const result = await parseBusinessCommand(input);
+
+  if (result.success) {
+    return {
+      intent: result.data.action,
+      entities: result.data,
+      confidence: 0.85,
+      method: 'bedrock-ai',
+    };
+  }
+
+  return null;
 }
 
 function extractEntities(match: RegExpMatchArray, intent: string, products: any[]) {

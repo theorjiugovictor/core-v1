@@ -4,7 +4,7 @@ A modern, production-ready business management platform for small and medium-siz
 
 ## Features
 
-- **AI-Powered Command Console**: Natural language processing for business operations using Google Gemini
+- **AI-Powered Command Console**: Natural language processing for business operations using AWS Bedrock with Claude 3 Haiku
 - **Inventory Management**: Track raw materials and finished products
 - **Sales Recording**: Record and analyze transactions with multiple payment methods
 - **Business Insights**: AI-generated recommendations based on your business data
@@ -21,7 +21,7 @@ A modern, production-ready business management platform for small and medium-siz
 - **Styling**: Tailwind CSS 3.4
 - **Authentication**: NextAuth.js (Auth.js) v5
 - **Database**: Firebase Firestore
-- **AI Integration**: Google Genkit with Gemini 2.5 Flash
+- **AI Integration**: AWS Bedrock with Claude 3 Haiku
 - **Form Handling**: React Hook Form + Zod
 - **Charts**: Recharts
 
@@ -32,7 +32,7 @@ A modern, production-ready business management platform for small and medium-siz
 - Node.js 18.x or higher
 - npm or yarn
 - Firebase project (for database)
-- Google Gemini API key (for AI features)
+- AWS account with Bedrock access (for AI features)
 
 ### Installation
 
@@ -52,9 +52,11 @@ npm install --legacy-peer-deps
 Create a `.env.local` file in the root directory:
 
 ```env
-# Google Gemini API Key for AI features
-# Get from: https://ai.google.dev/
-GEMINI_API_KEY=your_gemini_api_key_here
+# AWS Bedrock Configuration for AI features
+# Get from: AWS Console > Security Credentials > Access Keys
+AWS_ACCESS_KEY_ID=your_aws_access_key_id
+AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
+AWS_REGION=us-east-1
 
 # Firebase Configuration
 # Get from: Firebase Console > Project Settings > Service Accounts
@@ -70,7 +72,15 @@ NEXTAUTH_URL=http://localhost:9002
 NODE_ENV=development
 ```
 
-4. Set up Firebase:
+4. Set up AWS Bedrock (for AI features):
+
+- Sign in to [AWS Console](https://console.aws.amazon.com/)
+- Enable AWS Bedrock in your region (us-east-1 recommended)
+- Go to IAM > Security Credentials > Access Keys
+- Create a new access key with Bedrock permissions
+- Copy `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`
+
+5. Set up Firebase:
 
 - Create a new Firebase project at [Firebase Console](https://console.firebase.google.com/)
 - Enable Firestore Database
@@ -78,7 +88,7 @@ NODE_ENV=development
 - Click "Generate New Private Key"
 - Copy the JSON content and set it as `FIREBASE_SERVICE_ACCOUNT_KEY`
 
-5. Generate NextAuth secret:
+6. Generate NextAuth secret:
 ```bash
 openssl rand -base64 32
 ```
@@ -129,11 +139,10 @@ src/
 │   ├── auth.ts           # NextAuth configuration
 │   ├── auth-actions.ts   # Authentication server actions
 │   ├── actions.ts        # General server actions
+│   ├── bedrock.ts        # AWS Bedrock AI integration
+│   ├── command-parser.ts # Enhanced NLP with Nigerian patterns
 │   ├── types.ts          # TypeScript types
 │   └── utils.ts          # Utility functions
-├── ai/                   # AI/Genkit integration
-│   ├── genkit.ts         # Genkit configuration
-│   └── flows/            # AI flows
 ├── hooks/                # Custom React hooks
 └── middleware.ts         # Next.js middleware (security headers)
 ```
@@ -176,7 +185,9 @@ src/
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `GEMINI_API_KEY` | Yes | Google Gemini API key for AI features |
+| `AWS_ACCESS_KEY_ID` | Yes | AWS access key for Bedrock AI features |
+| `AWS_SECRET_ACCESS_KEY` | Yes | AWS secret access key for Bedrock |
+| `AWS_REGION` | No | AWS region (defaults to us-east-1) |
 | `FIREBASE_PROJECT_ID` | Yes | Firebase project ID |
 | `FIREBASE_SERVICE_ACCOUNT_KEY` | Yes | Firebase service account JSON |
 | `NEXTAUTH_SECRET` | Yes | Secret for NextAuth JWT signing |
