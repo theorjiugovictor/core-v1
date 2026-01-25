@@ -6,6 +6,9 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'CORE | Intelligent Business Control',
   description: 'Your business, under control. The zero-friction management platform for Nigerian SMEs.',
+  icons: {
+    icon: '/icon.svg',
+  },
 };
 
 export default function RootLayout({
