@@ -61,9 +61,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         <SidebarHeader>
           <div className="flex items-center gap-2 p-2">
             <Logo />
-            <div className="flex flex-col">
-              <span className="font-semibold text-lg leading-none tracking-tight">{mockUser.businessName}</span>
-            </div>
           </div>
         </SidebarHeader>
         <SidebarContent>
