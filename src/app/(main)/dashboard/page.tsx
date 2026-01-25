@@ -8,9 +8,9 @@ import {
     CardDescription,
     CardHeader,
     CardTitle,
-  } from '@/components/ui/card';
+} from '@/components/ui/card';
 import { getBusinessInsights } from "@/lib/actions";
-import { Lightbulb } from "lucide-react";
+import { ArrowRight, Lightbulb, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -18,54 +18,80 @@ export default async function DashboardPage() {
     const insightsResult = await getBusinessInsights();
 
     return (
-        <div className="flex flex-col gap-4 md:gap-8">
-            <PromptConsole />
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {mockKpis.map((kpi) => (
-                    <KpiCard key={kpi.title} {...kpi} />
+        <div className="space-y-8 animate-fade-in-up">
+            {/* 1. Intelligent Core Layer */}
+            <section className="relative z-10">
+                <PromptConsole />
+            </section>
+
+            {/* 2. Key Metrics Layer - Bento Grid Row 1 */}
+            <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                {mockKpis.map((kpi, index) => (
+                    <div key={kpi.title} style={{ animationDelay: `${index * 100}ms` }} className="animate-fade-in-up">
+                        <KpiCard {...kpi} />
+                    </div>
                 ))}
-            </div>
-            <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
-                <div className="xl:col-span-2">
+            </section>
+
+            {/* 3. Deep Insights & Visuals Layer - Bento Grid Row 2 */}
+            <section className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
+                {/* Main Chart - Spans 2 cols */}
+                <div className="lg:col-span-2 shadow-lg rounded-xl overflow-hidden animate-fade-in-up delay-300">
                     <RevenueChart />
                 </div>
-                <Card>
-                    <CardHeader className="flex flex-row items-center">
-                        <div className="grid gap-2">
-                        <CardTitle className="flex items-center gap-2"><Lightbulb className="w-5 h-5"/> Quick Insights</CardTitle>
-                        <CardDescription>
-                            AI-powered suggestions for your business.
-                        </CardDescription>
+
+                {/* AI Advisor - Spans 1 col */}
+                <Card className="h-full border-none shadow-lg bg-gradient-to-br from-card to-secondary/30 backdrop-blur-md animate-fade-in-up delay-500">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <div className="space-y-1">
+                            <CardTitle className="flex items-center gap-2 font-heading text-lg">
+                                <Sparkles className="w-4 h-4 text-primary" />
+                                Business IQ
+                            </CardTitle>
+                            <CardDescription>AI-generated opportunities</CardDescription>
                         </div>
-                        <Button asChild size="sm" className="ml-auto gap-1">
-                        <Link href="/insights">
-                            View All
-                        </Link>
-                        </Button>
                     </CardHeader>
-                    <CardContent className="grid gap-4">
+                    <CardContent className="space-y-4">
                         {insightsResult.success && insightsResult.data ? (
-                             insightsResult.data.slice(0, 3).map((insight) => (
-                                <div key={insight.message} className="flex items-start gap-4 p-3 rounded-lg bg-muted/50">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-                                        <Lightbulb className="h-4 w-4" />
+                            insightsResult.data.slice(0, 3).map((insight: any, i: number) => (
+                                <div key={i} className="group flex items-start gap-3 p-3 rounded-xl bg-background/50 border border-transparent hover:border-primary/20 transition-all hover:bg-background/80 hover:shadow-sm">
+                                    <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                                        <Lightbulb className="h-3 w-3" />
                                     </div>
-                                    <div className="grid gap-1">
-                                    <p className="text-sm font-medium leading-none">
-                                        {insight.message}
-                                    </p>
-                                    <p className="text-sm text-muted-foreground">
-                                        Relevance: {(insight.relevanceScore * 100).toFixed(0)}%
-                                    </p>
+                                    <div className="space-y-1">
+                                        <p className="text-sm font-medium leading-snug">
+                                            {insight.message}
+                                        </p>
+                                        <div className="flex items-center gap-2">
+                                            <div className="h-1.5 w-full max-w-[60px] rounded-full bg-muted overflow-hidden">
+                                                <div
+                                                    className="h-full bg-primary"
+                                                    style={{ width: `${(insight.relevanceScore * 100)}%` }}
+                                                />
+                                            </div>
+                                            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
+                                                {(insight.relevanceScore * 100).toFixed(0)}% Relevant
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             ))
                         ) : (
-                            <p className="text-sm text-muted-foreground">{insightsResult.error}</p>
+                            <div className="flex flex-col items-center justify-center h-40 text-center p-4">
+                                <p className="text-sm text-muted-foreground">Unable to generate insights at the moment.</p>
+                                <Button variant="link" asChild className="mt-2 text-primary">
+                                    <Link href="/settings">Check API Keys</Link>
+                                </Button>
+                            </div>
                         )}
+                        <Button asChild size="sm" variant="outline" className="w-full mt-2 gap-2 group border-primary/20 hover:bg-primary/5 hover:text-primary">
+                            <Link href="/insights">
+                                View Intelligence Report <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                            </Link>
+                        </Button>
                     </CardContent>
                 </Card>
-            </div>
+            </section>
         </div>
     );
 }
