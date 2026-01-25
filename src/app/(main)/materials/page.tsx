@@ -37,12 +37,54 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-import { mockMaterials } from '@/lib/data';
+import { getMaterialsAction, createMaterialAction, deleteMaterialAction } from '@/lib/actions';
+import { useToast } from '@/hooks/use-toast';
 import type { Material } from '@/lib/types';
 
 export default function MaterialsPage() {
-  const [materials, setMaterials] = React.useState<Material[]>(mockMaterials);
+  const [materials, setMaterials] = React.useState<Material[]>([]);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const { toast } = useToast();
+
+  React.useEffect(() => {
+    loadMaterials();
+  }, []);
+
+  async function loadMaterials() {
+    const data = await getMaterialsAction();
+    setMaterials(data);
+  }
+
+  async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    try {
+      await createMaterialAction({
+        name: formData.get('name') as string,
+        quantity: Number(formData.get('quantity')),
+        unit: formData.get('unit') as string,
+        costPrice: Number(formData.get('costPrice'))
+      });
+
+      toast({ title: "Success", description: "Material added successfully" });
+      setIsDialogOpen(false);
+      loadMaterials();
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to add material", variant: "destructive" });
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Are you sure you want to delete this material?")) return;
+    try {
+      await deleteMaterialAction(id);
+      toast({ title: "Success", description: "Material deleted" });
+      loadMaterials();
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to delete material", variant: "destructive" });
+    }
+  }
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(amount);
@@ -52,49 +94,50 @@ export default function MaterialsPage() {
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-            <div>
-                <CardTitle>Raw Material Inventory</CardTitle>
-                <CardDescription>Manage your raw materials and their stock levels.</CardDescription>
-            </div>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" className="gap-1">
-                  <PlusCircle className="h-3.5 w-3.5" />
-                  <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                    Add Material
-                  </span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Add Material</DialogTitle>
-                  <DialogDescription>
-                    Add a new raw material to your inventory. Click save when you're done.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">Name</Label>
-                    <Input id="name" placeholder="e.g. Flour" className="col-span-3" />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="quantity" className="text-right">Quantity</Label>
-                    <Input id="quantity" type="number" placeholder="0" className="col-span-3" />
-                  </div>
-                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="unit" className="text-right">Unit</Label>
-                    <Input id="unit" placeholder="e.g. kg, pcs" className="col-span-3" />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="cost-price" className="text-right">Cost Price (₦)</Label>
-                    <Input id="cost-price" type="number" placeholder="0.00" className="col-span-3" />
-                  </div>
+          <div>
+            <CardTitle>Current Stock</CardTitle>
+            <CardDescription>Manage your raw materials and their stock levels.</CardDescription>
+          </div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="gap-1">
+                <PlusCircle className="h-3.5 w-3.5" />
+                <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                  Add Material
+                </span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Add Material</DialogTitle>
+                <DialogDescription>
+                  Add a new raw material to your inventory. Click save when you're done.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleCreate} className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">Name</Label>
+                  <Input id="name" name="name" placeholder="e.g. Flour" className="col-span-3" required />
                 </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="quantity" className="text-right">Quantity</Label>
+                  <Input id="quantity" name="quantity" type="number" placeholder="0" className="col-span-3" required />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="unit" className="text-right">Unit</Label>
+                  <Input id="unit" name="unit" placeholder="e.g. kg, pcs" className="col-span-3" required />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="costPrice" className="text-right">Cost Price (₦)</Label>
+                  <Input id="costPrice" name="costPrice" type="number" placeholder="0.00" className="col-span-3" required />
+                </div>
+
                 <DialogFooter>
-                  <Button type="submit" onClick={() => setIsDialogOpen(false)}>Save material</Button>
+                  <Button type="submit">Save material</Button>
                 </DialogFooter>
-              </DialogContent>
-            </Dialog>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       </CardHeader>
       <CardContent>
@@ -127,7 +170,7 @@ export default function MaterialsPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem>Edit</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(material.id)}>Delete</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
