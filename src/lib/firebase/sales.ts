@@ -8,14 +8,21 @@ export const salesService = {
       const snapshot = await db
         .collection(Collections.SALES)
         .where('userId', '==', userId)
-        .orderBy('date', 'desc')
-        .limit(100)
         .get();
 
-      return snapshot.docs.map((doc) => ({
+      // Sort in memory to avoid composite index requirement
+      const sales = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       })) as Sale[];
+
+      return sales
+        .sort((a, b) => {
+          const dateA = new Date(a.date || 0).getTime();
+          const dateB = new Date(b.date || 0).getTime();
+          return dateB - dateA; // desc order
+        })
+        .slice(0, 100); // limit to 100 results
     } catch (error) {
       console.error('Error getting sales:', error);
       throw new Error('Failed to fetch sales');
