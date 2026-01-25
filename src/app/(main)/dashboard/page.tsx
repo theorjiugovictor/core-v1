@@ -1,7 +1,6 @@
 import { KpiCard } from "@/components/kpi-card";
 import { PromptConsole } from "@/components/prompt-console";
 import { RevenueChart } from "@/components/revenue-chart";
-import { mockKpis } from "@/lib/data";
 import {
     Card,
     CardContent,
@@ -9,13 +8,14 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { getBusinessInsights } from "@/lib/actions";
+import { getBusinessInsights, getKpisAction } from "@/lib/actions";
 import { ArrowRight, Lightbulb, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export default async function DashboardPage() {
     const insightsResult = await getBusinessInsights();
+    const kpis = await getKpisAction();
 
     return (
         <div className="space-y-8 animate-fade-in-up">
@@ -26,7 +26,7 @@ export default async function DashboardPage() {
 
             {/* 2. Key Metrics Layer - Bento Grid Row 1 */}
             <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                {mockKpis.map((kpi, index) => (
+                {kpis.map((kpi, index) => (
                     <div key={kpi.title} style={{ animationDelay: `${index * 100}ms` }} className="animate-fade-in-up">
                         <KpiCard {...kpi} />
                     </div>

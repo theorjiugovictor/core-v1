@@ -1,7 +1,6 @@
 'use server';
 
 import { parseBusinessCommand as parseWithBedrock, generateBusinessInsights as generateWithBedrock } from './bedrock';
-import { mockMaterials, mockProducts, mockSales, mockInsights } from './data';
 import { salesService } from './firebase/sales';
 import { materialsService } from './firebase/materials';
 import { productsService } from './firebase/products';
@@ -219,18 +218,23 @@ export async function processBusinessCommand(input: ParseBusinessCommandInput) {
 
 export async function getBusinessInsights() {
   try {
+    const userId = 'demo-user-123';
+
+    // Fetch real data from Firebase
+    const materials = await materialsService.getAll(userId);
+    const sales = await salesService.getAll(userId);
+    const products = await productsService.getAll(userId);
+
     const businessData = {
-      materials: mockMaterials,
-      sales: mockSales,
-      products: mockProducts,
+      materials,
+      sales,
+      products,
     };
 
     const result = await generateWithBedrock(businessData);
     return result;
   } catch (error) {
     console.error('Insights generation failed:', error);
-    // Return empty success false or rethrow, but user asked to remove "wrong fallback"
-    // So distinct failure is better than silent mock.
     return { success: false, error: 'Failed to generate insights' };
   }
 }
@@ -279,4 +283,73 @@ export async function deleteProductAction(id: string) {
   revalidatePath('/products');
   revalidatePath('/dashboard');
   return { success: true };
+}
+
+// Sales
+export async function getSalesAction() {
+  const userId = 'demo-user-123';
+  return await salesService.getAll(userId);
+}
+
+// KPIs
+export async function getKpisAction() {
+  const userId = 'demo-user-123';
+
+  const materials = await materialsService.getAll(userId);
+  const sales = await salesService.getAll(userId);
+  const products = await productsService.getAll(userId);
+
+  // Calculate total revenue
+  const totalRevenue = sales.reduce((sum, sale) => sum + (sale.totalAmount || 0), 0);
+
+  // Calculate inventory value (materials cost)
+  const inventoryValue = materials.reduce((sum, material) =>
+    sum + ((material.quantity || 0) * (material.costPrice || 0)), 0
+  );
+
+  // Get sales this month
+  const now = new Date();
+  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const salesThisMonth = sales.filter(sale => new Date(sale.date) >= firstDayOfMonth);
+  const revenueThisMonth = salesThisMonth.reduce((sum, sale) => sum + (sale.totalAmount || 0), 0);
+
+  // Calculate previous month for comparison
+  const firstDayOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastDayOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+  const salesLastMonth = sales.filter(sale => {
+    const saleDate = new Date(sale.date);
+    return saleDate >= firstDayOfLastMonth && saleDate <= lastDayOfLastMonth;
+  });
+  const revenueLastMonth = salesLastMonth.reduce((sum, sale) => sum + (sale.totalAmount || 0), 0);
+
+  const revenueChange = revenueLastMonth > 0
+    ? ((revenueThisMonth - revenueLastMonth) / revenueLastMonth) * 100
+    : 0;
+
+  return [
+    {
+      title: 'Total Revenue',
+      value: `₦${totalRevenue.toLocaleString()}`,
+      change: `${revenueChange > 0 ? '+' : ''}${revenueChange.toFixed(1)}%`,
+      trend: revenueChange >= 0 ? 'up' as const : 'down' as const,
+    },
+    {
+      title: 'Active Products',
+      value: products.length.toString(),
+      change: 'Catalog',
+      trend: 'neutral' as const,
+    },
+    {
+      title: 'Inventory Value',
+      value: `₦${inventoryValue.toLocaleString()}`,
+      change: `${materials.length} items`,
+      trend: 'neutral' as const,
+    },
+    {
+      title: 'Total Sales',
+      value: sales.length.toString(),
+      change: `${salesThisMonth.length} this month`,
+      trend: salesThisMonth.length > salesLastMonth.length ? 'up' as const : 'down' as const,
+    },
+  ];
 }

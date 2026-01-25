@@ -17,11 +17,20 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { mockSales } from '@/lib/data';
+import { getSalesAction } from '@/lib/actions';
 import type { Sale } from '@/lib/types';
 
 export default function SalesPage() {
-  const [sales] = React.useState<Sale[]>(mockSales);
+  const [sales, setSales] = React.useState<Sale[]>([]);
+
+  React.useEffect(() => {
+    loadSales();
+  }, []);
+
+  const loadSales = async () => {
+    const data = await getSalesAction();
+    setSales(data);
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(amount);
