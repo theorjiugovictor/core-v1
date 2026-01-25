@@ -17,8 +17,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['var(--font-inter)', 'sans-serif'],
-        heading: ['var(--font-outfit)', 'sans-serif'],
+        sans: ['var(--font-pt-sans)', 'sans-serif'],
+        heading: ['var(--font-pt-sans)', 'sans-serif'],
         mono: ['var(--font-geist-mono)', 'monospace'],
       },
       animation: {
