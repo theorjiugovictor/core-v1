@@ -11,7 +11,16 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { getParsedCommand } from '@/lib/actions';
-import type { ParseBusinessCommandOutput } from '@/ai/flows/parse-business-command';
+// Bedrock command parser response type
+export type ParseBusinessCommandOutput = {
+  action: string;
+  item?: string;
+  quantity?: number;
+  price?: number;
+  customer?: string;
+  isCredit?: boolean;
+  date?: string;
+};
 
 const formSchema = z.object({
   prompt: z.string().min(10, {
@@ -35,7 +44,7 @@ export function PromptConsole() {
     setResult(null);
     setError(null);
     startTransition(async () => {
-      const response = await getParsedCommand({ command: values.prompt });
+      const response = await getParsedCommand({ input: values.prompt });
       if (response.success && response.data) {
         setResult(response.data);
       } else {
