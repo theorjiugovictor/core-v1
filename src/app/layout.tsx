@@ -4,8 +4,8 @@ import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'CORE Biz Manager',
-  description: 'Your business, under control.',
+  title: 'CORE | Intelligent Business Control',
+  description: 'Your business, under control. The zero-friction management platform for Nigerian SMEs.',
 };
 
 export default function RootLayout({
@@ -16,13 +16,15 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-          <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&family=Source+Code+Pro:wght@400;700&display=swap" rel="stylesheet" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Outfit:wght@100..900&display=swap" rel="stylesheet" />
       </head>
-      <body className={cn("font-body antialiased", "min-h-screen bg-background font-sans")} suppressHydrationWarning>
-          {children}
-          <Toaster />
+      <body className={cn(
+        "min-h-screen bg-background font-sans antialiased"
+      )}>
+        {children}
+        <Toaster />
       </body>
     </html>
   );

@@ -2,71 +2,119 @@
 @tailwind components;
 @tailwind utilities;
 
+
+
+:root {
+  /* Deep Space Light Theme - Clean, crisp, professional */
+  --background: 210 40% 98%;
+  /* Very light cool blue-grey */
+  --foreground: 222 47% 11%;
+  /* Deep navy */
+
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+
+  --primary: 243 75% 59%;
+  /* Rich Indigo/Violet */
+  --primary-foreground: 210 40% 98%;
+
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222 47% 11.2%;
+
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+
+  --accent: 243 75% 59%;
+  /* Matching primary for consistency in accents */
+  --accent-foreground: 210 40% 98%;
+
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 243 75% 59%;
+
+  --radius: 0.75rem;
+
+  /* Chart colors - Vivid and distinct */
+  --chart-1: 243 75% 59%;
+  /* Indigo */
+  --chart-2: 270 50% 40%;
+  /* Deep Purple */
+  --chart-3: 190 90% 40%;
+  /* Teal/Cyan */
+  --chart-4: 30 80% 55%;
+  /* Amber/Orange */
+  --chart-5: 340 75% 55%;
+  /* Pink/Rose */
+}
+
+
+
+.dark {
+  /* Deep Space Dark Theme - Immersive, premium dark mode */
+  --background: 222 47% 11%;
+  /* Deep Navy/Slate background */
+  --foreground: 210 40% 98%;
+
+  --card: 222 47% 13%;
+  /* Slightly lighter than bg */
+  --card-foreground: 210 40% 98%;
+
+  --popover: 222 47% 11%;
+  --popover-foreground: 210 40% 98%;
+
+  --primary: 243 75% 65%;
+  /* Lighter Indigo for dark mode visibility */
+  --primary-foreground: 222 47% 11%;
+
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
+
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+
+  --accent: 243 75% 65%;
+  --accent-foreground: 222 47% 11%;
+
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+
+  --border: 217.2 32.6% 25%;
+  /* Slightly higher contrast border */
+  --input: 217.2 32.6% 17.5%;
+  --ring: 243 75% 65%;
+
+  --chart-1: 243 75% 65%;
+  --chart-2: 270 50% 60%;
+  --chart-3: 190 90% 50%;
+  --chart-4: 30 80% 65%;
+  --chart-5: 340 75% 65%;
+}
+
+
+@layer utilities {
+  .glass {
+    @apply bg-white/10 backdrop-blur-lg border border-white/20 shadow-xl;
+  }
+
+  .glass-dark {
+    @apply bg-black/10 backdrop-blur-lg border border-white/10 shadow-xl;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+* {
+  @apply border-border;
+}
+
 body {
-  font-family: 'PT Sans', sans-serif;
-}
-
-@layer base {
-  :root {
-    --background: 220 17% 95%;
-    --foreground: 224 7.1% 4.1%;
-    --card: 0 0% 100%;
-    --card-foreground: 224 7.1% 4.1%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 224 7.1% 4.1%;
-    --primary: 231 48% 48%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 220 14.3% 95.9%;
-    --secondary-foreground: 220 9.1% 43.1%;
-    --muted: 220 14.3% 95.9%;
-    --muted-foreground: 220 8.9% 46.1%;
-    --accent: 291 64% 42%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 231 48% 48%;
-    --chart-1: 231 48% 48%;
-    --chart-2: 291 64% 42%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
-  }
-  .dark {
-    --background: 220 10% 10%;
-    --foreground: 0 0% 98%;
-    --card: 220 10% 12%;
-    --card-foreground: 0 0% 98%;
-    --popover: 220 10% 10%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 231 48% 58%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 291 64% 52%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 231 48% 58%;
-    --chart-1: 231 48% 58%;
-    --chart-2: 291 64% 52%;
-    --chart-3: 197 37% 44%;
-    --chart-4: 43 74% 76%;
-    --chart-5: 27 87% 77%;
-  }
-}
-
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
+  @apply bg-background text-foreground;
 }

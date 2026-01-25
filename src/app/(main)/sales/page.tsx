@@ -38,7 +38,7 @@ export default function SalesPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Sales</CardTitle>
+        <CardTitle>Recent Transactions</CardTitle>
         <CardDescription>A list of all recent sales transactions.</CardDescription>
       </CardHeader>
       <CardContent>

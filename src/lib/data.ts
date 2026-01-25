@@ -19,28 +19,28 @@ export const mockMaterials: Material[] = [
 ];
 
 export const mockProducts: Product[] = [
-    {
-        id: 'recipe_1',
-        name: 'Classic Cake',
-        sellingPrice: 5000,
-        materials: [
-            { materialId: 'ing_1', quantity: 1 }, // 1kg flour
-            { materialId: 'ing_2', quantity: 0.5 }, // 0.5kg sugar
-            { materialId: 'ing_3', quantity: 6 }, // 6 eggs
-            { materialId: 'ing_4', quantity: 0.25 }, // 0.25kg butter
-        ],
-        createdAt: '2023-10-10T09:00:00Z',
-    },
-    {
-        id: 'recipe_2',
-        name: 'Jollof Rice (Party Pack)',
-        sellingPrice: 25000,
-        materials: [
-            { materialId: 'ing_6', quantity: 0.2 }, // 10kg rice (0.2 of 50kg bag)
-            { materialId: 'ing_5', quantity: 5 }, // 5kg tomatoes
-        ],
-        createdAt: '2023-10-11T12:00:00Z',
-    }
+  {
+    id: 'recipe_1',
+    name: 'Classic Cake',
+    sellingPrice: 5000,
+    materials: [
+      { materialId: 'ing_1', quantity: 1 }, // 1kg flour
+      { materialId: 'ing_2', quantity: 0.5 }, // 0.5kg sugar
+      { materialId: 'ing_3', quantity: 6 }, // 6 eggs
+      { materialId: 'ing_4', quantity: 0.25 }, // 0.25kg butter
+    ],
+    createdAt: '2023-10-10T09:00:00Z',
+  },
+  {
+    id: 'recipe_2',
+    name: 'Jollof Rice (Party Pack)',
+    sellingPrice: 25000,
+    materials: [
+      { materialId: 'ing_6', quantity: 0.2 }, // 10kg rice (0.2 of 50kg bag)
+      { materialId: 'ing_5', quantity: 5 }, // 5kg tomatoes
+    ],
+    createdAt: '2023-10-11T12:00:00Z',
+  }
 ];
 
 export const mockSales: Sale[] = [
@@ -50,30 +50,30 @@ export const mockSales: Sale[] = [
 ];
 
 export const mockKpis: Kpi[] = [
-  { 
-    title: 'Total Revenue', 
-    value: '₦85,000', 
-    change: '+15.2%', 
+  {
+    title: 'Total Revenue',
+    value: '₦85,000',
+    change: '+15.2%',
     changeType: 'increase',
     icon: DollarSign,
     description: 'from last month',
   },
-  { 
-    title: 'Total Profit', 
-    value: '₦25,500', 
-    change: '+21.0%', 
+  {
+    title: 'Total Profit',
+    value: '₦25,500',
+    change: '+21.0%',
     changeType: 'increase',
     icon: TrendingUp,
     description: 'from last month',
   },
-  { 
-    title: 'Top Selling Product', 
-    value: 'Classic Cake', 
+  {
+    title: 'Top Selling Product',
+    value: 'Classic Cake',
     icon: Package,
     description: 'by sales volume',
   },
-  { 
-    title: 'Low Stock Items', 
+  {
+    title: 'Low Stock Items',
     value: '1',
     change: 'Rice',
     changeType: 'decrease',
@@ -89,4 +89,22 @@ export const mockRevenueData = [
   { date: 'Apr 23', Desktop: 73, Mobile: 190 },
   { date: 'May 23', Desktop: 209, Mobile: 130 },
   { date: 'Jun 23', Desktop: 214, Mobile: 140 },
+];
+
+export const mockInsights = [
+  {
+    id: 'ins_1',
+    message: 'Consider restocking Rice (50kg) as inventory is critically low (1 unit left). Customer demand is rising.',
+    relevanceScore: 0.95,
+  },
+  {
+    id: 'ins_2',
+    message: 'Classic Cake is your top seller. Suggest creating a "Weekend Bundle" with drinks to increase average order value.',
+    relevanceScore: 0.88,
+  },
+  {
+    id: 'ins_3',
+    message: 'Cash flow is healthy (₦85,000 revenue), but 40% of sales are "Transfer". Check transfer confirmation diligently to avoid fraud.',
+    relevanceScore: 0.75,
+  },
 ];
