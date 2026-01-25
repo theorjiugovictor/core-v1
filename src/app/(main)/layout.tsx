@@ -103,9 +103,9 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <div className="flex flex-col">
+        <div className="flex flex-col min-h-screen">
           <Header title={title} />
-          <main className="flex-1 overflow-auto p-4 pt-8 md:p-8">
+          <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
             {children}
           </main>
         </div>

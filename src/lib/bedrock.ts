@@ -128,16 +128,26 @@ export async function generateBusinessInsights(businessData: {
   sales: any[];
   products: any[];
 }) {
-  const systemPrompt = `You are a business advisor for Nigerian SMEs. Analyze the business data and provide actionable insights.
-Focus on: inventory management, pricing strategies, cash flow, and growth opportunities.
-Respond with a JSON array of insights, each with "message" and "relevanceScore" (0-1).`;
+  const systemPrompt = `You are a business advisor for Nigerian SMEs. You MUST respond with ONLY a valid JSON array.
+DO NOT include any text, commentary, or explanations outside the JSON.
+DO NOT write "Here are the insights" or any other prose.
+Your response must start with [ and end with ].
 
-  const prompt = `Analyze this business:
+Each insight object must have:
+- "message": string (specific, actionable advice)
+- "relevanceScore": number between 0 and 1`;
+
+  const prompt = `Analyze this business data and return ONLY a JSON array of 3-5 insights:
+
 Materials: ${JSON.stringify(businessData.materials, null, 2)}
 Sales: ${JSON.stringify(businessData.sales, null, 2)}
 Products: ${JSON.stringify(businessData.products, null, 2)}
 
-Provide 3-5 specific, actionable insights for this Nigerian business.`;
+Response format (ONLY THIS, NO OTHER TEXT):
+[
+  {"message": "insight text", "relevanceScore": 0.9},
+  {"message": "insight text", "relevanceScore": 0.8}
+]`;
 
   try {
     const response = await callBedrock(prompt, systemPrompt, {
@@ -145,7 +155,22 @@ Provide 3-5 specific, actionable insights for this Nigerian business.`;
       temperature: 0.7,
     });
 
-    const insights = JSON.parse(response.content);
+    // Try to extract JSON if wrapped in text
+    let jsonContent = response.content.trim();
+
+    // If response contains text before JSON, try to extract it
+    const jsonMatch = jsonContent.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      jsonContent = jsonMatch[0];
+    }
+
+    const insights = JSON.parse(jsonContent);
+
+    // Validate it's an array
+    if (!Array.isArray(insights)) {
+      throw new Error('Response is not an array');
+    }
+
     return {
       success: true,
       data: insights,
