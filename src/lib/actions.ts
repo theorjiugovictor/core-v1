@@ -173,7 +173,15 @@ export async function processBusinessCommand(input: ParseBusinessCommandInput) {
 
   } catch (dbError) {
     console.error("Database execution failed:", dbError);
-    return { success: false, error: "Failed to execute command in database." };
+    console.error("Error details:", {
+      name: dbError instanceof Error ? dbError.name : 'Unknown',
+      message: dbError instanceof Error ? dbError.message : String(dbError),
+      stack: dbError instanceof Error ? dbError.stack : undefined,
+    });
+    return {
+      success: false,
+      error: `Failed to execute command in database: ${dbError instanceof Error ? dbError.message : String(dbError)}`
+    };
   }
 }
 
