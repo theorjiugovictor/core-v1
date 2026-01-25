@@ -76,7 +76,8 @@ Parse natural language commands into structured actions.
 
 Supported actions:
 - SALE: Record a sale (e.g., "sold 15 bottles palm oil 800 each")
-- STOCK_IN: Add inventory (e.g., "add 100 bags cement at 5000 cost")
+- STOCK_IN: Add inventory/material (e.g., "add 100 bags cement at 5000 cost")
+- CREATE_PRODUCT: Create a new product (e.g., "create product fried rice selling at 1500")
 - STOCK_CHECK: Check stock levels (e.g., "how many bags of rice?")
 - EXPENSE: Record expense (e.g., "paid 15k for transport")
 - CREDIT_SALE: Sale on credit (e.g., "sold 10 cartons to Mama Ngozi on credit")
@@ -89,7 +90,7 @@ Nigerian currency patterns:
 
 Respond ONLY with a JSON object in this exact format:
 {
-  "action": "SALE" | "STOCK_IN" | "STOCK_CHECK" | "EXPENSE" | "CREDIT_SALE" | "SUMMARY",
+  "action": "SALE" | "STOCK_IN" | "CREATE_PRODUCT" | "STOCK_CHECK" | "EXPENSE" | "CREDIT_SALE" | "SUMMARY",
   "item": "product name",
   "quantity": number,
   "price": number,

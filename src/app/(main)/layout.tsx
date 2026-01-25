@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Boxes, LayoutDashboard, Lightbulb, Settings, ShoppingCart, UtensilsCrossed } from 'lucide-react';
+import { Boxes, LayoutDashboard, Lightbulb, Package, Settings, ShoppingCart } from 'lucide-react';
 
 import {
   SidebarProvider,
@@ -24,7 +24,7 @@ import { UserNav } from '@/components/user-nav';
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/materials', icon: Boxes, label: 'Inventory' },
-  { href: '/products', icon: UtensilsCrossed, label: 'Products' },
+  { href: '/products', icon: Package, label: 'Products' },
   { href: '/sales', icon: ShoppingCart, label: 'Sales' },
   { href: '/insights', icon: Lightbulb, label: 'Insights' },
 ];

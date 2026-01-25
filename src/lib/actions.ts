@@ -35,6 +35,24 @@ function parseCommandWithRegex(input: string) {
     };
   }
 
+  // Product creation pattern: "create product fried rice selling at 1500"
+  const productPattern = /(?:create\s+product|new\s+product)\s+(.+?)\s+(?:selling\s+)?(?:at|@|for)\s*(?:₦|naira)?\s*(\d+(?:,\d{3})*(?:\.\d{2})?)/i;
+  const productMatch = normalized.match(productPattern);
+
+  if (productMatch) {
+    const [_, item, price] = productMatch;
+    return {
+      success: true,
+      data: {
+        action: 'CREATE_PRODUCT',
+        item: item.trim(),
+        quantity: 0,
+        price: parseFloat(price.replace(/,/g, '')),
+        date: new Date().toISOString().split('T')[0]
+      }
+    };
+  }
+
   // Stock check: "how many bags of rice?"
   if (normalized.includes('how many') || normalized.includes('check stock') || normalized.includes('count')) {
     return {
@@ -50,7 +68,7 @@ function parseCommandWithRegex(input: string) {
 
   return {
     success: false,
-    error: 'Could not understand command. Try: "Sold 5 bags at 1000 each"'
+    error: 'Could not understand command. Try: "Sold 5 bags at 1000 each" or "Create product fried rice at 1500"'
   };
 }
 
@@ -159,6 +177,20 @@ export async function processBusinessCommand(input: ParseBusinessCommandInput) {
         } else {
           message = `⚠️ Item '${item}' not found in inventory.`;
         }
+        break;
+
+      case 'CREATE_PRODUCT':
+        // Create a new product
+        await productsService.create({
+          userId,
+          name: item || 'New Product',
+          sellingPrice: price || 0,
+          materials: [], // Empty materials array, user can add recipe later
+          createdAt: new Date().toISOString()
+        });
+        message = `✨ Created new product: ${item} (Selling price: ₦${price})`;
+        revalidatePath('/dashboard');
+        revalidatePath('/products');
         break;
 
       case 'EXPENSE':
