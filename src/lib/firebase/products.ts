@@ -8,13 +8,19 @@ export const productsService = {
       const snapshot = await db
         .collection(Collections.PRODUCTS)
         .where('userId', '==', userId)
-        .orderBy('createdAt', 'desc')
         .get();
 
-      return snapshot.docs.map((doc) => ({
+      // Sort in memory to avoid composite index requirement
+      const products = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       })) as Product[];
+
+      return products.sort((a, b) => {
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+        return dateB - dateA; // desc order
+      });
     } catch (error) {
       console.error('Error getting products:', error);
       throw new Error('Failed to fetch products');
