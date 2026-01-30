@@ -63,7 +63,7 @@ export default async function DashboardPage() {
             </section>
 
             {/* 2. Key Metrics Layer - Bento Grid Row 1 */}
-            <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {kpis.map((kpi: any, index: number) => {
                     const IconComponent = iconMap[kpi.iconName as keyof typeof iconMap] || Activity;
                     return (
