@@ -4,17 +4,17 @@ import { ArrowRight, Mic, TrendingUp, Boxes, ShieldCheck, Zap, Sparkles, Message
 
 export default function LandingPage() {
   return (
-    <div className="flex flex-col min-h-screen bg-background relative overflow-hidden">
+    <div className="flex flex-col min-h-screen relative overflow-hidden">
       {/* Background Elements (Google-style subtle playground) */}
-      <div className="absolute inset-0 -z-10 h-full w-full bg-white dark:bg-black bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#ffffff33_1px,transparent_1px)] [background-size:16px_16px] opacity-70"></div>
-      <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-b from-primary/5 to-transparent -z-10"></div>
+      <div className="absolute inset-0 z-0 pointer-events-none h-full w-full bg-white dark:bg-black bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#ffffff33_1px,transparent_1px)] [background-size:16px_16px] opacity-70"></div>
+      <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-b from-primary/5 to-transparent z-0 pointer-events-none"></div>
 
       {/* Dynamic Orbs */}
-      <div className="absolute top-20 left-10 w-72 h-72 bg-blue-400/20 rounded-full blur-[100px] animate-pulse -z-10"></div>
-      <div className="absolute top-40 right-10 w-72 h-72 bg-purple-400/20 rounded-full blur-[100px] animate-pulse delay-1000 -z-10"></div>
+      <div className="absolute top-20 left-10 w-72 h-72 bg-blue-400/20 rounded-full blur-[100px] z-0 animate-pulse pointer-events-none"></div>
+      <div className="absolute top-40 right-10 w-72 h-72 bg-purple-400/20 rounded-full blur-[100px] z-0 animate-pulse delay-1000 pointer-events-none"></div>
 
       {/* Navigation */}
-      <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-background/60 backdrop-blur-md sticky top-0 z-50">
+      <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-background/60 backdrop-blur-md sticky top-0 z-50 relative">
         <Link className="flex items-center justify-center gap-2" href="/">
           <div className="bg-primary text-primary-foreground p-1 rounded-lg">
             <Sparkles className="w-5 h-5" />
@@ -31,7 +31,7 @@ export default function LandingPage() {
         </nav>
       </header>
 
-      <main className="flex-1">
+      <main className="flex-1 relative z-10">
         {/* Hero Section */}
         <section className="w-full py-20 md:py-32 lg:py-48 px-4 md:px-6 flex flex-col items-center text-center relative">
           <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 mb-6 animate-fade-in-up">
@@ -157,26 +157,35 @@ export default function LandingPage() {
 
 
         {/* CTA Section */}
-        <section className="w-full py-24 lg:py-32 px-4 text-center relative overflow-hidden">
-          <div className="absolute inset-0 -z-10 bg-gradient-to-b from-transparent to-primary/5"></div>
-          <div className="container mx-auto space-y-8">
-            <h2 className="text-4xl font-extrabold tracking-tight md:text-5xl">
-              Ready to upgrade your business?
-            </h2>
-            <p className="mx-auto max-w-[600px] text-muted-foreground md:text-xl">
-              Join the new wave of Nigerian businesses using AI to grow faster.
-            </p>
-            <Link href="/register">
-              <Button size="lg" className="h-14 px-10 text-xl rounded-full shadow-2xl bg-primary hover:bg-primary/90 transition-all hover:scale-105">
-                Get Started Free
-              </Button>
-            </Link>
-            <p className="text-sm text-muted-foreground">No credit card required • 14-day free trial</p>
+        <section className="w-full py-24 lg:py-32 px-4 text-center relative overflow-hidden z-10">
+          {/* CTA Card */}
+          <div className="container mx-auto max-w-4xl relative">
+            <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-blue-600/20 to-purple-600/20 blur opacity-50"></div>
+            <div className="relative rounded-3xl bg-card border shadow-2xl p-10 md:p-16 overflow-hidden">
+              {/* Background flare inside card */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-primary/10 rounded-full blur-[80px] -z-10"></div>
+
+              <h2 className="text-3xl font-bold tracking-tight md:text-5xl mb-6">
+                Ready to upgrade your business?
+              </h2>
+              <p className="mx-auto max-w-[600px] text-muted-foreground md:text-xl mb-10">
+                Join the new wave of Nigerian businesses using AI to grow faster.
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Link href="/register">
+                  <Button size="lg" className="h-14 px-10 text-xl rounded-full shadow-xl bg-primary hover:bg-primary/90 transition-all hover:scale-105 w-full sm:w-auto">
+                    Get Started Free
+                  </Button>
+                </Link>
+              </div>
+              <p className="text-sm text-muted-foreground mt-6">No credit card required • 14-day free trial</p>
+            </div>
           </div>
         </section>
       </main>
 
-      <footer className="py-8 w-full shrink-0 border-t bg-white/50 dark:bg-black/50 backdrop-blur-sm">
+      <footer className="py-8 w-full shrink-0 border-t bg-white/50 dark:bg-black/50 backdrop-blur-sm relative z-10">
         <div className="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <span className="font-bold">CORE</span>
