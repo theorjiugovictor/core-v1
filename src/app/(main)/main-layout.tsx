@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Boxes, LayoutDashboard, Lightbulb, Package, Settings, ShoppingCart } from 'lucide-react';
+import { Boxes, LayoutDashboard, Lightbulb, Package, Settings, ShoppingCart, HelpCircle } from 'lucide-react';
 
 import {
   SidebarProvider,
@@ -26,6 +26,7 @@ const navItems = [
   { href: '/products', icon: Package, label: 'Products' },
   { href: '/sales', icon: ShoppingCart, label: 'Sales' },
   { href: '/insights', icon: Lightbulb, label: 'Insights' },
+  { href: '/help', icon: HelpCircle, label: 'Help & Guides' },
 ];
 
 const pageTitles: { [key: string]: string } = {
@@ -35,6 +36,7 @@ const pageTitles: { [key: string]: string } = {
   '/sales': 'Sales Records',
   '/insights': 'Business Insights',
   '/settings': 'Settings',
+  '/help': 'Help & Guides',
 };
 
 export default function MainLayout({ children, user }: { children: React.ReactNode; user: User }) {

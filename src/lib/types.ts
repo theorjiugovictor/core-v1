@@ -19,6 +19,7 @@ export type Product = {
   id: string;
   name: string;
   sellingPrice: number;
+  costPrice?: number; // For retail items without recipes
   materials: {
     materialId: string;
     quantity: number;
@@ -32,6 +33,7 @@ export type Sale = {
   productName: string;
   quantity: number;
   totalAmount: number;
+  costAmount?: number; // Cost of Goods Sold
   paymentMethod: 'Cash' | 'Card' | 'Transfer';
   date: string;
 };

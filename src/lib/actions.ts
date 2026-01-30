@@ -24,33 +24,34 @@ function parseCommandWithRegex(input: string) {
     const [_, quantity, item, price] = saleMatch;
     const action = normalized.startsWith('sold') ? 'SALE' : 'STOCK_IN';
 
+    // Return array to match new interface
     return {
       success: true,
-      data: {
+      data: [{
         action,
         item: item.trim(),
         quantity: parseInt(quantity),
         price: parseFloat(price.replace(/,/g, '')),
         date: new Date().toISOString().split('T')[0]
-      }
+      }]
     };
   }
 
   // Product creation pattern: "create product fried rice selling at 1500"
-  const productPattern = /(?:create\s+product|new\s+product)\s+(.+?)\s+(?:selling\s+)?(?:at|@|for)\s*(?:₦|naira)?\s*(\d+(?:,\d{3})*(?:\.\d{2})?)/i;
+  const productPattern = /(?:create\s+product|new\s+product|create)\s+(.+?)\s+(?:selling\s+)?(?:at|@|for)\s*(?:₦|naira)?\s*(\d+(?:,\d{3})*(?:\.\d{2})?)/i;
   const productMatch = normalized.match(productPattern);
 
   if (productMatch) {
     const [_, item, price] = productMatch;
     return {
       success: true,
-      data: {
+      data: [{
         action: 'CREATE_PRODUCT',
         item: item.trim(),
         quantity: 0,
         price: parseFloat(price.replace(/,/g, '')),
         date: new Date().toISOString().split('T')[0]
-      }
+      }]
     };
   }
 
@@ -58,18 +59,18 @@ function parseCommandWithRegex(input: string) {
   if (normalized.includes('how many') || normalized.includes('check stock') || normalized.includes('count')) {
     return {
       success: true,
-      data: {
+      data: [{
         action: 'STOCK_CHECK',
         item: normalized.replace('how many', '').replace('check stock', '').replace('count', '').trim(),
         quantity: 0,
         price: 0
-      }
+      }]
     }
   }
 
   return {
     success: false,
-    error: 'Could not understand command. Try: "Sold 5 bags at 1000 each" or "Create product fried rice at 1500"'
+    error: 'Could not understand command. Try: "Sold 5 bags of Rice at 1000 each"'
   };
 }
 
@@ -79,8 +80,8 @@ export async function processBusinessCommand(input: ParseBusinessCommandInput) {
   try {
     // Try Bedrock first
     parsedResult = await parseWithBedrock(input.input);
-    if (!parsedResult.success) {
-      throw new Error("Bedrock parsing failed");
+    if (!parsedResult.success || !parsedResult.data) {
+      throw new Error("Bedrock parsing failed or returned no data");
     }
   } catch (error) {
     console.error('Bedrock parsing failed, using fallback:', error);
@@ -91,142 +92,197 @@ export async function processBusinessCommand(input: ParseBusinessCommandInput) {
     return { success: false, error: parsedResult.error || "Could not parse command." };
   }
 
-  const { action, item, quantity, price, customer, isCredit } = parsedResult.data;
-
+  const actions = Array.isArray(parsedResult.data) ? parsedResult.data : [parsedResult.data];
   const session = await auth();
+
   if (!session?.user?.id) {
     return { success: false, error: "Unauthorized. Please log in." };
   }
   const userId = session.user.id;
 
+  let finalMessage = "";
+  const processedActions = [];
+
   try {
-    let message = "";
+    // Process each action in sequence
+    for (const actionData of actions) {
+      const { action, item, quantity, price, customer, isCredit, recipe } = actionData;
+      let message = "";
 
-    switch (action) {
-      case 'SALE':
-        // 1. Record Sale
-        await salesService.create({
-          userId,
-          productName: item || 'Unknown Product',
-          quantity: quantity || 1,
-          totalAmount: (quantity || 1) * (price || 0),
-          paymentMethod: isCredit ? 'Transfer' : 'Cash',
-          date: new Date().toISOString()
-        });
+      switch (action) {
+        case 'SALE':
+          // 1. Calculate Unit Cost & Total Cost
+          const products = await productsService.getAll(userId);
+          const product = products.find(p => p.name.toLowerCase() === (item || '').toLowerCase());
+          const materials = await materialsService.getAll(userId);
 
-        // 2. Update Inventory (Smart Depletion)
-        const products = await productsService.getAll(userId);
-        const product = products.find(p => p.name.toLowerCase() === (item || '').toLowerCase());
+          let unitCost = 0;
+          if (product) {
+            if (product.materials && product.materials.length > 0) {
+              // Recipe Cost
+              unitCost = product.materials.reduce((acc, curr) => {
+                const mat = materials.find(m => m.id === curr.materialId);
+                return acc + (mat ? mat.costPrice * curr.quantity : 0);
+              }, 0);
+            } else {
+              // Retail Cost
+              unitCost = product.costPrice || 0;
+            }
+          } else {
+            // Direct Material Sale
+            const directMat = materials.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
+            if (directMat) unitCost = directMat.costPrice;
+          }
 
-        const materials = await materialsService.getAll(userId);
+          const qty = quantity || 1;
+          const costAmount = unitCost * qty;
 
-        if (product && product.materials) {
-          // It's a product with a recipe - deplete ingredients
-          for (const ingredient of product.materials) {
-            const material = materials.find(m => m.id === ingredient.materialId);
+          // 2. Record Sale with Cost
+          await salesService.create({
+            userId,
+            productName: item || 'Unknown Product',
+            quantity: qty,
+            totalAmount: qty * (price || 0),
+            costAmount,
+            paymentMethod: isCredit ? 'Transfer' : 'Cash',
+            date: new Date().toISOString()
+          });
+
+          // 3. Update Inventory (Smart Depletion)
+          if (product && product.materials) {
+            // Deplete ingredients
+            for (const ingredient of product.materials) {
+              const material = materials.find(m => m.id === ingredient.materialId);
+              if (material) {
+                const qtyToDeduct = ingredient.quantity * qty;
+                await materialsService.update(material.id, userId, {
+                  quantity: Math.max(0, material.quantity - qtyToDeduct)
+                });
+              }
+            }
+            message = `✅ Sold ${qty}x ${item} (Ingredients deducted)`;
+          } else {
+            // Check direct material sale
+            const material = materials.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
             if (material) {
-              const qtyToDeduct = ingredient.quantity * (quantity || 1);
               await materialsService.update(material.id, userId, {
-                quantity: Math.max(0, material.quantity - qtyToDeduct)
+                quantity: Math.max(0, material.quantity - qty)
+              });
+              message = `✅ Sold ${qty}x ${item} (Stock deducted)`;
+            } else {
+              message = `✅ Recorded Sale: ${qty}x ${item}`;
+            }
+          }
+          break;
+
+        case 'STOCK_IN':
+          const allMaterials = await materialsService.getAll(userId);
+          const existingMaterial = allMaterials.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
+
+          if (existingMaterial) {
+            await materialsService.update(existingMaterial.id, userId, {
+              quantity: existingMaterial.quantity + (quantity || 0),
+              costPrice: price || existingMaterial.costPrice
+            });
+            message = `📦 Added Stock: ${item} +${quantity}`;
+          } else {
+            await materialsService.create({
+              userId,
+              name: item || 'New Item',
+              quantity: quantity || 0,
+              unit: 'unit',
+              costPrice: price || 0,
+              createdAt: new Date().toISOString()
+            });
+            message = `📦 Created Material: ${quantity}x ${item}`;
+          }
+          break;
+
+        case 'CREATE_PRODUCT':
+          const newProductMaterials = [];
+
+          // Handle Recipe Creation
+          if (recipe && Array.isArray(recipe)) {
+            const currentMaterials = await materialsService.getAll(userId);
+
+            for (const ingredient of recipe) {
+              let matId = '';
+              const existingMat = currentMaterials.find(m => m.name.toLowerCase() === ingredient.item.toLowerCase());
+
+              if (existingMat) {
+                matId = existingMat.id;
+              } else {
+                // Auto-create missing material
+                const newMat = await materialsService.create({
+                  userId,
+                  name: ingredient.item,
+                  quantity: 0,
+                  unit: 'unit',
+                  costPrice: 0,
+                  createdAt: new Date().toISOString()
+                });
+                matId = newMat.id;
+              }
+
+              newProductMaterials.push({
+                materialId: matId,
+                quantity: ingredient.quantity
               });
             }
           }
-          message = `✅ Recorded sale: ${quantity}x ${item}. Deducted ingredients from stock.`;
-        } else {
-          // Check if it's a direct material sale (e.g. selling a bag of cement)
-          const material = materials.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
-          if (material) {
-            await materialsService.update(material.id, userId, {
-              quantity: Math.max(0, material.quantity - (quantity || 1))
-            });
-            message = `✅ Recorded sale: ${quantity}x ${item}. Deducted directly from stock.`;
-          } else {
-            message = `✅ Recorded sale: ${quantity}x ${item}. Note: Item not found in inventory, stock not deducted.`;
-          }
-        }
-        revalidatePath('/dashboard');
-        revalidatePath('/materials');
-        revalidatePath('/sales');
-        break;
 
-      case 'STOCK_IN':
-        // 1. Check if material exists
-        const allMaterials = await materialsService.getAll(userId);
-        const existingMaterial = allMaterials.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
-
-        if (existingMaterial) {
-          await materialsService.update(existingMaterial.id, userId, {
-            quantity: existingMaterial.quantity + (quantity || 0),
-            costPrice: price || existingMaterial.costPrice
-          });
-          message = `📦 Updated stock: ${existingMaterial.name} +${quantity} (Total: ${existingMaterial.quantity + (quantity || 0)})`;
-        } else {
-          await materialsService.create({
+          // Note: Bedrock parser doesn't currently extract costPrice. 
+          // We'll rely on the updateProduct action later or infer it? 
+          // For now, let's just create it with 0 costPrice if it's retail.
+          await productsService.create({
             userId,
-            name: item || 'New Item',
-            quantity: quantity || 0,
-            unit: 'unit',
-            costPrice: price || 0,
+            name: item || 'New Product',
+            sellingPrice: price || 0,
+            costPrice: 0,
+            materials: newProductMaterials,
             createdAt: new Date().toISOString()
           });
-          message = `📦 Created new material: ${quantity}x ${item}`;
-        }
-        revalidatePath('/dashboard');
-        revalidatePath('/materials');
-        break;
 
-      case 'STOCK_CHECK':
-        const currentMaterials = await materialsService.getAll(userId);
-        const found = currentMaterials.find(m => m.name.toLowerCase().includes((item || '').toLowerCase()));
-        if (found) {
-          message = `🔎 Stock Check: We have ${found.quantity} ${found.unit}s of ${found.name}.`;
-        } else {
-          message = `⚠️ Item '${item}' not found in inventory.`;
-        }
-        break;
+          message = `✨ Created Product: ${item} @ ₦${price}${newProductMaterials.length > 0 ? ` with ${newProductMaterials.length} ingredients` : ''}`;
+          break;
 
-      case 'CREATE_PRODUCT':
-        // Create a new product
-        await productsService.create({
-          userId,
-          name: item || 'New Product',
-          sellingPrice: price || 0,
-          materials: [], // Empty materials array, user can add recipe later
-          createdAt: new Date().toISOString()
-        });
-        message = `✨ Created new product: ${item} (Selling price: ₦${price})`;
-        revalidatePath('/dashboard');
-        revalidatePath('/products');
-        break;
+        case 'STOCK_CHECK':
+          const stockMaterials = await materialsService.getAll(userId);
+          const foundStock = stockMaterials.find(m => m.name.toLowerCase().includes((item || '').toLowerCase()));
+          message = foundStock ? `🔎 Stock: ${foundStock.quantity} ${foundStock.unit}s of ${foundStock.name}` : `⚠️ '${item}' not found in stock.`;
+          break;
 
-      case 'EXPENSE':
-        message = `💸 Recorded expense: ₦${price} for ${item}`;
-        break;
+        case 'EXPENSE':
+          message = `💸 Expense: ₦${price} for ${item}`;
+          break;
 
-      case 'CHAT':
-        message = parsedResult.data.message || "I'm listening.";
-        break;
+        case 'CHAT':
+          message = actionData.message || "I'm listening.";
+          break;
 
-      case 'CLARIFY':
-        message = parsedResult.data.message || "Could you please clarify?";
-        break;
+        case 'CLARIFY':
+          message = `❓ ${actionData.message || "Could you clarify?"}`;
+          break;
 
-      default:
-        message = `Command understood (${action}) but logic not implemented yet.`;
+        default:
+          message = `Unknown action: ${action}`;
+      }
+      processedActions.push(message);
     }
 
-    return { success: true, message, data: parsedResult.data };
+    finalMessage = processedActions.join('\n');
+    revalidatePath('/dashboard');
+    revalidatePath('/materials');
+    revalidatePath('/sales');
+    revalidatePath('/products');
+
+    return { success: true, message: finalMessage, data: actions };
 
   } catch (dbError) {
     console.error("Database execution failed:", dbError);
-    console.error("Error details:", {
-      name: dbError instanceof Error ? dbError.name : 'Unknown',
-      message: dbError instanceof Error ? dbError.message : String(dbError),
-      stack: dbError instanceof Error ? dbError.stack : undefined,
-    });
     return {
       success: false,
-      error: `Failed to execute command in database: ${dbError instanceof Error ? dbError.message : String(dbError)}`
+      error: `Error: ${dbError instanceof Error ? dbError.message : String(dbError)}`
     };
   }
 }
@@ -294,7 +350,7 @@ export async function getProductsAction() {
   return await productsService.getAll(userId);
 }
 
-export async function createProductAction(data: { name: string; sellingPrice: number; materials: { materialId: string; quantity: number }[] }) {
+export async function createProductAction(data: { name: string; sellingPrice: number; costPrice?: number; materials: { materialId: string; quantity: number }[] }) {
   const session = await auth();
   if (!session?.user?.id) return { success: false, error: "Unauthorized" };
   const userId = session.user.id;
@@ -304,7 +360,7 @@ export async function createProductAction(data: { name: string; sellingPrice: nu
   return { success: true };
 }
 
-export async function updateProductAction(id: string, data: { name: string; sellingPrice: number; materials: { materialId: string; quantity: number }[] }) {
+export async function updateProductAction(id: string, data: { name: string; sellingPrice: number; costPrice?: number; materials: { materialId: string; quantity: number }[] }) {
   const session = await auth();
   if (!session?.user?.id) return { success: false, error: "Unauthorized" };
   const userId = session.user.id;
@@ -343,25 +399,36 @@ export async function createSaleAction(data: { productName: string; quantity: nu
   const userId = session.user.id;
 
   try {
+    const products = await productsService.getAll(userId);
+    const materials = await materialsService.getAll(userId);
+    const product = products.find(p => p.name === data.productName);
+
+    // 1. Calculate Unit Cost
+    let costAmount = 0;
+    if (product) {
+      if (product.materials && product.materials.length > 0) {
+        // Recipe Cost
+        const unitCost = product.materials.reduce((acc, curr) => {
+          const mat = materials.find(m => m.id === curr.materialId);
+          return acc + (mat ? mat.costPrice * curr.quantity : 0);
+        }, 0);
+        costAmount = unitCost * data.quantity;
+      } else {
+        // Retail Cost
+        costAmount = (product.costPrice || 0) * data.quantity;
+      }
+    }
+
+    // 2. Create Sale
     await salesService.create({
       userId,
       ...data,
+      costAmount,
       date: new Date().toISOString()
     });
 
-    // Note: We are NOT deducting inventory automatically for manual manual sales to keep logic simple for now, 
-    // unless we want to duplicate the logic from processBusinessCommand.
-    // For now, let's keep it simple as a record-keeping tool. 
-    // Wait, the user might expect inventory deduction.
-    // Let's replicate the basic deduction logic if possible, or just leave it as record.
-    // The plan said "Manual 'Record Sale' UI (bypass AI)". 
-    // Let's try to verify if the product exists and deduct if so.
-
-    const products = await productsService.getAll(userId);
-    const product = products.find(p => p.name === data.productName);
-
+    // 3. Deduct Inventory (if product exists and has recipe)
     if (product && product.materials) {
-      const materials = await materialsService.getAll(userId);
       for (const ingredient of product.materials) {
         const material = materials.find(m => m.id === ingredient.materialId);
         if (material) {
@@ -449,13 +516,25 @@ export async function getKpisAction() {
     ? ((revenueThisMonth - revenueLastMonth) / revenueLastMonth) * 100
     : 0;
 
+  // Calculate Gross Profit
+  const totalCost = sales.reduce((sum, sale) => sum + (sale.costAmount || 0), 0);
+  const grossProfit = totalRevenue - totalCost;
+  const margin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+
   return [
+    {
+      title: 'Gross Profit',
+      value: `₦${grossProfit.toLocaleString()}`,
+      change: `${margin.toFixed(1)}% margin`,
+      trend: margin >= 20 ? 'up' as const : 'neutral' as const, // Arbitrary threshold
+      iconName: 'DollarSign',
+    },
     {
       title: 'Total Revenue',
       value: `₦${totalRevenue.toLocaleString()}`,
       change: `${revenueChange > 0 ? '+' : ''}${revenueChange.toFixed(1)}%`,
       trend: revenueChange >= 0 ? 'up' as const : 'down' as const,
-      iconName: 'DollarSign',
+      iconName: 'TrendingUp',
     },
     {
       title: 'Active Products',
@@ -469,15 +548,8 @@ export async function getKpisAction() {
       value: `₦${inventoryValue.toLocaleString()}`,
       change: `${materials.length} items`,
       trend: 'neutral' as const,
-      iconName: 'TrendingUp',
-    },
-    {
-      title: 'Total Sales',
-      value: sales.length.toString(),
-      change: `${salesThisMonth.length} this month`,
-      trend: salesThisMonth.length > salesLastMonth.length ? 'up' as const : 'down' as const,
-      iconName: 'TrendingDown',
-    },
+      iconName: 'Boxes',
+    }
   ];
 }
 

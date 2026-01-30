@@ -3,7 +3,7 @@ import { KpiCard } from "@/components/kpi-card";
 import { PromptConsole } from "@/components/prompt-console";
 import { RevenueChart } from "@/components/revenue-chart";
 import { getKpisAction, getRevenueChartData } from "@/lib/actions";
-import { Activity, DollarSign, Package, TrendingDown, TrendingUp } from "lucide-react";
+import { Activity, DollarSign, Package, TrendingDown, TrendingUp, Boxes } from "lucide-react";
 import { DashboardInsights } from "@/components/dashboard-insights";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -13,7 +13,8 @@ const iconMap = {
     Package,
     TrendingUp,
     TrendingDown,
-    Activity
+    Activity,
+    Boxes
 };
 
 function DashboardInsightsSkeleton() {

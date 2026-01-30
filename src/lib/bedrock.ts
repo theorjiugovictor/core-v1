@@ -70,55 +70,81 @@ export async function callBedrock(
 /**
  * Parse business command using Bedrock Claude
  */
+/**
+ * Parse business command using Bedrock Claude
+ */
 export async function parseBusinessCommand(input: string) {
   const systemPrompt = `You are a business command parser for a Nigerian SME management app.
-Parse natural language commands into structured actions.
+Parse natural language commands into a structured JSON ARRAY of actions.
+You must return a JSON ARRAY, even for a single command.
 
 Supported actions:
 - SALE: Record a sale (e.g., "sold 15 bottles palm oil 800 each")
 - STOCK_IN: Add inventory/material (e.g., "add 100 bags cement at 5000 cost")
-- CREATE_PRODUCT: Create a new product (e.g., "create product fried rice selling at 1500")
+- CREATE_PRODUCT: Create a new product. CAN include recipe. (e.g., "create Meat Pie at 500 made of 0.2 flour and 0.1 meat")
 - STOCK_CHECK: Check stock levels (e.g., "how many bags of rice?")
 - EXPENSE: Record expense (e.g., "paid 15k for transport")
 - SUMMARY: View summary (e.g., "today's sales")
-- CHAT: General conversation, greetings, or questions about the app (e.g. "Hello", "How do I use this?", "What is your name?")
-- CLARIFY: Use this if the user's intent is ambiguous or missing critical details (e.g. "Added rice" -> missing quantity and price).
+- CHAT: General conversation (e.g. "Hello", "How do I use this?")
+- CLARIFY: If intent is ambiguous or missing critical details (e.g. "Added rice" -> missing qty/price).
 
 Nigerian currency patterns:
 - "5k" = 5000 Naira
 - "45k each" = 45000 per unit
 - ₦ or "naira" = Nigerian Naira
 
-Respond ONLY with a JSON object in this exact format:
-{
-  "action": "SALE" | "STOCK_IN" | "CREATE_PRODUCT" | "STOCK_CHECK" | "EXPENSE" | "SUMMARY" | "CHAT" | "CLARIFY",
-  "item": "product name (optional)",
-  "quantity": number (optional),
-  "price": number (optional),
-  "customer": "customer name (for credit sales)",
-  "isCredit": boolean,
-  "date": "YYYY-MM-DD",
-  "message": "Response text for CHAT or CLARIFY actions"
-}`;
+Respond ONLY with a JSON ARRAY of objects in this format:
+[
+  {
+    "action": "SALE" | "STOCK_IN" | "CREATE_PRODUCT" | "STOCK_CHECK" | "EXPENSE" | "SUMMARY" | "CHAT" | "CLARIFY",
+    "item": "product name (optional)",
+    "quantity": number (optional),
+    "price": number (optional),
+    "customer": "customer name (for credit sales)",
+    "isCredit": boolean,
+    "date": "YYYY-MM-DD",
+    "message": "Response text for CHAT or CLARIFY",
+    "recipe": [ {"item": "ingredient name", "quantity": number} ] // Optional, only for CREATE_PRODUCT
+  }
+]
+
+Examples:
+Input: "Sold 5 Rice at 2000 and 3 Beans at 1500"
+Output: [{"action":"SALE", "item":"Rice", "quantity":5, "price":2000}, {"action":"SALE", "item":"Beans", "quantity":3, "price":1500}]
+
+Input: "Create Meatpie at 500 using 0.2kg flour and 1 egg"
+Output: [{"action":"CREATE_PRODUCT", "item":"Meatpie", "price":500, "recipe":[{"item":"flour", "quantity":0.2}, {"item":"egg", "quantity":1}]}]
+`;
 
   const prompt = `Parse this command: "${input}"`;
 
   try {
     const response = await callBedrock(prompt, systemPrompt, {
-      maxTokens: 500,
-      temperature: 0.3,
+      maxTokens: 1000,
+      temperature: 0.1, // Lower temperature for more deterministic parsing
     });
 
-    const parsed = JSON.parse(response.content);
+    // Extract JSON array
+    let jsonContent = response.content.trim();
+    const jsonMatch = jsonContent.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      jsonContent = jsonMatch[0];
+    }
+
+    const parsed = JSON.parse(jsonContent);
+
+    // Ensure it is an array
+    const data = Array.isArray(parsed) ? parsed : [parsed];
+
     return {
       success: true,
-      data: parsed,
+      data: data,
     };
   } catch (error) {
     console.error('Command parsing error:', error);
     return {
       success: false,
-      error: 'Could not parse command. Please try rephrasing.',
+      error: 'Could not parse command. Please check your connection or try rephrasing.',
     };
   }
 }

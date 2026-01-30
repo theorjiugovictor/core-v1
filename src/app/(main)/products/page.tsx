@@ -94,6 +94,7 @@ export default function ProductsPage() {
     const formData = new FormData(e.currentTarget);
     const name = formData.get('name') as string;
     const sellingPrice = Number(formData.get('sellingPrice'));
+    const costPrice = Number(formData.get('costPrice')) || 0;
 
     try {
       if (editingProduct) {
@@ -101,6 +102,7 @@ export default function ProductsPage() {
         await updateProductAction(editingProduct.id, {
           name,
           sellingPrice,
+          costPrice,
           materials: recipe
         });
         toast({ title: "Success", description: "Product updated successfully" });
@@ -109,6 +111,7 @@ export default function ProductsPage() {
         await createProductAction({
           name,
           sellingPrice,
+          costPrice,
           materials: recipe
         });
         toast({ title: "Success", description: "Product created successfully" });
@@ -142,13 +145,21 @@ export default function ProductsPage() {
     return allMaterials.find(i => i.id === id)?.name || 'Unknown Material';
   }
 
-  const calculateCost = (materials: { materialId: string, quantity: number }[]) => {
-    return materials.reduce((total, current) => {
-      const material = allMaterials.find(i => i.id === current.materialId);
-      if (!material) return total;
-      return total + (material.costPrice * current.quantity);
-    }, 0);
-  }
+  const calculateCost = (product: Product) => {
+    if (product.materials && product.materials.length > 0) {
+      return product.materials.reduce((total, current) => {
+        const material = allMaterials.find(i => i.id === current.materialId);
+        if (!material) return total;
+        return total + (material.costPrice * current.quantity);
+      }, 0);
+    }
+    return product.costPrice || 0;
+  };
+
+  const calculateProfit = (product: Product) => {
+    const cost = calculateCost(product);
+    return product.sellingPrice - cost;
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -167,7 +178,7 @@ export default function ProductsPage() {
             <DialogHeader>
               <DialogTitle>{editingProduct ? 'Edit Product' : 'Create New Product'}</DialogTitle>
               <DialogDescription>
-                {editingProduct ? 'Update product details and recipe.' : 'Define a new product by adding materials from your inventory.'}
+                {editingProduct ? 'Update product details and recipe.' : 'Define a new product. Use Cost Price for Retail, or Recipe for Manufacturing.'}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="grid gap-4 py-4">
@@ -178,6 +189,10 @@ export default function ProductsPage() {
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="sellingPrice" className="text-right">Selling Price</Label>
                 <Input id="sellingPrice" name="sellingPrice" type="number" defaultValue={editingProduct?.sellingPrice} placeholder="0.00" className="col-span-3" required />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="costPrice" className="text-right">Cost Price</Label>
+                <Input id="costPrice" name="costPrice" type="number" defaultValue={editingProduct?.costPrice} placeholder="0.00 (Optional for Recipe items)" className="col-span-3" />
               </div>
 
               <div className="grid grid-cols-4 items-start gap-4">
@@ -263,10 +278,13 @@ export default function ProductsPage() {
               )}
             </CardContent>
             <Separator />
-            <CardFooter className="pt-4">
-              <p className="text-sm font-semibold text-muted-foreground">
-                Estimated Cost: {formatCurrency(calculateCost(product.materials))}
-              </p>
+            <CardFooter className="pt-4 flex justify-between text-sm">
+              <span className="text-muted-foreground">
+                Cost: {formatCurrency(calculateCost(product))}
+              </span>
+              <span className={calculateProfit(product) > 0 ? "text-green-600 font-bold" : "text-red-500 font-bold"}>
+                Profit: {formatCurrency(calculateProfit(product))}
+              </span>
             </CardFooter>
           </Card>
         ))}
