@@ -2,12 +2,13 @@ import { Suspense } from 'react';
 import { KpiCard } from "@/components/kpi-card";
 import { PromptConsole } from "@/components/prompt-console";
 import { RevenueChart } from "@/components/revenue-chart";
-import { getKpisAction, getRevenueChartData } from "@/lib/actions";
+import { getKpisAction, getRevenueChartData, getSalesAction, getExpensesAction } from "@/lib/actions";
 import { Activity, DollarSign, Package, TrendingDown, TrendingUp, Boxes } from "lucide-react";
 import { DashboardInsights } from "@/components/dashboard-insights";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { OnboardingTour } from "@/components/onboarding-tour";
+import { DailySummary } from "@/components/daily-summary";
 
 const iconMap = {
     DollarSign,
@@ -46,9 +47,12 @@ function DashboardInsightsSkeleton() {
 
 export default async function DashboardPage() {
     // Parallelize fast data fetching
-    const [kpis, revenueData] = await Promise.all([
+    // Parallelize fast data fetching
+    const [kpis, revenueData, sales, expenses] = await Promise.all([
         getKpisAction(),
-        getRevenueChartData()
+        getRevenueChartData(),
+        getSalesAction(),
+        getExpensesAction()
     ]);
 
     return (
@@ -70,7 +74,12 @@ export default async function DashboardPage() {
                 })}
             </section>
 
-            {/* 3. Deep Insights & Visuals Layer - Bento Grid Row 2 */}
+            {/* 3. Daily Summary */}
+            <section>
+                <DailySummary sales={sales} expenses={expenses} />
+            </section>
+
+            {/* 4. Deep Insights & Visuals Layer - Bento Grid Row 2 */}
             <section className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
                 {/* Main Chart - Spans 2 cols */}
                 <div className="lg:col-span-2 shadow-lg rounded-xl overflow-hidden animate-fade-in-up delay-300">

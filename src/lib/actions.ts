@@ -487,6 +487,48 @@ export async function deleteSaleAction(id: string) {
   }
 }
 
+// Expenses
+export async function getExpensesAction() {
+  const session = await auth();
+  if (!session?.user?.id) return [];
+  const userId = session.user.id;
+  return await expensesService.getAll(userId);
+}
+
+export async function createExpenseAction(data: { description: string; amount: number; category?: string }) {
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+  const userId = session.user.id;
+
+  try {
+    await expensesService.create({
+      userId,
+      ...data,
+      date: new Date().toISOString()
+    });
+    revalidatePath('/expenses');
+    revalidatePath('/dashboard');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "Failed to create expense" };
+  }
+}
+
+export async function deleteExpenseAction(id: string) {
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+  const userId = session.user.id;
+
+  try {
+    await expensesService.delete(id, userId);
+    revalidatePath('/expenses');
+    revalidatePath('/dashboard');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "Failed to delete expense" };
+  }
+}
+
 // KPIs
 export async function getKpisAction() {
   const session = await auth();
@@ -545,11 +587,9 @@ export async function getKpisAction() {
     {
       title: 'Total Expenses',
       value: `₦${totalExpenses.toLocaleString()}`,
-      change: `${expenses.length} records`, // simple count for now
-      trend: 'neutral' as const, // could track trend later
-      iconName: 'TrendingDown', // Down is usually bad, but here it represents money out. 
-      // Actually, trending UP in expenses is bad (red), trending DOWN is good (green).
-      // But let's just use neutral for now.
+      change: `${expenses.length} records`,
+      trend: 'neutral' as const,
+      iconName: 'TrendingDown',
     },
     {
       title: 'Gross Profit',
@@ -563,7 +603,21 @@ export async function getKpisAction() {
       value: `₦${netProfit.toLocaleString()}`,
       change: `${netMargin.toFixed(1)}% net margin`,
       trend: netMargin >= 10 ? 'up' as const : 'neutral' as const,
-      iconName: 'Activity', // Or maybe 'PieChart' or 'Target'
+      iconName: 'Activity',
+    },
+    {
+      title: 'Active Products',
+      value: products.length.toString(),
+      change: 'Catalog Size',
+      trend: 'neutral' as const,
+      iconName: 'Package',
+    },
+    {
+      title: 'Inventory Value',
+      value: `₦${inventoryValue.toLocaleString()}`,
+      change: `${materials.length} raw materials`,
+      trend: 'neutral' as const,
+      iconName: 'Boxes',
     }
   ];
 }
