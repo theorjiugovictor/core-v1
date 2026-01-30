@@ -10,7 +10,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowRight, Check, X } from "lucide-react";
+import { ArrowRight, Check, X, Hand, Mic, DollarSign, HelpCircle } from "lucide-react";
 
 export function OnboardingTour() {
     const [isOpen, setIsOpen] = useState(false);
@@ -33,24 +33,24 @@ export function OnboardingTour() {
 
     const steps = [
         {
-            title: "Hello! 👋",
+            title: "Hello!",
             description: "Welcome to your new business assistant. Let's show you around quickly.",
-            image: "👋",
+            icon: <Hand className="w-10 h-10 text-primary" />,
         },
         {
             title: "Talk to Your App",
             description: "Type things like 'Sold 5 rice' or 'Add stock' in a box on the dashboard. It does the work for you.",
-            image: "🎙️",
+            icon: <Mic className="w-10 h-10 text-blue-500" />,
         },
         {
             title: "Check Your Profit",
             description: "See exactly how much money you are making after costs. We do the math for you.",
-            image: "💰",
+            icon: <DollarSign className="w-10 h-10 text-green-500" />,
         },
         {
             title: "Need Help?",
             description: "Click the '?' button if you get stuck or want to see examples.",
-            image: "❓",
+            icon: <HelpCircle className="w-10 h-10 text-orange-500" />,
         }
     ];
 
@@ -68,8 +68,8 @@ export function OnboardingTour() {
         <Dialog open={isOpen} onOpenChange={handleComplete}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <div className="mx-auto bg-primary/10 p-4 rounded-full w-16 h-16 flex items-center justify-center text-4xl mb-4">
-                        {currentStep.image}
+                    <div className="mx-auto bg-primary/10 p-4 rounded-full w-20 h-20 flex items-center justify-center mb-4">
+                        {currentStep.icon}
                     </div>
                     <DialogTitle className="text-center text-xl">{currentStep.title}</DialogTitle>
                     <DialogDescription className="text-center pt-2 text-base">
