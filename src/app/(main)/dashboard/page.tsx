@@ -7,6 +7,7 @@ import { Activity, DollarSign, Package, TrendingDown, TrendingUp, Boxes } from "
 import { DashboardInsights } from "@/components/dashboard-insights";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { OnboardingTour } from "@/components/onboarding-tour";
 
 const iconMap = {
     DollarSign,
@@ -81,6 +82,8 @@ export default async function DashboardPage() {
                     <DashboardInsights />
                 </Suspense>
             </section>
+
+            <OnboardingTour />
         </div>
     );
 }

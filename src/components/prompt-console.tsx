@@ -1,10 +1,11 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useTransition, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { ArrowRight, Bot, Command, Loader2, Sparkles, Terminal, Mic, MicOff } from 'lucide-react';
+import { ArrowRight, Bot, Command, Loader2, Sparkles, Terminal, Mic, MicOff, HelpCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -126,10 +127,17 @@ export function PromptConsole() {
     <div className="w-full max-w-3xl mx-auto mb-8">
       <Card className="border shadow-sm bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg font-medium">
-            <Terminal className="w-4 h-4 text-primary" />
-            Prompt Console
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-lg font-medium">
+              <Terminal className="w-4 h-4 text-primary" />
+              Prompt Console
+            </CardTitle>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" asChild>
+              <Link href="/help" title="Command Cheat Sheet">
+                <HelpCircle className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
           <CardDescription>
             Record sales, expenses, or check stock using natural language.
           </CardDescription>
