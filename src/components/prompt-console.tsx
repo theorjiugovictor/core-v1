@@ -119,13 +119,15 @@ export function PromptConsole() {
         </Form>
         {result && (
           <CardFooter className="py-3 bg-muted/30 border-t">
-            <div className="w-full flex items-center gap-3 animate-in fade-in slide-in-from-top-1">
-              <div className="h-6 w-6 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+            <div className="w-full flex items-start gap-3 animate-in fade-in slide-in-from-top-1">
+              <div className="h-6 w-6 rounded-full bg-green-500/10 flex items-center justify-center shrink-0 mt-0.5">
                 <Sparkles className="h-3 w-3 text-green-600" />
               </div>
-              <div className="space-y-0.5 min-w-0">
-                <p className="text-sm font-medium truncate">{result.message || "Command executed successfully"}</p>
-                <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">{result.action}</p>
+              <div className="space-y-1 min-w-0 flex-1">
+                <p className="text-sm font-medium whitespace-pre-wrap leading-relaxed">{result.message || "Command executed successfully"}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">{result.action}</p>
+                </div>
               </div>
             </div>
           </CardFooter>

@@ -80,8 +80,9 @@ Supported actions:
 - CREATE_PRODUCT: Create a new product (e.g., "create product fried rice selling at 1500")
 - STOCK_CHECK: Check stock levels (e.g., "how many bags of rice?")
 - EXPENSE: Record expense (e.g., "paid 15k for transport")
-- CREDIT_SALE: Sale on credit (e.g., "sold 10 cartons to Mama Ngozi on credit")
 - SUMMARY: View summary (e.g., "today's sales")
+- CHAT: General conversation, greetings, or questions about the app (e.g. "Hello", "How do I use this?", "What is your name?")
+- CLARIFY: Use this if the user's intent is ambiguous or missing critical details (e.g. "Added rice" -> missing quantity and price).
 
 Nigerian currency patterns:
 - "5k" = 5000 Naira
@@ -90,13 +91,14 @@ Nigerian currency patterns:
 
 Respond ONLY with a JSON object in this exact format:
 {
-  "action": "SALE" | "STOCK_IN" | "CREATE_PRODUCT" | "STOCK_CHECK" | "EXPENSE" | "CREDIT_SALE" | "SUMMARY",
-  "item": "product name",
-  "quantity": number,
-  "price": number,
+  "action": "SALE" | "STOCK_IN" | "CREATE_PRODUCT" | "STOCK_CHECK" | "EXPENSE" | "SUMMARY" | "CHAT" | "CLARIFY",
+  "item": "product name (optional)",
+  "quantity": number (optional),
+  "price": number (optional),
   "customer": "customer name (for credit sales)",
   "isCredit": boolean,
-  "date": "YYYY-MM-DD"
+  "date": "YYYY-MM-DD",
+  "message": "Response text for CHAT or CLARIFY actions"
 }`;
 
   const prompt = `Parse this command: "${input}"`;

@@ -4,7 +4,9 @@ import { parseBusinessCommand as parseWithBedrock, generateBusinessInsights as g
 import { salesService } from './firebase/sales';
 import { materialsService } from './firebase/materials';
 import { productsService } from './firebase/products';
+import { usersService } from './firebase/users';
 import { revalidatePath } from 'next/cache';
+import { auth } from '@/lib/auth';
 
 export type ParseBusinessCommandInput = {
   input: string;
@@ -90,7 +92,12 @@ export async function processBusinessCommand(input: ParseBusinessCommandInput) {
   }
 
   const { action, item, quantity, price, customer, isCredit } = parsedResult.data;
-  const userId = 'demo-user-123'; // Hardcoded for MVP, replace with auth().currentUser.id
+
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { success: false, error: "Unauthorized. Please log in." };
+  }
+  const userId = session.user.id;
 
   try {
     let message = "";
@@ -196,6 +203,14 @@ export async function processBusinessCommand(input: ParseBusinessCommandInput) {
         message = `💸 Recorded expense: ₦${price} for ${item}`;
         break;
 
+      case 'CHAT':
+        message = parsedResult.data.message || "I'm listening.";
+        break;
+
+      case 'CLARIFY':
+        message = parsedResult.data.message || "Could you please clarify?";
+        break;
+
       default:
         message = `Command understood (${action}) but logic not implemented yet.`;
     }
@@ -218,7 +233,9 @@ export async function processBusinessCommand(input: ParseBusinessCommandInput) {
 
 export async function getBusinessInsights() {
   try {
-    const userId = 'demo-user-123';
+    const session = await auth();
+    if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+    const userId = session.user.id;
 
     // Fetch real data from Firebase
     const materials = await materialsService.getAll(userId);
@@ -243,12 +260,16 @@ export async function getBusinessInsights() {
 
 // Materials
 export async function getMaterialsAction() {
-  const userId = 'demo-user-123';
+  const session = await auth();
+  if (!session?.user?.id) return [];
+  const userId = session.user.id;
   return await materialsService.getAll(userId);
 }
 
 export async function createMaterialAction(data: { name: string; quantity: number; unit: string; costPrice: number }) {
-  const userId = 'demo-user-123';
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+  const userId = session.user.id;
   await materialsService.create({ ...data, userId, createdAt: new Date().toISOString() });
   revalidatePath('/materials');
   revalidatePath('/dashboard');
@@ -256,7 +277,9 @@ export async function createMaterialAction(data: { name: string; quantity: numbe
 }
 
 export async function deleteMaterialAction(id: string) {
-  const userId = 'demo-user-123';
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+  const userId = session.user.id;
   await materialsService.delete(id, userId);
   revalidatePath('/materials');
   revalidatePath('/dashboard');
@@ -265,12 +288,16 @@ export async function deleteMaterialAction(id: string) {
 
 // Products
 export async function getProductsAction() {
-  const userId = 'demo-user-123';
+  const session = await auth();
+  if (!session?.user?.id) return [];
+  const userId = session.user.id;
   return await productsService.getAll(userId);
 }
 
 export async function createProductAction(data: { name: string; sellingPrice: number; materials: { materialId: string; quantity: number }[] }) {
-  const userId = 'demo-user-123';
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+  const userId = session.user.id;
   await productsService.create({ ...data, userId, createdAt: new Date().toISOString() });
   revalidatePath('/products');
   revalidatePath('/dashboard');
@@ -278,7 +305,9 @@ export async function createProductAction(data: { name: string; sellingPrice: nu
 }
 
 export async function deleteProductAction(id: string) {
-  const userId = 'demo-user-123';
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+  const userId = session.user.id;
   await productsService.delete(id, userId);
   revalidatePath('/products');
   revalidatePath('/dashboard');
@@ -287,13 +316,17 @@ export async function deleteProductAction(id: string) {
 
 // Sales
 export async function getSalesAction() {
-  const userId = 'demo-user-123';
+  const session = await auth();
+  if (!session?.user?.id) return [];
+  const userId = session.user.id;
   return await salesService.getAll(userId);
 }
 
 // KPIs
 export async function getKpisAction() {
-  const userId = 'demo-user-123';
+  const session = await auth();
+  if (!session?.user?.id) return [];
+  const userId = session.user.id;
 
   const materials = await materialsService.getAll(userId);
   const sales = await salesService.getAll(userId);
@@ -332,24 +365,93 @@ export async function getKpisAction() {
       value: `₦${totalRevenue.toLocaleString()}`,
       change: `${revenueChange > 0 ? '+' : ''}${revenueChange.toFixed(1)}%`,
       trend: revenueChange >= 0 ? 'up' as const : 'down' as const,
+      iconName: 'DollarSign',
     },
     {
       title: 'Active Products',
       value: products.length.toString(),
       change: 'Catalog',
       trend: 'neutral' as const,
+      iconName: 'Package',
     },
     {
       title: 'Inventory Value',
       value: `₦${inventoryValue.toLocaleString()}`,
       change: `${materials.length} items`,
       trend: 'neutral' as const,
+      iconName: 'TrendingUp',
     },
     {
       title: 'Total Sales',
       value: sales.length.toString(),
       change: `${salesThisMonth.length} this month`,
       trend: salesThisMonth.length > salesLastMonth.length ? 'up' as const : 'down' as const,
+      iconName: 'TrendingDown',
     },
   ];
+}
+
+export async function getRevenueChartData() {
+  const session = await auth();
+  if (!session?.user?.id) return [];
+  const userId = session.user.id;
+
+  const sales = await salesService.getAll(userId);
+
+  // Group by month for the last 6 months
+  const now = new Date();
+  const last6Months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    return {
+      name: d.toLocaleString('default', { month: 'short' }),
+      year: d.getFullYear(),
+      monthIndex: d.getMonth(),
+      value: 0
+    };
+  }).reverse();
+
+  sales.forEach(sale => {
+    const saleDate = new Date(sale.date);
+    const saleMonth = saleDate.getMonth();
+    const saleYear = saleDate.getFullYear();
+
+    const monthData = last6Months.find(m => m.monthIndex === saleMonth && m.year === saleYear);
+    if (monthData) {
+      monthData.value += sale.totalAmount || 0;
+    }
+  });
+
+  return last6Months.map(m => ({
+    date: `${m.name} ${m.year.toString().slice(2)}`,
+    Desktop: m.value, // Using 'Desktop' to match existing chart component key
+    Mobile: 0, // Ignored for now or could be another metric
+  }));
+}
+
+// User Profile
+export async function getUserProfileAction() {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+  const userId = session.user.id;
+  return await usersService.getById(userId);
+}
+
+export async function updateUserAction(data: { name: string; businessName: string; email: string }) {
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+  const userId = session.user.id;
+
+  try {
+    await usersService.update(userId, {
+      name: data.name,
+      businessName: data.businessName,
+      email: data.email
+    });
+    revalidatePath('/settings');
+    revalidatePath('/dashboard'); // revalidate dashboard in case business name is used there
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to update user:", error);
+    return { success: false, error: "Failed to update profile." };
+  }
 }

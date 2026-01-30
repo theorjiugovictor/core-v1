@@ -8,14 +8,23 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { getBusinessInsights, getKpisAction } from "@/lib/actions";
-import { ArrowRight, Lightbulb, Sparkles } from "lucide-react";
+import { getBusinessInsights, getKpisAction, getRevenueChartData } from "@/lib/actions";
+import { ArrowRight, Lightbulb, Sparkles, DollarSign, Package, TrendingUp, TrendingDown, Activity } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+
+const iconMap = {
+    DollarSign,
+    Package,
+    TrendingUp,
+    TrendingDown,
+    Activity
+};
 
 export default async function DashboardPage() {
     const insightsResult = await getBusinessInsights();
     const kpis = await getKpisAction();
+    const revenueData = await getRevenueChartData();
 
     return (
         <div className="space-y-8 animate-fade-in-up">
@@ -26,18 +35,21 @@ export default async function DashboardPage() {
 
             {/* 2. Key Metrics Layer - Bento Grid Row 1 */}
             <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                {kpis.map((kpi, index) => (
-                    <div key={kpi.title} style={{ animationDelay: `${index * 100}ms` }} className="animate-fade-in-up">
-                        <KpiCard {...kpi} />
-                    </div>
-                ))}
+                {kpis.map((kpi: any, index: number) => {
+                    const IconComponent = iconMap[kpi.iconName as keyof typeof iconMap] || Activity;
+                    return (
+                        <div key={kpi.title} style={{ animationDelay: `${index * 100}ms` }} className="animate-fade-in-up">
+                            <KpiCard {...kpi} icon={IconComponent} />
+                        </div>
+                    );
+                })}
             </section>
 
             {/* 3. Deep Insights & Visuals Layer - Bento Grid Row 2 */}
             <section className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
                 {/* Main Chart - Spans 2 cols */}
                 <div className="lg:col-span-2 shadow-lg rounded-xl overflow-hidden animate-fade-in-up delay-300">
-                    <RevenueChart />
+                    <RevenueChart data={revenueData} />
                 </div>
 
                 {/* AI Advisor - Spans 1 col */}

@@ -10,9 +10,21 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { mockRevenueData } from '@/lib/data';
 
-export function RevenueChart() {
+
+export type RevenueData = {
+  date: string;
+  Desktop: number;
+  Mobile: number;
+};
+
+export function RevenueChart({ data }: { data: RevenueData[] }) {
+  // Simple check if there's an increase this month compared to last
+  const thisMonth = data[data.length - 1]?.Desktop || 0;
+  const lastMonth = data[data.length - 2]?.Desktop || 0;
+  const percentageChange = lastMonth > 0 ? ((thisMonth - lastMonth) / lastMonth) * 100 : 0;
+  const isTrendingUp = percentageChange >= 0;
+
   return (
     <Card className="h-full border-none shadow-lg bg-card/50 backdrop-blur-md">
       <CardHeader>
@@ -23,7 +35,7 @@ export function RevenueChart() {
         <div className="h-[250px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
-              data={mockRevenueData}
+              data={data}
               margin={{
                 left: 0,
                 right: 0,
@@ -66,8 +78,8 @@ export function RevenueChart() {
       <CardFooter>
         <div className="flex w-full items-start gap-2 text-sm">
           <div className="grid gap-2">
-            <div className="flex items-center gap-2 font-medium leading-none text-green-600">
-              Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
+            <div className={`flex items-center gap-2 font-medium leading-none ${isTrendingUp ? 'text-green-600' : 'text-red-500'}`}>
+              {isTrendingUp ? 'Trending up' : 'Trending down'} by {Math.abs(percentageChange).toFixed(1)}% this month <TrendingUp className={`h-4 w-4 ${!isTrendingUp && 'rotate-180'}`} />
             </div>
           </div>
         </div>
