@@ -5,6 +5,7 @@ import { salesService } from './firebase/sales';
 import { materialsService } from './firebase/materials';
 import { productsService } from './firebase/products';
 import { usersService } from './firebase/users';
+import { expensesService } from './firebase/expenses';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 
@@ -253,7 +254,14 @@ export async function processBusinessCommand(input: ParseBusinessCommandInput) {
           break;
 
         case 'EXPENSE':
-          message = `💸 Expense: ₦${price} for ${item}`;
+          await expensesService.create({
+            userId,
+            amount: price || 0,
+            description: item || 'Expense',
+            category: 'General', // TODO: Infer category from item description using LLM later
+            date: new Date().toISOString()
+          });
+          message = `💸 Recorded Expense: ₦${price} for ${item}`;
           break;
 
         case 'CHAT':
@@ -487,6 +495,7 @@ export async function getKpisAction() {
 
   const materials = await materialsService.getAll(userId);
   const sales = await salesService.getAll(userId);
+  const expenses = await expensesService.getAll(userId);
   const products = await productsService.getAll(userId);
 
   // Calculate total revenue
@@ -519,16 +528,13 @@ export async function getKpisAction() {
   // Calculate Gross Profit
   const totalCost = sales.reduce((sum, sale) => sum + (sale.costAmount || 0), 0);
   const grossProfit = totalRevenue - totalCost;
-  const margin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+  // Net Profit = Gross Profit - Expenses
+  const totalExpenses = expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+  const netProfit = grossProfit - totalExpenses;
+
+  const netMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
   return [
-    {
-      title: 'Gross Profit',
-      value: `₦${grossProfit.toLocaleString()}`,
-      change: `${margin.toFixed(1)}% margin`,
-      trend: margin >= 20 ? 'up' as const : 'neutral' as const, // Arbitrary threshold
-      iconName: 'DollarSign',
-    },
     {
       title: 'Total Revenue',
       value: `₦${totalRevenue.toLocaleString()}`,
@@ -537,18 +543,27 @@ export async function getKpisAction() {
       iconName: 'TrendingUp',
     },
     {
-      title: 'Active Products',
-      value: products.length.toString(),
-      change: 'Catalog',
-      trend: 'neutral' as const,
-      iconName: 'Package',
+      title: 'Total Expenses',
+      value: `₦${totalExpenses.toLocaleString()}`,
+      change: `${expenses.length} records`, // simple count for now
+      trend: 'neutral' as const, // could track trend later
+      iconName: 'TrendingDown', // Down is usually bad, but here it represents money out. 
+      // Actually, trending UP in expenses is bad (red), trending DOWN is good (green).
+      // But let's just use neutral for now.
     },
     {
-      title: 'Inventory Value',
-      value: `₦${inventoryValue.toLocaleString()}`,
-      change: `${materials.length} items`,
+      title: 'Gross Profit',
+      value: `₦${grossProfit.toLocaleString()}`,
+      change: 'Margin from Goods',
       trend: 'neutral' as const,
-      iconName: 'Boxes',
+      iconName: 'DollarSign',
+    },
+    {
+      title: 'Net Profit',
+      value: `₦${netProfit.toLocaleString()}`,
+      change: `${netMargin.toFixed(1)}% net margin`,
+      trend: netMargin >= 10 ? 'up' as const : 'neutral' as const,
+      iconName: 'Activity', // Or maybe 'PieChart' or 'Target'
     }
   ];
 }

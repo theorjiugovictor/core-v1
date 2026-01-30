@@ -5,7 +5,7 @@ import { useState, useTransition, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { ArrowRight, Bot, Command, Loader2, Sparkles, Terminal, Mic, MicOff, HelpCircle, Zap } from 'lucide-react';
+import { ArrowRight, Bot, Command, Loader2, Sparkles, Terminal, Mic, MicOff, HelpCircle, Zap, Wand2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -143,7 +143,7 @@ export function PromptConsole() {
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-xl font-bold">
-              <Sparkles className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+              <Wand2 className="w-6 h-6 text-primary" />
               AI Assistant
             </CardTitle>
             <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" asChild>

@@ -52,3 +52,12 @@ export type Kpi = {
   icon: React.ElementType;
   description: string;
 };
+
+export type Expense = {
+  id: string;
+  category?: string;
+  amount: number;
+  description: string;
+  date: string;
+  userId: string;
+};

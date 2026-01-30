@@ -34,4 +34,5 @@ export const Collections = {
   PRODUCTS: 'products',
   SALES: 'sales',
   INSIGHTS: 'insights',
+  EXPENSES: 'expenses',
 } as const;
