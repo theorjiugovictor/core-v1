@@ -105,4 +105,47 @@ export const salesService = {
       throw new Error('Failed to fetch sales analytics');
     }
   },
+  // Update a sale
+  async update(id: string, userId: string, data: Partial<Sale>) {
+    try {
+      const docRef = db.collection(Collections.SALES).doc(id);
+      const doc = await docRef.get();
+
+      if (!doc.exists) {
+        throw new Error('Sale not found');
+      }
+
+      const existingData = doc.data();
+      if (existingData?.userId !== userId) {
+        throw new Error('Unauthorized');
+      }
+
+      await docRef.update(data);
+    } catch (error) {
+      console.error('Error updating sale:', error);
+      throw new Error('Failed to update sale');
+    }
+  },
+
+  // Delete a sale
+  async delete(id: string, userId: string) {
+    try {
+      const docRef = db.collection(Collections.SALES).doc(id);
+      const doc = await docRef.get();
+
+      if (!doc.exists) {
+        throw new Error('Sale not found');
+      }
+
+      const existingData = doc.data();
+      if (existingData?.userId !== userId) {
+        throw new Error('Unauthorized');
+      }
+
+      await docRef.delete();
+    } catch (error) {
+      console.error('Error deleting sale:', error);
+      throw new Error('Failed to delete sale');
+    }
+  },
 };

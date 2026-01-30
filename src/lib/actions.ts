@@ -304,6 +304,21 @@ export async function createProductAction(data: { name: string; sellingPrice: nu
   return { success: true };
 }
 
+export async function updateProductAction(id: string, data: { name: string; sellingPrice: number; materials: { materialId: string; quantity: number }[] }) {
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+  const userId = session.user.id;
+
+  try {
+    await productsService.update(id, userId, data);
+    revalidatePath('/products');
+    revalidatePath('/dashboard');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "Failed to update product" };
+  }
+}
+
 export async function deleteProductAction(id: string) {
   const session = await auth();
   if (!session?.user?.id) return { success: false, error: "Unauthorized" };
@@ -320,6 +335,81 @@ export async function getSalesAction() {
   if (!session?.user?.id) return [];
   const userId = session.user.id;
   return await salesService.getAll(userId);
+}
+
+export async function createSaleAction(data: { productName: string; quantity: number; totalAmount: number; paymentMethod: 'Cash' | 'Card' | 'Transfer'; }) {
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+  const userId = session.user.id;
+
+  try {
+    await salesService.create({
+      userId,
+      ...data,
+      date: new Date().toISOString()
+    });
+
+    // Note: We are NOT deducting inventory automatically for manual manual sales to keep logic simple for now, 
+    // unless we want to duplicate the logic from processBusinessCommand.
+    // For now, let's keep it simple as a record-keeping tool. 
+    // Wait, the user might expect inventory deduction.
+    // Let's replicate the basic deduction logic if possible, or just leave it as record.
+    // The plan said "Manual 'Record Sale' UI (bypass AI)". 
+    // Let's try to verify if the product exists and deduct if so.
+
+    const products = await productsService.getAll(userId);
+    const product = products.find(p => p.name === data.productName);
+
+    if (product && product.materials) {
+      const materials = await materialsService.getAll(userId);
+      for (const ingredient of product.materials) {
+        const material = materials.find(m => m.id === ingredient.materialId);
+        if (material) {
+          const qtyToDeduct = ingredient.quantity * data.quantity;
+          await materialsService.update(material.id, userId, {
+            quantity: Math.max(0, material.quantity - qtyToDeduct)
+          });
+        }
+      }
+    }
+
+    revalidatePath('/sales');
+    revalidatePath('/dashboard');
+    revalidatePath('/materials');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "Failed to create sale" };
+  }
+}
+
+export async function updateSaleAction(id: string, data: Partial<any>) {
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+  const userId = session.user.id;
+
+  try {
+    await salesService.update(id, userId, data);
+    revalidatePath('/sales');
+    revalidatePath('/dashboard');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "Failed to update sale" };
+  }
+}
+
+export async function deleteSaleAction(id: string) {
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+  const userId = session.user.id;
+
+  try {
+    await salesService.delete(id, userId);
+    revalidatePath('/sales');
+    revalidatePath('/dashboard');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "Failed to delete sale" };
+  }
 }
 
 // KPIs

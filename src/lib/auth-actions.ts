@@ -17,9 +17,23 @@ export async function loginAction(email: string, password: string) {
     }
 
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Login error:', error);
-    return { success: false, error: 'An error occurred during login' };
+
+    if (error.message.includes('User not found')) {
+      return { success: false, error: 'No account found with this email' };
+    }
+
+    if (error.message.includes('Invalid password')) {
+      return { success: false, error: 'Incorrect password' };
+    }
+
+    // NextAuth sometimes wraps errors
+    if (error.cause?.err?.message === 'User not found' || error.cause?.err?.message === 'Invalid password') {
+      return { success: false, error: error.cause.err.message === 'User not found' ? 'No account found with this email' : 'Incorrect password' };
+    }
+
+    return { success: false, error: 'Invalid email or password' };
   }
 }
 

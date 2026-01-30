@@ -75,8 +75,11 @@ export const usersService = {
       const { password, ...userWithoutPassword } = user as any;
 
       return userWithoutPassword;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating user:', error);
+      if (error.message === 'User with this email already exists') {
+        throw error;
+      }
       throw new Error('Failed to create user');
     }
   },
@@ -115,13 +118,13 @@ export const usersService = {
       const user = await this.getByEmail(email);
 
       if (!user || !user.password) {
-        return null;
+        throw new Error('User not found');
       }
 
       const isValid = await bcrypt.compare(password, user.password);
 
       if (!isValid) {
-        return null;
+        throw new Error('Invalid password');
       }
 
       // Remove password from returned object
@@ -130,7 +133,7 @@ export const usersService = {
       return userWithoutPassword as User;
     } catch (error) {
       console.error('Error verifying credentials:', error);
-      return null;
+      throw error;
     }
   },
 };

@@ -99,9 +99,9 @@ export default function MainLayout({ children, user }: { children: React.ReactNo
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <div className="flex flex-col min-h-screen">
+        <div className="flex flex-col h-[100dvh] overflow-hidden">
           <Header title={title} user={user} />
-          <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
+          <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
             {children}
           </main>
         </div>

@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/select"
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getProductsAction, createProductAction, deleteProductAction, getMaterialsAction } from '@/lib/actions';
+import { getProductsAction, createProductAction, deleteProductAction, getMaterialsAction, updateProductAction } from '@/lib/actions';
 import type { Product, Material } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -46,9 +46,10 @@ export default function ProductsPage() {
   const [products, setProducts] = React.useState<Product[]>([]);
   const [allMaterials, setAllMaterials] = React.useState<Material[]>([]);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [editingProduct, setEditingProduct] = React.useState<Product | null>(null);
   const { toast } = useToast();
 
-  // New Product Form State
+  // Form State
   const [selectedMaterialId, setSelectedMaterialId] = React.useState("");
   const [selectedQty, setSelectedQty] = React.useState("1");
   const [recipe, setRecipe] = React.useState<{ materialId: string, quantity: number }[]>([]);
@@ -70,23 +71,55 @@ export default function ProductsPage() {
     setSelectedQty("1");
   }
 
-  async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
+  function removeFromRecipe(index: number) {
+    const newRecipe = [...recipe];
+    newRecipe.splice(index, 1);
+    setRecipe(newRecipe);
+  }
+
+  function openCreateDialog() {
+    setEditingProduct(null);
+    setRecipe([]);
+    setIsDialogOpen(true);
+  }
+
+  function openEditDialog(product: Product) {
+    setEditingProduct(product);
+    setRecipe(product.materials || []);
+    setIsDialogOpen(true);
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const name = formData.get('name') as string;
+    const sellingPrice = Number(formData.get('sellingPrice'));
 
     try {
-      await createProductAction({
-        name: formData.get('name') as string,
-        sellingPrice: Number(formData.get('sellingPrice')),
-        materials: recipe
-      });
+      if (editingProduct) {
+        // Update
+        await updateProductAction(editingProduct.id, {
+          name,
+          sellingPrice,
+          materials: recipe
+        });
+        toast({ title: "Success", description: "Product updated successfully" });
+      } else {
+        // Create
+        await createProductAction({
+          name,
+          sellingPrice,
+          materials: recipe
+        });
+        toast({ title: "Success", description: "Product created successfully" });
+      }
 
-      toast({ title: "Success", description: "Product created successfully" });
       setIsDialogOpen(false);
+      setEditingProduct(null);
       setRecipe([]);
       loadData();
     } catch (error) {
-      toast({ title: "Error", description: "Failed to create product", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to save product", variant: "destructive" });
     }
   }
 
@@ -109,8 +142,8 @@ export default function ProductsPage() {
     return allMaterials.find(i => i.id === id)?.name || 'Unknown Material';
   }
 
-  const calculateCost = (product: Product) => {
-    return product.materials.reduce((total, current) => {
+  const calculateCost = (materials: { materialId: string, quantity: number }[]) => {
+    return materials.reduce((total, current) => {
       const material = allMaterials.find(i => i.id === current.materialId);
       if (!material) return total;
       return total + (material.costPrice * current.quantity);
@@ -123,7 +156,7 @@ export default function ProductsPage() {
         <div></div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button size="sm" className="gap-1">
+            <Button size="sm" className="gap-1" onClick={openCreateDialog}>
               <PlusCircle className="h-3.5 w-3.5" />
               <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
                 Create Product
@@ -132,19 +165,19 @@ export default function ProductsPage() {
           </DialogTrigger>
           <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Create New Product</DialogTitle>
+              <DialogTitle>{editingProduct ? 'Edit Product' : 'Create New Product'}</DialogTitle>
               <DialogDescription>
-                Define a new product by adding materials from your inventory.
+                {editingProduct ? 'Update product details and recipe.' : 'Define a new product by adding materials from your inventory.'}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleCreate} className="grid gap-4 py-4">
+            <form onSubmit={handleSubmit} className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="name" className="text-right">Product Name</Label>
-                <Input id="name" name="name" placeholder="e.g. Jollof Rice" className="col-span-3" required />
+                <Input id="name" name="name" defaultValue={editingProduct?.name} placeholder="e.g. Jollof Rice" className="col-span-3" required />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="sellingPrice" className="text-right">Selling Price</Label>
-                <Input id="sellingPrice" name="sellingPrice" type="number" placeholder="0.00" className="col-span-3" required />
+                <Input id="sellingPrice" name="sellingPrice" type="number" defaultValue={editingProduct?.sellingPrice} placeholder="0.00" className="col-span-3" required />
               </div>
 
               <div className="grid grid-cols-4 items-start gap-4">
@@ -172,8 +205,9 @@ export default function ProductsPage() {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {recipe.map((r, idx) => (
-                      <Badge key={idx} variant="outline" className="gap-1">
+                      <Badge key={idx} variant="outline" className="gap-1 pr-1">
                         {getMaterialName(r.materialId)} ({r.quantity})
+                        <button type="button" onClick={() => removeFromRecipe(idx)} className="ml-1 hover:text-destructive">×</button>
                       </Badge>
                     ))}
                   </div>
@@ -181,7 +215,7 @@ export default function ProductsPage() {
               </div>
 
               <DialogFooter>
-                <Button type="submit">Save product</Button>
+                <Button type="submit">{editingProduct ? 'Update Product' : 'Save Product'}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -208,7 +242,7 @@ export default function ProductsPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem>Edit</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openEditDialog(product)}>Edit</DropdownMenuItem>
                     <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(product.id)}>Delete</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -231,7 +265,7 @@ export default function ProductsPage() {
             <Separator />
             <CardFooter className="pt-4">
               <p className="text-sm font-semibold text-muted-foreground">
-                Estimated Cost: {formatCurrency(calculateCost(product))}
+                Estimated Cost: {formatCurrency(calculateCost(product.materials))}
               </p>
             </CardFooter>
           </Card>

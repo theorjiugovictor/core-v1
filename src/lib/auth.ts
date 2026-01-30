@@ -31,9 +31,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             name: user.name,
             businessName: user.businessName,
           };
-        } catch (error) {
+        } catch (error: any) {
           console.error('Authorization error:', error);
-          return null;
+          throw new Error(error.message || 'Authentication failed');
         }
       },
     }),
