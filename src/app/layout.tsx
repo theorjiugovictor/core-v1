@@ -14,7 +14,10 @@ export const metadata: Metadata = {
   title: 'CORE | Intelligent Business Control',
   description: 'Your business, under control. The zero-friction management platform for Nigerian SMEs.',
   icons: {
-    icon: '/icon.svg',
+    icon: '/logo.png',
+  },
+  openGraph: {
+    images: '/logo.png',
   },
 };
 

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Mic, TrendingUp, Boxes, ShieldCheck, Zap, Sparkles, MessageSquare } from 'lucide-react';
+import { Logo } from '@/components/logo';
 
 export default function LandingPage() {
   return (
@@ -16,10 +17,7 @@ export default function LandingPage() {
       {/* Navigation */}
       <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-background/60 backdrop-blur-md sticky top-0 z-50 relative">
         <Link className="flex items-center justify-center gap-2" href="/">
-          <div className="bg-primary text-primary-foreground p-1 rounded-lg">
-            <Sparkles className="w-5 h-5" />
-          </div>
-          <span className="font-bold text-xl tracking-tight">CORE</span>
+          <Logo />
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6">
           <Link className="text-sm font-medium hover:text-primary transition-colors flex items-center" href="/login">
