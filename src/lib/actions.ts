@@ -301,6 +301,19 @@ export async function getBusinessInsights() {
     if (!session?.user?.id) return { success: false, error: "Unauthorized" };
     const userId = session.user.id;
 
+    // --- Simple In-Memory Cache for Development ---
+    // In production, use Redis or similar
+    const CACHE_KEY = `insights_${userId}`;
+    const cachedStats = (global as any)._insightsCache?.[CACHE_KEY];
+    const CACHE_DURATION = 1000 * 60 * 15; // 15 minutes
+
+    if (cachedStats && (Date.now() - cachedStats.timestamp < CACHE_DURATION)) {
+      console.log("Serving cached insights");
+      return cachedStats.data;
+    }
+
+    // --- End Cache Check ---
+
     // Fetch real data from Firebase
     const materials = await materialsService.getAll(userId);
     const sales = await salesService.getAll(userId);
@@ -313,6 +326,14 @@ export async function getBusinessInsights() {
     };
 
     const result = await generateWithBedrock(businessData);
+
+    // Save to cache
+    if (!(global as any)._insightsCache) (global as any)._insightsCache = {};
+    (global as any)._insightsCache[CACHE_KEY] = {
+      timestamp: Date.now(),
+      data: result
+    };
+
     return result;
   } catch (error) {
     console.error('Insights generation failed:', error);

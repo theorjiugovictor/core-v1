@@ -61,3 +61,15 @@ export type Expense = {
   date: string;
   userId: string;
 };
+
+export type Idea = {
+  id: string;
+  userId: string;
+  content: string;
+  type: 'note' | 'strategy' | 'todo';
+  status: 'active' | 'completed' | 'archived';
+  tags?: string[];
+  createdAt: string;
+  updatedAt: string;
+  priority?: 'low' | 'medium' | 'high';
+};

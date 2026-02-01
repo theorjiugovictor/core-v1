@@ -58,11 +58,35 @@ export default function LandingPage() {
           <div className="mt-20 w-full max-w-5xl mx-auto rounded-xl border bg-card/50 backdrop-blur-sm shadow-2xl overflow-hidden animate-fade-in-up delay-300 p-2 md:p-4">
             <div className="rounded-lg bg-background border flex flex-col md:flex-row h-[300px] md:h-[400px] relative overflow-hidden">
               {/* Simulated Sidebar */}
-              <div className="w-16 md:w-64 border-r bg-muted/20 hidden md:flex flex-col gap-4 p-4">
-                <div className="h-8 w-24 bg-muted rounded animate-pulse"></div>
-                <div className="h-4 w-full bg-muted/50 rounded mt-4"></div>
-                <div className="h-4 w-3/4 bg-muted/50 rounded"></div>
-                <div className="h-4 w-1/2 bg-muted/50 rounded"></div>
+              {/* Simulated Sidebar */}
+              <div className="w-16 md:w-64 border-r bg-card/50 hidden md:flex flex-col gap-6 p-4">
+                {/* Simulated Logo */}
+                <div className="flex items-center gap-2 px-2">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                    <div className="w-4 h-4 rounded-full bg-primary animate-pulse"></div>
+                  </div>
+                  <div className="h-4 w-20 bg-primary/20 rounded"></div>
+                </div>
+
+                {/* Simulated Nav Items */}
+                <div className="space-y-2">
+                  <div className="h-10 w-full bg-primary/10 rounded-lg flex items-center px-3 gap-3 border border-primary/20">
+                    <div className="w-4 h-4 rounded bg-primary/40"></div>
+                    <div className="h-2 w-24 bg-primary/40 rounded"></div>
+                  </div>
+                  <div className="h-10 w-full hover:bg-muted/50 rounded-lg flex items-center px-3 gap-3 opacity-60">
+                    <div className="w-4 h-4 rounded bg-muted"></div>
+                    <div className="h-2 w-16 bg-muted rounded"></div>
+                  </div>
+                  <div className="h-10 w-full hover:bg-muted/50 rounded-lg flex items-center px-3 gap-3 opacity-60">
+                    <div className="w-4 h-4 rounded bg-muted"></div>
+                    <div className="h-2 w-20 bg-muted rounded"></div>
+                  </div>
+                  <div className="h-10 w-full hover:bg-muted/50 rounded-lg flex items-center px-3 gap-3 opacity-60">
+                    <div className="w-4 h-4 rounded bg-muted"></div>
+                    <div className="h-2 w-18 bg-muted rounded"></div>
+                  </div>
+                </div>
               </div>
               {/* Simulated Content */}
               <div className="flex-1 p-6 md:p-8 flex flex-col items-center justify-center relative bg-gradient-to-br from-background to-muted/10">

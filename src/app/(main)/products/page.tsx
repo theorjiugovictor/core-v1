@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { PlusCircle, MoreHorizontal, UtensilsCrossed } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -243,7 +243,7 @@ export default function ProductsPage() {
               <div className="flex justify-between items-start">
                 <div>
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <UtensilsCrossed className="h-5 w-5 text-primary" />
+                    <Package className="h-5 w-5 text-primary" />
                     {product.name}
                   </CardTitle>
                   <CardDescription>Selling Price: {formatCurrency(product.sellingPrice)}</CardDescription>

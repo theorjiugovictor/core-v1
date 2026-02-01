@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Boxes, LayoutDashboard, Lightbulb, Package, Settings, ShoppingCart, HelpCircle, TrendingDown } from 'lucide-react';
+import { Boxes, LayoutDashboard, Lightbulb, Package, Settings, ShoppingCart, HelpCircle, TrendingDown, Sparkles } from 'lucide-react';
 
 import {
   SidebarProvider,
@@ -26,7 +26,8 @@ const navItems = [
   { href: '/products', icon: Package, label: 'Products' },
   { href: '/sales', icon: ShoppingCart, label: 'Sales' },
   { href: '/expenses', icon: TrendingDown, label: 'Expenses' },
-  { href: '/insights', icon: Lightbulb, label: 'Insights' },
+  { href: '/ideas', icon: Lightbulb, label: 'Ideas & Strategy' },
+  { href: '/insights', icon: Sparkles, label: 'Insights' },
   { href: '/help', icon: HelpCircle, label: 'Help & Guides' },
 ];
 
@@ -36,6 +37,7 @@ const pageTitles: { [key: string]: string } = {
   '/products': 'Finished Products',
   '/sales': 'Sales Records',
   '/expenses': 'Operating Expenses',
+  '/ideas': 'Strategy Board',
   '/insights': 'Business Insights',
   '/settings': 'Settings',
   '/help': 'Help & Guides',

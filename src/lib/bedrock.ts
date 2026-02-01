@@ -46,25 +46,43 @@ export async function callBedrock(
     ],
   };
 
-  try {
-    const command = new InvokeModelCommand({
-      modelId,
-      contentType: 'application/json',
-      accept: 'application/json',
-      body: JSON.stringify(payload),
-    });
+  const maxRetries = 3;
+  let attempt = 0;
 
-    const response = await bedrockClient.send(command);
-    const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+  while (attempt < maxRetries) {
+    try {
+      const command = new InvokeModelCommand({
+        modelId,
+        contentType: 'application/json',
+        accept: 'application/json',
+        body: JSON.stringify(payload),
+      });
 
-    return {
-      content: responseBody.content[0].text,
-      stopReason: responseBody.stop_reason,
-    };
-  } catch (error) {
-    console.error('Bedrock API Error:', error);
-    throw new Error('Failed to call AWS Bedrock');
+      const response = await bedrockClient.send(command);
+      const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+
+      return {
+        content: responseBody.content[0].text,
+        stopReason: responseBody.stop_reason,
+      };
+    } catch (error: any) {
+      attempt++;
+      console.warn(`Bedrock API attempt ${attempt} failed:`, error.message);
+
+      const isThrottling = error.name === 'ThrottlingException' || error.message?.includes('Too many requests');
+
+      if (attempt >= maxRetries || !isThrottling) {
+        console.error('Bedrock API Error:', error);
+        throw new Error('Failed to call AWS Bedrock after retries');
+      }
+
+      // Exponential backoff with jitter: 2^attempt * 1000ms + random jitter
+      const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500;
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
   }
+
+  throw new Error('Failed to call AWS Bedrock');
 }
 
 /**
