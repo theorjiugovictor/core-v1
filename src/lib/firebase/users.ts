@@ -112,6 +112,56 @@ export const usersService = {
     }
   },
 
+  // Look up user by WhatsApp phone number
+  async getByWhatsappPhone(phone: string): Promise<User | null> {
+    try {
+      const snapshot = await db
+        .collection(Collections.USERS)
+        .where('whatsappPhone', '==', phone)
+        .limit(1)
+        .get();
+      if (snapshot.empty) return null;
+      const doc = snapshot.docs[0];
+      const { password, ...user } = doc.data() as any;
+      return { id: doc.id, ...user } as User;
+    } catch (error) {
+      console.error('Error getting user by WhatsApp phone:', error);
+      return null;
+    }
+  },
+
+  // Look up user by Telegram user ID
+  async getByTelegramId(telegramId: string): Promise<User | null> {
+    try {
+      const snapshot = await db
+        .collection(Collections.USERS)
+        .where('telegramId', '==', telegramId)
+        .limit(1)
+        .get();
+      if (snapshot.empty) return null;
+      const doc = snapshot.docs[0];
+      const { password, ...user } = doc.data() as any;
+      return { id: doc.id, ...user } as User;
+    } catch (error) {
+      console.error('Error getting user by Telegram ID:', error);
+      return null;
+    }
+  },
+
+  // Get all users (for cron jobs — never returns passwords)
+  async getAll(): Promise<User[]> {
+    try {
+      const snapshot = await db.collection(Collections.USERS).get();
+      return snapshot.docs.map((doc) => {
+        const { password, ...user } = doc.data() as any;
+        return { id: doc.id, ...user } as User;
+      });
+    } catch (error) {
+      console.error('Error getting all users:', error);
+      throw new Error('Failed to fetch users');
+    }
+  },
+
   // Verify user credentials
   async verifyCredentials(email: string, password: string): Promise<User | null> {
     try {

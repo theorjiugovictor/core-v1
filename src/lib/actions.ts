@@ -6,7 +6,7 @@ import { materialsService } from './firebase/materials';
 import { productsService } from './firebase/products';
 import { usersService } from './firebase/users';
 import { expensesService } from './firebase/expenses';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, unstable_cache } from 'next/cache';
 import { auth } from '@/lib/auth';
 
 export type ParseBusinessCommandInput = {
@@ -75,18 +75,17 @@ function parseCommandWithRegex(input: string) {
   };
 }
 
-export async function processBusinessCommand(input: ParseBusinessCommandInput) {
+// Core execution logic — shared by the web console and messaging webhooks
+export async function executeCommandForUser(userId: string, rawInput: string) {
   let parsedResult;
-
   try {
-    // Try Bedrock first
-    parsedResult = await parseWithBedrock(input.input);
+    parsedResult = await parseWithBedrock(rawInput);
     if (!parsedResult.success || !parsedResult.data) {
       throw new Error("Bedrock parsing failed or returned no data");
     }
   } catch (error) {
     console.error('Bedrock parsing failed, using fallback:', error);
-    parsedResult = parseCommandWithRegex(input.input);
+    parsedResult = parseCommandWithRegex(rawInput);
   }
 
   if (!parsedResult.success || !parsedResult.data) {
@@ -94,175 +93,296 @@ export async function processBusinessCommand(input: ParseBusinessCommandInput) {
   }
 
   const actions = Array.isArray(parsedResult.data) ? parsedResult.data : [parsedResult.data];
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    return { success: false, error: "Unauthorized. Please log in." };
-  }
-  const userId = session.user.id;
-
   let finalMessage = "";
   const processedActions = [];
 
   try {
-    // Process each action in sequence
     for (const actionData of actions) {
-      const { action, item, quantity, price, customer, isCredit, recipe } = actionData;
+      const { action, item, quantity, price, isCredit, recipe } = actionData;
       let message = "";
 
       switch (action) {
-        case 'SALE':
-          // 1. Calculate Unit Cost & Total Cost
+        case 'SALE': {
           const products = await productsService.getAll(userId);
           const product = products.find(p => p.name.toLowerCase() === (item || '').toLowerCase());
           const materials = await materialsService.getAll(userId);
+          const qty = quantity || 1;
+          const hasRecipe = product && product.materials && product.materials.length > 0;
 
+          // ── Pre-sale stock validation (must happen before any DB write) ──
+          if (hasRecipe) {
+            for (const ingredient of product!.materials) {
+              const mat = materials.find(m => m.id === ingredient.materialId);
+              if (mat) {
+                const needed = ingredient.quantity * qty;
+                if (mat.quantity < needed) {
+                  message = mat.quantity === 0
+                    ? `❌ ${mat.name} is out of stock. Restock before selling.`
+                    : `❌ Not enough ${mat.name}: need ${needed} ${mat.unit}(s), only ${mat.quantity} in stock. Sale not recorded.`;
+                  break;
+                }
+              }
+            }
+          } else {
+            const directMat = materials.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
+            if (directMat && directMat.quantity < qty) {
+              message = directMat.quantity === 0
+                ? `❌ ${directMat.name} is out of stock. Restock before selling.`
+                : `❌ Only ${directMat.quantity} ${directMat.unit}(s) of ${directMat.name} in stock. You tried to sell ${qty}. Sale not recorded.`;
+            }
+          }
+
+          // Abort if validation failed
+          if (message) break;
+
+          // ── Calculate unit cost ──
           let unitCost = 0;
           if (product) {
-            if (product.materials && product.materials.length > 0) {
-              // Recipe Cost
+            if (hasRecipe) {
               unitCost = product.materials.reduce((acc, curr) => {
                 const mat = materials.find(m => m.id === curr.materialId);
                 return acc + (mat ? mat.costPrice * curr.quantity : 0);
               }, 0);
             } else {
-              // Retail Cost
               unitCost = product.costPrice || 0;
             }
           } else {
-            // Direct Material Sale
             const directMat = materials.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
             if (directMat) unitCost = directMat.costPrice;
           }
 
-          const qty = quantity || 1;
-          const costAmount = unitCost * qty;
+          // ── Apply discount ──
+          const discountPct: number = actionData.discount ?? 0;
+          const unitPrice = price || 0;
+          const finalUnitPrice = discountPct > 0 ? unitPrice * (1 - discountPct / 100) : unitPrice;
+          const totalAmount = qty * finalUnitPrice;
+          const discountNote = discountPct > 0
+            ? ` (${discountPct}% discount, saved ₦${(qty * (unitPrice - finalUnitPrice)).toLocaleString()})`
+            : '';
 
-          // 2. Record Sale with Cost
+          // ── Record sale ──
           await salesService.create({
             userId,
             productName: item || 'Unknown Product',
             quantity: qty,
-            totalAmount: qty * (price || 0),
-            costAmount,
+            totalAmount,
+            costAmount: unitCost * qty,
             paymentMethod: isCredit ? 'Transfer' : 'Cash',
             date: new Date().toISOString()
           });
 
-          // 3. Update Inventory (Smart Depletion)
-          if (product && product.materials) {
-            // Deplete ingredients
-            for (const ingredient of product.materials) {
+          // ── Deduct inventory ──
+          if (hasRecipe) {
+            for (const ingredient of product!.materials) {
               const material = materials.find(m => m.id === ingredient.materialId);
               if (material) {
-                const qtyToDeduct = ingredient.quantity * qty;
                 await materialsService.update(material.id, userId, {
-                  quantity: Math.max(0, material.quantity - qtyToDeduct)
+                  quantity: material.quantity - ingredient.quantity * qty
                 });
               }
             }
-            message = `✅ Sold ${qty}x ${item} (Ingredients deducted)`;
+            message = `✅ Sold ${qty}x ${item} @ ₦${finalUnitPrice.toLocaleString()} (Ingredients deducted)${discountNote}`;
           } else {
-            // Check direct material sale
             const material = materials.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
             if (material) {
-              await materialsService.update(material.id, userId, {
-                quantity: Math.max(0, material.quantity - qty)
-              });
-              message = `✅ Sold ${qty}x ${item} (Stock deducted)`;
+              const remaining = material.quantity - qty;
+              await materialsService.update(material.id, userId, { quantity: remaining });
+              message = remaining === 0
+                ? `✅ Sold ${qty}x ${item}${discountNote} ⚠️ ${item} is now out of stock — remember to restock!`
+                : `✅ Sold ${qty}x ${item} @ ₦${finalUnitPrice.toLocaleString()}${discountNote} (${remaining} ${material.unit}(s) remaining)`;
             } else {
-              message = `✅ Recorded Sale: ${qty}x ${item}`;
+              message = `✅ Recorded Sale: ${qty}x ${item} @ ₦${finalUnitPrice.toLocaleString()}${discountNote}`;
             }
           }
           break;
+        }
 
-        case 'STOCK_IN':
+        case 'STOCK_IN': {
+          const qty = quantity ?? 0;
+          if (qty < 0) {
+            message = `❌ Cannot add negative quantity. To remove stock, say "Remove ${Math.abs(qty)} ${item}".`;
+            break;
+          }
+          if (qty === 0) {
+            message = `❌ Quantity must be greater than 0.`;
+            break;
+          }
           const allMaterials = await materialsService.getAll(userId);
           const existingMaterial = allMaterials.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
-
-          if (existingMaterial) {
-            await materialsService.update(existingMaterial.id, userId, {
-              quantity: existingMaterial.quantity + (quantity || 0),
-              costPrice: price || existingMaterial.costPrice
-            });
-            message = `📦 Added Stock: ${item} +${quantity}`;
-          } else {
-            await materialsService.create({
-              userId,
-              name: item || 'New Item',
-              quantity: quantity || 0,
-              unit: 'unit',
-              costPrice: price || 0,
-              createdAt: new Date().toISOString()
-            });
-            message = `📦 Created Material: ${quantity}x ${item}`;
+          if (!existingMaterial) {
+            message = `⚠️ "${item}" not found in your inventory. Go to Materials to create it first, or say "Create product ${item}".`;
+            break;
           }
+          const newQty = existingMaterial.quantity + qty;
+          await materialsService.update(existingMaterial.id, userId, {
+            quantity: newQty,
+            costPrice: price || existingMaterial.costPrice
+          });
+          message = `📦 Restocked ${item}: +${qty} (now ${newQty} ${existingMaterial.unit}(s))`;
           break;
+        }
 
-        case 'CREATE_PRODUCT':
+        case 'CREATE_PRODUCT': {
           const newProductMaterials = [];
-
-          // Handle Recipe Creation
           if (recipe && Array.isArray(recipe)) {
             const currentMaterials = await materialsService.getAll(userId);
-
             for (const ingredient of recipe) {
               let matId = '';
               const existingMat = currentMaterials.find(m => m.name.toLowerCase() === ingredient.item.toLowerCase());
-
               if (existingMat) {
                 matId = existingMat.id;
               } else {
-                // Auto-create missing material
                 const newMat = await materialsService.create({
-                  userId,
-                  name: ingredient.item,
-                  quantity: 0,
-                  unit: 'unit',
-                  costPrice: 0,
-                  createdAt: new Date().toISOString()
+                  userId, name: ingredient.item, quantity: 0,
+                  unit: 'unit', costPrice: 0, createdAt: new Date().toISOString()
                 });
                 matId = newMat.id;
               }
-
-              newProductMaterials.push({
-                materialId: matId,
-                quantity: ingredient.quantity
-              });
+              newProductMaterials.push({ materialId: matId, quantity: ingredient.quantity });
             }
           }
-
-          // Note: Bedrock parser doesn't currently extract costPrice. 
-          // We'll rely on the updateProduct action later or infer it? 
-          // For now, let's just create it with 0 costPrice if it's retail.
           await productsService.create({
-            userId,
-            name: item || 'New Product',
-            sellingPrice: price || 0,
-            costPrice: 0,
-            materials: newProductMaterials,
-            createdAt: new Date().toISOString()
+            userId, name: item || 'New Product', sellingPrice: price || 0,
+            costPrice: 0, materials: newProductMaterials, createdAt: new Date().toISOString()
           });
-
           message = `✨ Created Product: ${item} @ ₦${price}${newProductMaterials.length > 0 ? ` with ${newProductMaterials.length} ingredients` : ''}`;
           break;
+        }
 
-        case 'STOCK_CHECK':
+        case 'STOCK_CHECK': {
           const stockMaterials = await materialsService.getAll(userId);
-          const foundStock = stockMaterials.find(m => m.name.toLowerCase().includes((item || '').toLowerCase()));
-          message = foundStock ? `🔎 Stock: ${foundStock.quantity} ${foundStock.unit}s of ${foundStock.name}` : `⚠️ '${item}' not found in stock.`;
+          const found = stockMaterials.find(m => m.name.toLowerCase().includes((item || '').toLowerCase()));
+          if (!found) {
+            message = `⚠️ "${item}" not found in your inventory. Check spelling or go to Materials to add it.`;
+          } else if (found.quantity === 0) {
+            message = `📭 ${found.name} is out of stock (0 ${found.unit}s). Time to restock!`;
+          } else {
+            const threshold = found.lowStockThreshold ?? 5;
+            const lowWarning = found.quantity <= threshold ? ` ⚠️ Running low — consider restocking soon.` : '';
+            message = `🔎 ${found.name}: ${found.quantity} ${found.unit}(s) in stock.${lowWarning}`;
+          }
           break;
+        }
 
-        case 'EXPENSE':
-          await expensesService.create({
-            userId,
-            amount: price || 0,
-            description: item || 'Expense',
-            category: 'General', // TODO: Infer category from item description using LLM later
-            date: new Date().toISOString()
-          });
-          message = `💸 Recorded Expense: ₦${price} for ${item}`;
+        case 'LIST_INVENTORY': {
+          const allStock = await materialsService.getAll(userId);
+          if (allStock.length === 0) {
+            message = `📦 Your inventory is empty. Add materials via the Materials page or say "Create product [name]".`;
+          } else {
+            const lines = allStock.map(m => {
+              const low = m.quantity <= (m.lowStockThreshold ?? 5) ? ' ⚠️' : '';
+              return `• ${m.name}: ${m.quantity} ${m.unit}(s)${low}`;
+            });
+            message = `📦 Inventory (${allStock.length} items):\n${lines.join('\n')}`;
+          }
           break;
+        }
+
+        case 'LOW_STOCK': {
+          const allItems = await materialsService.getAll(userId);
+          const lowItems = allItems.filter(m => m.quantity <= (m.lowStockThreshold ?? 5));
+          if (lowItems.length === 0) {
+            message = `✅ All items are sufficiently stocked. Nothing needs restocking right now.`;
+          } else {
+            const lines = lowItems.map(m =>
+              `• ${m.name}: ${m.quantity} ${m.unit}(s)${m.quantity === 0 ? ' (OUT OF STOCK)' : ''}`
+            );
+            message = `⚠️ ${lowItems.length} item(s) running low:\n${lines.join('\n')}`;
+          }
+          break;
+        }
+
+        case 'STOCK_REMOVE': {
+          const qty = quantity ?? 0;
+          if (qty <= 0) {
+            message = `❌ Quantity to remove must be greater than 0.`;
+            break;
+          }
+          const allMats = await materialsService.getAll(userId);
+          const target = allMats.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
+          if (!target) {
+            message = `⚠️ "${item}" not found in inventory.`;
+            break;
+          }
+          if (qty > target.quantity) {
+            message = `❌ Cannot remove ${qty} ${target.unit}(s) — only ${target.quantity} in stock.`;
+            break;
+          }
+          const afterRemoval = target.quantity - qty;
+          await materialsService.update(target.id, userId, { quantity: afterRemoval });
+          const reason = actionData.reason ? ` (reason: ${actionData.reason})` : '';
+          message = afterRemoval === 0
+            ? `🗑️ Removed ${qty}x ${target.name}${reason}. Stock is now 0 — out of stock!`
+            : `🗑️ Removed ${qty}x ${target.name}${reason}. Remaining: ${afterRemoval} ${target.unit}(s).`;
+          break;
+        }
+
+        case 'STOCK_SET': {
+          const newQty = quantity ?? 0;
+          if (newQty < 0) {
+            message = `❌ Stock cannot be set to a negative number.`;
+            break;
+          }
+          const allMats = await materialsService.getAll(userId);
+          const target = allMats.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
+          if (!target) {
+            message = `⚠️ "${item}" not found in inventory.`;
+            break;
+          }
+          const diff = newQty - target.quantity;
+          await materialsService.update(target.id, userId, { quantity: newQty });
+          const diffNote = diff > 0 ? ` (+${diff} adjusted up)` : diff < 0 ? ` (${diff} adjusted down)` : ` (no change)`;
+          message = `🔧 ${target.name} stock corrected to ${newQty} ${target.unit}(s)${diffNote}.`;
+          break;
+        }
+
+        case 'UPDATE_PRODUCT': {
+          const allProducts = await productsService.getAll(userId);
+          const prod = allProducts.find(p => p.name.toLowerCase() === (item || '').toLowerCase());
+          if (!prod) {
+            message = `⚠️ Product "${item}" not found. Check the name or go to Products page.`;
+            break;
+          }
+          await productsService.update(prod.id, userId, {
+            name: prod.name,
+            sellingPrice: price ?? prod.sellingPrice,
+            costPrice: prod.costPrice,
+            materials: prod.materials,
+          });
+          message = `✏️ ${prod.name} selling price updated to ₦${(price ?? prod.sellingPrice).toLocaleString()}.`;
+          break;
+        }
+
+        case 'DELETE_PRODUCT': {
+          const allProducts = await productsService.getAll(userId);
+          const prod = allProducts.find(p => p.name.toLowerCase() === (item || '').toLowerCase());
+          if (!prod) {
+            message = `⚠️ Product "${item}" not found.`;
+            break;
+          }
+          // Check for stock of any linked material
+          const allMats = await materialsService.getAll(userId);
+          const linkedWithStock = (prod.materials || [])
+            .map(r => allMats.find(m => m.id === r.materialId))
+            .filter(m => m && m.quantity > 0);
+          if (linkedWithStock.length > 0) {
+            const names = linkedWithStock.map(m => m!.name).join(', ');
+            message = `⚠️ Cannot delete "${prod.name}" — linked ingredients still have stock: ${names}. Clear the stock first or edit the recipe.`;
+            break;
+          }
+          await productsService.delete(prod.id, userId);
+          message = `🗑️ Product "${prod.name}" deleted.`;
+          break;
+        }
+
+        case 'EXPENSE': {
+          await expensesService.create({
+            userId, amount: price || 0, description: item || 'Expense',
+            category: 'General', date: new Date().toISOString()
+          });
+          message = `💸 Recorded Expense: ₦${(price || 0).toLocaleString()} for ${item}`;
+          break;
+        }
 
         case 'CHAT':
           message = actionData.message || "I'm listening.";
@@ -285,7 +405,6 @@ export async function processBusinessCommand(input: ParseBusinessCommandInput) {
     revalidatePath('/products');
 
     return { success: true, message: finalMessage, data: actions };
-
   } catch (dbError) {
     console.error("Database execution failed:", dbError);
     return {
@@ -295,46 +414,35 @@ export async function processBusinessCommand(input: ParseBusinessCommandInput) {
   }
 }
 
+export async function processBusinessCommand(input: ParseBusinessCommandInput) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { success: false, error: "Unauthorized. Please log in." };
+  }
+  return executeCommandForUser(session.user.id, input.input);
+}
+
 export async function getBusinessInsights() {
   try {
     const session = await auth();
     if (!session?.user?.id) return { success: false, error: "Unauthorized" };
     const userId = session.user.id;
 
-    // --- Simple In-Memory Cache for Development ---
-    // In production, use Redis or similar
-    const CACHE_KEY = `insights_${userId}`;
-    const cachedStats = (global as any)._insightsCache?.[CACHE_KEY];
-    const CACHE_DURATION = 1000 * 60 * 15; // 15 minutes
+    // unstable_cache is Vercel-compatible (persists across serverless invocations via CDN cache)
+    const fetchInsights = unstable_cache(
+      async () => {
+        const [materials, sales, products] = await Promise.all([
+          materialsService.getAll(userId),
+          salesService.getAll(userId),
+          productsService.getAll(userId),
+        ]);
+        return generateWithBedrock({ materials, sales, products });
+      },
+      [`insights-${userId}`],
+      { revalidate: 60 * 15 } // 15 minutes
+    );
 
-    if (cachedStats && (Date.now() - cachedStats.timestamp < CACHE_DURATION)) {
-      console.log("Serving cached insights");
-      return cachedStats.data;
-    }
-
-    // --- End Cache Check ---
-
-    // Fetch real data from Firebase
-    const materials = await materialsService.getAll(userId);
-    const sales = await salesService.getAll(userId);
-    const products = await productsService.getAll(userId);
-
-    const businessData = {
-      materials,
-      sales,
-      products,
-    };
-
-    const result = await generateWithBedrock(businessData);
-
-    // Save to cache
-    if (!(global as any)._insightsCache) (global as any)._insightsCache = {};
-    (global as any)._insightsCache[CACHE_KEY] = {
-      timestamp: Date.now(),
-      data: result
-    };
-
-    return result;
+    return await fetchInsights();
   } catch (error) {
     console.error('Insights generation failed:', error);
     return { success: false, error: 'Failed to generate insights' };
@@ -686,6 +794,20 @@ export async function getUserProfileAction() {
   if (!session?.user?.id) return null;
   const userId = session.user.id;
   return await usersService.getById(userId);
+}
+
+export async function updateChannelsAction(data: { whatsappPhone?: string; telegramId?: string }) {
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+  const userId = session.user.id;
+  try {
+    await usersService.update(userId, data);
+    revalidatePath('/settings');
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to update channels:", error);
+    return { success: false, error: "Failed to save channel settings." };
+  }
 }
 
 export async function updateUserAction(data: { name: string; businessName: string; email: string }) {

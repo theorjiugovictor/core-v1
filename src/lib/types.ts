@@ -4,6 +4,8 @@ export type User = {
   email: string;
   businessName: string;
   avatarUrl?: string;
+  whatsappPhone?: string; // e.g. "2348012345678" (no +)
+  telegramId?: string;    // Telegram numeric user ID as string
 };
 
 export type Material = {
@@ -13,6 +15,7 @@ export type Material = {
   quantity: number;
   unit: string;
   createdAt: string;
+  lowStockThreshold?: number; // alert when quantity falls at or below this
 };
 
 export type Product = {

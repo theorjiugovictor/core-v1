@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Mic, TrendingUp, Boxes, ShieldCheck, Zap, Sparkles, MessageSquare } from 'lucide-react';
+import { ArrowRight, TrendingUp, Boxes, Sparkles, MessageSquare } from 'lucide-react';
 import { Logo } from '@/components/logo';
 
 export default function LandingPage() {
@@ -33,23 +33,18 @@ export default function LandingPage() {
         {/* Hero Section */}
         <section className="w-full py-20 md:py-32 lg:py-48 px-4 md:px-6 flex flex-col items-center text-center relative">
           <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 mb-6 animate-fade-in-up">
-            The Future of Retail is Here
+            Built for Nigerian Businesses
           </div>
           <h1 className="text-5xl font-extrabold tracking-tight sm:text-6xl md:text-7xl lg:text-8xl bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-gray-700 to-gray-900 dark:from-white dark:via-gray-200 dark:to-gray-500 animate-fade-in-up max-w-[900px] pb-4">
-            Run Your Business <br className="hidden md:block" /> Like Magic.
+            You Sell. <br className="hidden md:block" /> We Handle The Rest.
           </h1>
           <p className="mt-6 mx-auto max-w-[700px] text-muted-foreground md:text-xl dark:text-gray-400 animate-fade-in-up delay-100 leading-relaxed">
-            Total control over your revenue and expenses. The intelligent operating system that tracks sales, inventory, and profit—just by text and voice.
+            CORE is your business accountability partner. Focus on growing and building relationships — we handle the numbers, stock, and insights automatically.
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-4 animate-fade-in-up delay-200">
             <Link href="/register">
               <Button size="lg" className="h-14 px-8 text-lg rounded-full gap-2 shadow-xl hover:scale-105 transition-transform bg-primary hover:bg-primary/90">
-                Start Free Trial <ArrowRight className="w-5 h-5" />
-              </Button>
-            </Link>
-            <Link href="/login">
-              <Button variant="outline" size="lg" className="h-14 px-8 text-lg rounded-full border-2 hover:bg-secondary/50">
-                Live Demo
+                Take your business seriously. Start free. <ArrowRight className="w-5 h-5" />
               </Button>
             </Link>
           </div>
@@ -188,20 +183,20 @@ export default function LandingPage() {
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-primary/10 rounded-full blur-[80px] -z-10"></div>
 
               <h2 className="text-3xl font-bold tracking-tight md:text-5xl mb-6">
-                Ready to upgrade your business?
+                Every business deserves to be taken seriously.
               </h2>
               <p className="mx-auto max-w-[600px] text-muted-foreground md:text-xl mb-10">
-                Join the new wave of Nigerian businesses using AI to grow faster.
+                No matter how small, no matter where you're starting from. CORE has your back.
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link href="/register">
                   <Button size="lg" className="h-14 px-10 text-xl rounded-full shadow-xl bg-primary hover:bg-primary/90 transition-all hover:scale-105 w-full sm:w-auto">
-                    Get Started Free
+                    Start Free
                   </Button>
                 </Link>
               </div>
-              <p className="text-sm text-muted-foreground mt-6">No credit card required • 14-day free trial</p>
+              <p className="text-sm text-muted-foreground mt-6">No credit card required • Free to get started</p>
             </div>
           </div>
         </section>

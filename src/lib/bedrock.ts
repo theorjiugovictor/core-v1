@@ -50,6 +50,9 @@ export async function callBedrock(
   let attempt = 0;
 
   while (attempt < maxRetries) {
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), 8000); // 8s timeout per attempt
+
     try {
       const command = new InvokeModelCommand({
         modelId,
@@ -58,7 +61,8 @@ export async function callBedrock(
         body: JSON.stringify(payload),
       });
 
-      const response = await bedrockClient.send(command);
+      const response = await bedrockClient.send(command, { abortSignal: abortController.signal });
+      clearTimeout(timeoutId);
       const responseBody = JSON.parse(new TextDecoder().decode(response.body));
 
       return {
@@ -66,12 +70,14 @@ export async function callBedrock(
         stopReason: responseBody.stop_reason,
       };
     } catch (error: any) {
+      clearTimeout(timeoutId);
       attempt++;
       console.warn(`Bedrock API attempt ${attempt} failed:`, error.message);
 
       const isThrottling = error.name === 'ThrottlingException' || error.message?.includes('Too many requests');
+      const isTimeout = error.name === 'AbortError';
 
-      if (attempt >= maxRetries || !isThrottling) {
+      if (attempt >= maxRetries || (!isThrottling && !isTimeout)) {
         console.error('Bedrock API Error:', error);
         throw new Error('Failed to call AWS Bedrock after retries');
       }
@@ -97,41 +103,95 @@ Parse natural language commands into a structured JSON ARRAY of actions.
 You must return a JSON ARRAY, even for a single command.
 
 Supported actions:
-- SALE: Record a sale (e.g., "sold 15 bottles palm oil 800 each")
-- STOCK_IN: Add inventory/material (e.g., "add 100 bags cement at 5000 cost")
-- CREATE_PRODUCT: Create a new product. CAN include recipe. (e.g., "create Meat Pie at 500 made of 0.2 flour and 0.1 meat")
-- STOCK_CHECK: Check stock levels (e.g., "how many bags of rice?")
-- EXPENSE: Record expense (e.g., "paid 15k for transport")
-- SUMMARY: View summary (e.g., "today's sales")
-- CHAT: General conversation (e.g. "Hello", "How do I use this?")
-- CLARIFY: If intent is ambiguous or missing critical details (e.g. "Added rice" -> missing qty/price).
+- SALE: Record a sale. Supports optional discount (percentage).
+- STOCK_IN: Add stock to an existing inventory item. Used when restocking.
+- STOCK_REMOVE: Remove stock (damaged, expired, lost, adjustment down).
+- STOCK_SET: Set inventory to an exact quantity (manual correction/audit).
+- CREATE_PRODUCT: Create a new product or material. CAN include recipe.
+- STOCK_CHECK: Check stock level of a specific item.
+- LIST_INVENTORY: Show all inventory items and their quantities.
+- LOW_STOCK: Show items that are running low in stock.
+- UPDATE_PRODUCT: Update a product's selling price or cost price.
+- DELETE_PRODUCT: Delete a product (will warn if stock exists).
+- EXPENSE: Record a business expense (non-inventory spend like transport, electricity, rent).
+- CHAT: General conversation or questions.
+- CLARIFY: Intent is ambiguous or missing critical info.
+
+IMPORTANT RULES:
+- "Bought X bags of rice for ₦Y" = BOTH a STOCK_IN (inventory restocked) AND an EXPENSE (money spent). Return BOTH actions.
+- "Spent ₦Y on fuel/transport/rent/electricity" = EXPENSE only (not inventory).
+- Natural language variations for STOCK_IN: "put in stock", "received", "got", "restocked", "added to inventory" → all map to STOCK_IN.
+- Natural language variations for STOCK_REMOVE: "damaged", "expired", "spoiled", "remove", "wrote off", "lost" → all map to STOCK_REMOVE.
+- Natural language variations for STOCK_SET: "actual stock is X", "correct stock to X", "set X to Y bags" → STOCK_SET.
+- "How many", "check stock", "how much", "count" → STOCK_CHECK.
+- "Show all inventory", "full stock list", "what's in stock", "inventory status" → LIST_INVENTORY.
+- "Low stock", "what needs restocking", "running low", "items below threshold" → LOW_STOCK.
 
 Nigerian currency patterns:
 - "5k" = 5000 Naira
 - "45k each" = 45000 per unit
 - ₦ or "naira" = Nigerian Naira
+- "250k" = 250000
+
+Nigerian local measurement units (use as the unit field):
+- "derica" or "derica cup" = derica
+- "mudu" = mudu
+- "paint" or "paint tin" = paint
+- "bottle", "sachet", "pack", "carton", "bag", "kg", "litre" = use as-is
+
+Nigerian product recognition:
+- Indomie, noodles, Golden Penny flour, Dangote sugar, semovita, garri, eba, akamu, beans, groundnut oil, palm oil, zobo, kunu → recognize and spell correctly.
 
 Respond ONLY with a JSON ARRAY of objects in this format:
 [
   {
-    "action": "SALE" | "STOCK_IN" | "CREATE_PRODUCT" | "STOCK_CHECK" | "EXPENSE" | "SUMMARY" | "CHAT" | "CLARIFY",
-    "item": "product name (optional)",
-    "quantity": number (optional),
-    "price": number (optional),
+    "action": "SALE|STOCK_IN|STOCK_REMOVE|STOCK_SET|CREATE_PRODUCT|STOCK_CHECK|LIST_INVENTORY|LOW_STOCK|UPDATE_PRODUCT|DELETE_PRODUCT|EXPENSE|CHAT|CLARIFY",
+    "item": "product or material name",
+    "quantity": number,
+    "price": number,
+    "discount": number (percentage, e.g. 10 means 10% off — only for SALE),
+    "reason": "damaged|expired|lost|correction (only for STOCK_REMOVE)",
     "customer": "customer name (for credit sales)",
     "isCredit": boolean,
     "date": "YYYY-MM-DD",
     "message": "Response text for CHAT or CLARIFY",
-    "recipe": [ {"item": "ingredient name", "quantity": number} ] // Optional, only for CREATE_PRODUCT
+    "recipe": [ {"item": "ingredient name", "quantity": number} ]
   }
 ]
 
 Examples:
 Input: "Sold 5 Rice at 2000 and 3 Beans at 1500"
-Output: [{"action":"SALE", "item":"Rice", "quantity":5, "price":2000}, {"action":"SALE", "item":"Beans", "quantity":3, "price":1500}]
+Output: [{"action":"SALE","item":"Rice","quantity":5,"price":2000},{"action":"SALE","item":"Beans","quantity":3,"price":1500}]
+
+Input: "Sold 10 bags rice at ₦28,000 each, 10% discount"
+Output: [{"action":"SALE","item":"rice","quantity":10,"price":28000,"discount":10}]
+
+Input: "Bought 20 bags of rice for ₦500,000 from ABC Suppliers"
+Output: [{"action":"STOCK_IN","item":"rice","quantity":20,"price":25000},{"action":"EXPENSE","item":"Rice purchase from ABC Suppliers","price":500000}]
+
+Input: "Spent ₦5,000 on fuel"
+Output: [{"action":"EXPENSE","item":"fuel","price":5000}]
+
+Input: "3 bags of rice are damaged, remove from stock"
+Output: [{"action":"STOCK_REMOVE","item":"rice","quantity":3,"reason":"damaged"}]
+
+Input: "Actual rice stock is 15, not 20"
+Output: [{"action":"STOCK_SET","item":"rice","quantity":15}]
+
+Input: "Show all inventory"
+Output: [{"action":"LIST_INVENTORY"}]
+
+Input: "What items are low in stock?"
+Output: [{"action":"LOW_STOCK"}]
+
+Input: "Update rice price to ₦27,000"
+Output: [{"action":"UPDATE_PRODUCT","item":"rice","price":27000}]
+
+Input: "Put 10 derica of garri in stock"
+Output: [{"action":"STOCK_IN","item":"garri","quantity":10,"unit":"derica"}]
 
 Input: "Create Meatpie at 500 using 0.2kg flour and 1 egg"
-Output: [{"action":"CREATE_PRODUCT", "item":"Meatpie", "price":500, "recipe":[{"item":"flour", "quantity":0.2}, {"item":"egg", "quantity":1}]}]
+Output: [{"action":"CREATE_PRODUCT","item":"Meatpie","price":500,"recipe":[{"item":"flour","quantity":0.2},{"item":"egg","quantity":1}]}]
 `;
 
   const prompt = `Parse this command: "${input}"`;

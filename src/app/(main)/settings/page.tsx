@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getUserProfileAction } from "@/lib/actions";
 import { SettingsForm } from "@/components/settings-form";
+import { ChannelsForm } from "@/components/channels-form";
 import { DataExport } from "@/components/data-export";
 
 export default async function SettingsPage() {
@@ -13,6 +14,7 @@ export default async function SettingsPage() {
   return (
     <div className="space-y-6 animate-fade-in-up">
       <SettingsForm user={user} />
+      <ChannelsForm user={user} />
       <DataExport />
     </div>
   );
