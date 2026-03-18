@@ -114,7 +114,8 @@ Supported actions:
 - UPDATE_PRODUCT: Update a product's selling price or cost price.
 - DELETE_PRODUCT: Delete a product (will warn if stock exists).
 - EXPENSE: Record a business expense (non-inventory spend like transport, electricity, rent).
-- CHAT: General conversation or questions.
+- PROFIT_QUERY: User wants to know their profit, revenue, or financial summary for a period. Fields: period ("today"|"week"|"month"|"all").
+- CHAT: General conversation or questions that are NOT financial summaries.
 - CLARIFY: Intent is ambiguous or missing critical info.
 
 IMPORTANT RULES:
@@ -145,7 +146,7 @@ Nigerian product recognition:
 Respond ONLY with a JSON ARRAY of objects in this format:
 [
   {
-    "action": "SALE|STOCK_IN|STOCK_REMOVE|STOCK_SET|CREATE_PRODUCT|STOCK_CHECK|LIST_INVENTORY|LOW_STOCK|UPDATE_PRODUCT|DELETE_PRODUCT|EXPENSE|CHAT|CLARIFY",
+    "action": "SALE|STOCK_IN|STOCK_REMOVE|STOCK_SET|CREATE_PRODUCT|STOCK_CHECK|LIST_INVENTORY|LOW_STOCK|UPDATE_PRODUCT|DELETE_PRODUCT|EXPENSE|PROFIT_QUERY|CHAT|CLARIFY",
     "item": "product or material name",
     "quantity": number,
     "price": number,
@@ -183,6 +184,15 @@ Output: [{"action":"LIST_INVENTORY"}]
 
 Input: "What items are low in stock?"
 Output: [{"action":"LOW_STOCK"}]
+
+Input: "How much profit did I make today?"
+Output: [{"action":"PROFIT_QUERY","period":"today"}]
+
+Input: "What's my revenue this week?"
+Output: [{"action":"PROFIT_QUERY","period":"week"}]
+
+Input: "Show me this month's summary"
+Output: [{"action":"PROFIT_QUERY","period":"month"}]
 
 Input: "Update rice price to ₦27,000"
 Output: [{"action":"UPDATE_PRODUCT","item":"rice","price":27000}]

@@ -66,8 +66,8 @@ export default function MainLayout({ children, user }: { children: React.ReactNo
   return (
     <SidebarProvider>
       <Sidebar>
-        <SidebarHeader className="px-4 py-4 border-b border-sidebar-border">
-          <Logo size={28} />
+        <SidebarHeader className="px-4 py-5 border-b border-sidebar-border">
+          <Logo size={40} />
         </SidebarHeader>
 
         <SidebarContent className="px-2 py-3">
@@ -138,7 +138,14 @@ export default function MainLayout({ children, user }: { children: React.ReactNo
       </Sidebar>
 
       <SidebarInset>
-        <div className="flex flex-col h-[100dvh] overflow-hidden">
+        <div className="flex flex-col h-[100dvh] overflow-hidden relative">
+          {/* Ambient background orbs */}
+          <div aria-hidden="true" className="pointer-events-none fixed inset-0 overflow-hidden -z-10">
+            <div className="orb-1 absolute top-[10%] left-[15%] w-[500px] h-[500px] rounded-full bg-primary/10 blur-[120px]" />
+            <div className="orb-2 absolute top-[50%] right-[10%] w-[400px] h-[400px] rounded-full bg-purple-500/10 blur-[100px]" />
+            <div className="orb-3 absolute bottom-[10%] left-[40%] w-[350px] h-[350px] rounded-full bg-blue-400/10 blur-[90px]" />
+          </div>
+
           <Header title={deriveTitle(pathname)} user={user} />
           <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
             {children}

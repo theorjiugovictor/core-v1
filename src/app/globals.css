@@ -118,3 +118,25 @@
 body {
   @apply bg-background text-foreground;
 }
+
+/* Animated background orbs */
+@keyframes orb-drift-1 {
+  0%, 100% { translate: 0 0; }
+  33%       { translate: 60px -80px; }
+  66%       { translate: -40px 40px; }
+}
+
+@keyframes orb-drift-2 {
+  0%, 100% { translate: 0 0; }
+  33%       { translate: -70px 60px; }
+  66%       { translate: 50px -50px; }
+}
+
+@keyframes orb-drift-3 {
+  0%, 100% { translate: 0 0; }
+  50%       { translate: 40px 70px; }
+}
+
+.orb-1 { animation: orb-drift-1 28s ease-in-out infinite; }
+.orb-2 { animation: orb-drift-2 34s ease-in-out infinite; }
+.orb-3 { animation: orb-drift-3 22s ease-in-out infinite; }

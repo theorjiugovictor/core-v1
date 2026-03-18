@@ -53,6 +53,7 @@ const ACTION_CONFIG: Record<string, { icon: React.ElementType; color: string; bo
   CREATE_PRODUCT: { icon: Sparkles,      color: 'text-violet-600 dark:text-violet-400',   border: 'border-l-violet-500', bg: 'bg-violet-50 dark:bg-violet-950/30',     label: 'Created' },
   UPDATE_PRODUCT: { icon: Package,       color: 'text-violet-600 dark:text-violet-400',   border: 'border-l-violet-500', bg: 'bg-violet-50 dark:bg-violet-950/30',     label: 'Updated' },
   DELETE_PRODUCT: { icon: Package,       color: 'text-red-600 dark:text-red-400',         border: 'border-l-red-500',    bg: 'bg-red-50 dark:bg-red-950/30',           label: 'Deleted' },
+  PROFIT_QUERY:   { icon: TrendingDown,  color: 'text-indigo-600 dark:text-indigo-400',  border: 'border-l-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-950/30',     label: 'Profit' },
   CHAT:           { icon: MessageSquare, color: 'text-primary',                           border: 'border-l-primary',    bg: 'bg-primary/5',                           label: 'Answer' },
   CLARIFY:        { icon: HelpCircle,    color: 'text-amber-600 dark:text-amber-400',     border: 'border-l-amber-400',  bg: 'bg-amber-50 dark:bg-amber-950/30',       label: 'Clarify' },
   BATCH:          { icon: CheckCircle2,  color: 'text-emerald-600 dark:text-emerald-400', border: 'border-l-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/30',  label: 'Batch' },

@@ -153,7 +153,7 @@ export async function executeCommandForUser(userId: string, rawInput: string) {
 
           // ── Apply discount ──
           const discountPct: number = actionData.discount ?? 0;
-          const unitPrice = price || 0;
+          const unitPrice = price || product?.sellingPrice || 0;
           const finalUnitPrice = discountPct > 0 ? unitPrice * (1 - discountPct / 100) : unitPrice;
           const totalAmount = qty * finalUnitPrice;
           const discountNote = discountPct > 0
@@ -381,6 +381,39 @@ export async function executeCommandForUser(userId: string, rawInput: string) {
             category: 'General', date: new Date().toISOString()
           });
           message = `💸 Recorded Expense: ₦${(price || 0).toLocaleString()} for ${item}`;
+          break;
+        }
+
+        case 'PROFIT_QUERY': {
+          const period: string = actionData.period || 'today';
+          const allSales = await salesService.getAll(userId);
+          const allExpenses = await expensesService.getAll(userId);
+          const now = new Date();
+
+          const inPeriod = (dateStr: string) => {
+            const d = new Date(dateStr);
+            if (period === 'today') return d.toDateString() === now.toDateString();
+            if (period === 'week') { const w = new Date(now); w.setDate(now.getDate() - 7); return d >= w; }
+            if (period === 'month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+            return true; // all-time
+          };
+
+          const sales = allSales.filter(s => inPeriod(s.date));
+          const expenses = allExpenses.filter(e => inPeriod(e.date));
+
+          const revenue = sales.reduce((s, r) => s + (r.totalAmount || 0), 0);
+          const cogs = sales.reduce((s, r) => s + (r.costAmount || 0), 0);
+          const expenseTotal = expenses.reduce((s, e) => s + (e.amount || 0), 0);
+          const grossProfit = revenue - cogs;
+          const netProfit = grossProfit - expenseTotal;
+
+          const label = ({ today: 'Today', week: 'This Week', month: 'This Month', all: 'All Time' } as Record<string, string>)[period] ?? period;
+
+          if (sales.length === 0 && expenses.length === 0) {
+            message = `📊 No transactions recorded ${label.toLowerCase()}.`;
+          } else {
+            message = `📊 ${label}\n• Revenue: ₦${revenue.toLocaleString()}\n• Cost of Goods: ₦${cogs.toLocaleString()}\n• Gross Profit: ₦${grossProfit.toLocaleString()}\n• Other Expenses: ₦${expenseTotal.toLocaleString()}\n• Net Profit: ₦${netProfit.toLocaleString()}`;
+          }
           break;
         }
 
