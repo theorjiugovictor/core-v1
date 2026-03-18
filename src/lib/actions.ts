@@ -117,8 +117,8 @@ export async function executeCommandForUser(userId: string, rawInput: string) {
                 const needed = ingredient.quantity * qty;
                 if (mat.quantity < needed) {
                   message = mat.quantity === 0
-                    ? `❌ ${mat.name} is out of stock. Restock before selling.`
-                    : `❌ Not enough ${mat.name}: need ${needed} ${mat.unit}(s), only ${mat.quantity} in stock. Sale not recorded.`;
+                    ? `${mat.name} is out of stock. Restock before selling.`
+                    : `Not enough ${mat.name}: need ${needed} ${mat.unit}(s), only ${mat.quantity} in stock. Sale not recorded.`;
                   break;
                 }
               }
@@ -127,8 +127,8 @@ export async function executeCommandForUser(userId: string, rawInput: string) {
             const directMat = materials.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
             if (directMat && directMat.quantity < qty) {
               message = directMat.quantity === 0
-                ? `❌ ${directMat.name} is out of stock. Restock before selling.`
-                : `❌ Only ${directMat.quantity} ${directMat.unit}(s) of ${directMat.name} in stock. You tried to sell ${qty}. Sale not recorded.`;
+                ? `${directMat.name} is out of stock. Restock before selling.`
+                : `Only ${directMat.quantity} ${directMat.unit}(s) of ${directMat.name} in stock. You tried to sell ${qty}. Sale not recorded.`;
             }
           }
 
@@ -181,17 +181,17 @@ export async function executeCommandForUser(userId: string, rawInput: string) {
                 });
               }
             }
-            message = `✅ Sold ${qty}x ${item} @ ₦${finalUnitPrice.toLocaleString()} (Ingredients deducted)${discountNote}`;
+            message = `Sold ${qty}x ${item} @ ₦${finalUnitPrice.toLocaleString()} (Ingredients deducted)${discountNote}`;
           } else {
             const material = materials.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
             if (material) {
               const remaining = material.quantity - qty;
               await materialsService.update(material.id, userId, { quantity: remaining });
               message = remaining === 0
-                ? `✅ Sold ${qty}x ${item}${discountNote} ⚠️ ${item} is now out of stock — remember to restock!`
-                : `✅ Sold ${qty}x ${item} @ ₦${finalUnitPrice.toLocaleString()}${discountNote} (${remaining} ${material.unit}(s) remaining)`;
+                ? `Sold ${qty}x ${item}${discountNote}. ${item} is now out of stock — remember to restock.`
+                : `Sold ${qty}x ${item} @ ₦${finalUnitPrice.toLocaleString()}${discountNote} (${remaining} ${material.unit}(s) remaining)`;
             } else {
-              message = `✅ Recorded Sale: ${qty}x ${item} @ ₦${finalUnitPrice.toLocaleString()}${discountNote}`;
+              message = `Recorded sale: ${qty}x ${item} @ ₦${finalUnitPrice.toLocaleString()}${discountNote}`;
             }
           }
           break;
@@ -200,17 +200,17 @@ export async function executeCommandForUser(userId: string, rawInput: string) {
         case 'STOCK_IN': {
           const qty = quantity ?? 0;
           if (qty < 0) {
-            message = `❌ Cannot add negative quantity. To remove stock, say "Remove ${Math.abs(qty)} ${item}".`;
+            message = `Cannot add negative quantity. To remove stock, say "Remove ${Math.abs(qty)} ${item}".`;
             break;
           }
           if (qty === 0) {
-            message = `❌ Quantity must be greater than 0.`;
+            message = `Quantity must be greater than 0.`;
             break;
           }
           const allMaterials = await materialsService.getAll(userId);
           const existingMaterial = allMaterials.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
           if (!existingMaterial) {
-            message = `⚠️ "${item}" not found in your inventory. Go to Materials to create it first, or say "Create product ${item}".`;
+            message = `"${item}" not found in your inventory. Go to Materials to create it first, or say "Create product ${item}".`;
             break;
           }
           const newQty = existingMaterial.quantity + qty;
@@ -218,7 +218,7 @@ export async function executeCommandForUser(userId: string, rawInput: string) {
             quantity: newQty,
             costPrice: price || existingMaterial.costPrice
           });
-          message = `📦 Restocked ${item}: +${qty} (now ${newQty} ${existingMaterial.unit}(s))`;
+          message = `Restocked ${item}: +${qty} (now ${newQty} ${existingMaterial.unit}(s))`;
           break;
         }
 
@@ -245,7 +245,7 @@ export async function executeCommandForUser(userId: string, rawInput: string) {
             userId, name: item || 'New Product', sellingPrice: price || 0,
             costPrice: 0, materials: newProductMaterials, createdAt: new Date().toISOString()
           });
-          message = `✨ Created Product: ${item} @ ₦${price}${newProductMaterials.length > 0 ? ` with ${newProductMaterials.length} ingredients` : ''}`;
+          message = `Product created: ${item} @ ₦${price}${newProductMaterials.length > 0 ? ` with ${newProductMaterials.length} ingredients` : ''}`;
           break;
         }
 
@@ -253,13 +253,13 @@ export async function executeCommandForUser(userId: string, rawInput: string) {
           const stockMaterials = await materialsService.getAll(userId);
           const found = stockMaterials.find(m => m.name.toLowerCase().includes((item || '').toLowerCase()));
           if (!found) {
-            message = `⚠️ "${item}" not found in your inventory. Check spelling or go to Materials to add it.`;
+            message = `"${item}" not found in your inventory. Check spelling or go to Materials to add it.`;
           } else if (found.quantity === 0) {
-            message = `📭 ${found.name} is out of stock (0 ${found.unit}s). Time to restock!`;
+            message = `${found.name} is out of stock (0 ${found.unit}s). Time to restock.`;
           } else {
             const threshold = found.lowStockThreshold ?? 5;
-            const lowWarning = found.quantity <= threshold ? ` ⚠️ Running low — consider restocking soon.` : '';
-            message = `🔎 ${found.name}: ${found.quantity} ${found.unit}(s) in stock.${lowWarning}`;
+            const lowWarning = found.quantity <= threshold ? ` Running low — consider restocking soon.` : '';
+            message = `${found.name}: ${found.quantity} ${found.unit}(s) in stock.${lowWarning}`;
           }
           break;
         }
@@ -267,13 +267,13 @@ export async function executeCommandForUser(userId: string, rawInput: string) {
         case 'LIST_INVENTORY': {
           const allStock = await materialsService.getAll(userId);
           if (allStock.length === 0) {
-            message = `📦 Your inventory is empty. Add materials via the Materials page or say "Create product [name]".`;
+            message = `Your inventory is empty. Add materials via the Materials page or say "Create product [name]".`;
           } else {
             const lines = allStock.map(m => {
-              const low = m.quantity <= (m.lowStockThreshold ?? 5) ? ' ⚠️' : '';
+              const low = m.quantity <= (m.lowStockThreshold ?? 5) ? ' (low)' : '';
               return `• ${m.name}: ${m.quantity} ${m.unit}(s)${low}`;
             });
-            message = `📦 Inventory (${allStock.length} items):\n${lines.join('\n')}`;
+            message = `Inventory (${allStock.length} items):\n${lines.join('\n')}`;
           }
           break;
         }
@@ -282,12 +282,12 @@ export async function executeCommandForUser(userId: string, rawInput: string) {
           const allItems = await materialsService.getAll(userId);
           const lowItems = allItems.filter(m => m.quantity <= (m.lowStockThreshold ?? 5));
           if (lowItems.length === 0) {
-            message = `✅ All items are sufficiently stocked. Nothing needs restocking right now.`;
+            message = `All items are sufficiently stocked. Nothing needs restocking right now.`;
           } else {
             const lines = lowItems.map(m =>
-              `• ${m.name}: ${m.quantity} ${m.unit}(s)${m.quantity === 0 ? ' (OUT OF STOCK)' : ''}`
+              `• ${m.name}: ${m.quantity} ${m.unit}(s)${m.quantity === 0 ? ' (out of stock)' : ''}`
             );
-            message = `⚠️ ${lowItems.length} item(s) running low:\n${lines.join('\n')}`;
+            message = `${lowItems.length} item(s) running low:\n${lines.join('\n')}`;
           }
           break;
         }
@@ -295,44 +295,44 @@ export async function executeCommandForUser(userId: string, rawInput: string) {
         case 'STOCK_REMOVE': {
           const qty = quantity ?? 0;
           if (qty <= 0) {
-            message = `❌ Quantity to remove must be greater than 0.`;
+            message = `Quantity to remove must be greater than 0.`;
             break;
           }
           const allMats = await materialsService.getAll(userId);
           const target = allMats.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
           if (!target) {
-            message = `⚠️ "${item}" not found in inventory.`;
+            message = `"${item}" not found in inventory.`;
             break;
           }
           if (qty > target.quantity) {
-            message = `❌ Cannot remove ${qty} ${target.unit}(s) — only ${target.quantity} in stock.`;
+            message = `Cannot remove ${qty} ${target.unit}(s) — only ${target.quantity} in stock.`;
             break;
           }
           const afterRemoval = target.quantity - qty;
           await materialsService.update(target.id, userId, { quantity: afterRemoval });
           const reason = actionData.reason ? ` (reason: ${actionData.reason})` : '';
           message = afterRemoval === 0
-            ? `🗑️ Removed ${qty}x ${target.name}${reason}. Stock is now 0 — out of stock!`
-            : `🗑️ Removed ${qty}x ${target.name}${reason}. Remaining: ${afterRemoval} ${target.unit}(s).`;
+            ? `Removed ${qty}x ${target.name}${reason}. Stock is now 0 — out of stock.`
+            : `Removed ${qty}x ${target.name}${reason}. Remaining: ${afterRemoval} ${target.unit}(s).`;
           break;
         }
 
         case 'STOCK_SET': {
           const newQty = quantity ?? 0;
           if (newQty < 0) {
-            message = `❌ Stock cannot be set to a negative number.`;
+            message = `Stock cannot be set to a negative number.`;
             break;
           }
           const allMats = await materialsService.getAll(userId);
           const target = allMats.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
           if (!target) {
-            message = `⚠️ "${item}" not found in inventory.`;
+            message = `"${item}" not found in inventory.`;
             break;
           }
           const diff = newQty - target.quantity;
           await materialsService.update(target.id, userId, { quantity: newQty });
           const diffNote = diff > 0 ? ` (+${diff} adjusted up)` : diff < 0 ? ` (${diff} adjusted down)` : ` (no change)`;
-          message = `🔧 ${target.name} stock corrected to ${newQty} ${target.unit}(s)${diffNote}.`;
+          message = `${target.name} stock corrected to ${newQty} ${target.unit}(s)${diffNote}.`;
           break;
         }
 
@@ -340,7 +340,7 @@ export async function executeCommandForUser(userId: string, rawInput: string) {
           const allProducts = await productsService.getAll(userId);
           const prod = allProducts.find(p => p.name.toLowerCase() === (item || '').toLowerCase());
           if (!prod) {
-            message = `⚠️ Product "${item}" not found. Check the name or go to Products page.`;
+            message = `Product "${item}" not found. Check the name or go to Products page.`;
             break;
           }
           await productsService.update(prod.id, userId, {
@@ -349,7 +349,7 @@ export async function executeCommandForUser(userId: string, rawInput: string) {
             costPrice: prod.costPrice,
             materials: prod.materials,
           });
-          message = `✏️ ${prod.name} selling price updated to ₦${(price ?? prod.sellingPrice).toLocaleString()}.`;
+          message = `${prod.name} selling price updated to ₦${(price ?? prod.sellingPrice).toLocaleString()}.`;
           break;
         }
 
@@ -357,7 +357,7 @@ export async function executeCommandForUser(userId: string, rawInput: string) {
           const allProducts = await productsService.getAll(userId);
           const prod = allProducts.find(p => p.name.toLowerCase() === (item || '').toLowerCase());
           if (!prod) {
-            message = `⚠️ Product "${item}" not found.`;
+            message = `Product "${item}" not found.`;
             break;
           }
           // Check for stock of any linked material
@@ -367,11 +367,11 @@ export async function executeCommandForUser(userId: string, rawInput: string) {
             .filter(m => m && m.quantity > 0);
           if (linkedWithStock.length > 0) {
             const names = linkedWithStock.map(m => m!.name).join(', ');
-            message = `⚠️ Cannot delete "${prod.name}" — linked ingredients still have stock: ${names}. Clear the stock first or edit the recipe.`;
+            message = `Cannot delete "${prod.name}" — linked ingredients still have stock: ${names}. Clear the stock first or edit the recipe.`;
             break;
           }
           await productsService.delete(prod.id, userId);
-          message = `🗑️ Product "${prod.name}" deleted.`;
+          message = `Product "${prod.name}" deleted.`;
           break;
         }
 
@@ -380,7 +380,7 @@ export async function executeCommandForUser(userId: string, rawInput: string) {
             userId, amount: price || 0, description: item || 'Expense',
             category: 'General', date: new Date().toISOString()
           });
-          message = `💸 Recorded Expense: ₦${(price || 0).toLocaleString()} for ${item}`;
+          message = `Expense recorded: ₦${(price || 0).toLocaleString()} for ${item}`;
           break;
         }
 
@@ -410,9 +410,9 @@ export async function executeCommandForUser(userId: string, rawInput: string) {
           const label = ({ today: 'Today', week: 'This Week', month: 'This Month', all: 'All Time' } as Record<string, string>)[period] ?? period;
 
           if (sales.length === 0 && expenses.length === 0) {
-            message = `📊 No transactions recorded ${label.toLowerCase()}.`;
+            message = `No transactions recorded ${label.toLowerCase()}.`;
           } else {
-            message = `📊 ${label}\n• Revenue: ₦${revenue.toLocaleString()}\n• Cost of Goods: ₦${cogs.toLocaleString()}\n• Gross Profit: ₦${grossProfit.toLocaleString()}\n• Other Expenses: ₦${expenseTotal.toLocaleString()}\n• Net Profit: ₦${netProfit.toLocaleString()}`;
+            message = `${label}\n• Revenue: ₦${revenue.toLocaleString()}\n• Cost of Goods: ₦${cogs.toLocaleString()}\n• Gross Profit: ₦${grossProfit.toLocaleString()}\n• Other Expenses: ₦${expenseTotal.toLocaleString()}\n• Net Profit: ₦${netProfit.toLocaleString()}`;
           }
           break;
         }
@@ -422,7 +422,7 @@ export async function executeCommandForUser(userId: string, rawInput: string) {
           break;
 
         case 'CLARIFY':
-          message = `❓ ${actionData.message || "Could you clarify?"}`;
+          message = actionData.message || "Could you clarify?";
           break;
 
         default:
