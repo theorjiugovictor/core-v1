@@ -1,6 +1,7 @@
 'use server';
 
-import { parseBusinessCommand as parseWithBedrock, generateBusinessInsights as generateWithBedrock, chatConversational, type BedrockMessage } from './bedrock';
+import { parseBusinessCommand as parseWithAI, generateBusinessInsights as generateWithAI, chatConversational } from './ai';
+import type { BedrockMessage } from './bedrock';
 import { salesService } from './firebase/sales';
 import { materialsService } from './firebase/materials';
 import { productsService } from './firebase/products';
@@ -85,7 +86,7 @@ export async function executeCommandForUser(
 ) {
   let parsedResult;
   try {
-    parsedResult = await parseWithBedrock(rawInput);
+    parsedResult = await parseWithAI(rawInput);
     if (!parsedResult.success || !parsedResult.data) {
       throw new Error("Bedrock parsing failed or returned no data");
     }
@@ -543,7 +544,7 @@ export async function getBusinessInsights() {
           salesService.getAll(userId),
           productsService.getAll(userId),
         ]);
-        return generateWithBedrock({ materials, sales, products });
+        return generateWithAI({ materials, sales, products });
       },
       [`insights-${userId}`],
       { revalidate: 60 * 15 } // 15 minutes
