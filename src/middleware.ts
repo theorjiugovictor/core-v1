@@ -1,29 +1,13 @@
-import { auth } from '@/lib/auth';
+import NextAuth from 'next-auth';
+import { authConfig } from '@/lib/auth.config';
 import { NextResponse } from 'next/server';
 
-const PROTECTED_PREFIXES = [
-  '/dashboard',
-  '/materials',
-  '/products',
-  '/sales',
-  '/expenses',
-  '/insights',
-  '/ideas',
-  '/settings',
-  '/help',
-];
+// Use only the edge-safe config here — importing from auth.ts pulls in
+// firebase-admin which is Node.js-only and crashes the Edge runtime.
+const { auth } = NextAuth(authConfig);
 
 export default auth((request) => {
-  const { pathname } = request.nextUrl;
-
-  // Route protection: verify JWT via auth() — not just cookie presence
-  const isProtected = PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
-  if (isProtected && !request.auth) {
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('callbackUrl', pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
+  // Route protection is handled by the authorized() callback in auth.config.ts.
   const response = NextResponse.next();
 
   // Security headers for production
