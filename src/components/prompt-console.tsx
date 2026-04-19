@@ -7,9 +7,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import {
   ArrowUp, Loader2, Mic, MicOff,
-  ShoppingCart, TrendingDown, Package, Boxes,
-  AlertCircle, CheckCircle2, Sparkles, Bot, Search,
-  MessageSquare, BarChart2, PackageSearch,
+  ShoppingCart, TrendingDown,
+  AlertCircle, BarChart2, PackageSearch,
 } from 'lucide-react';
 
 type CommandResponse = { success: true; message: string; data: any[] } | { success: false; error: string };
@@ -66,10 +65,10 @@ const SUGGESTIONS = [
 
 const CoreAvatar = ({ size = 'sm' }: { size?: 'sm' | 'md' }) => (
   <div className={cn(
-    'rounded-full bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shrink-0',
+    'rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shrink-0 shadow-sm',
     size === 'sm' ? 'w-7 h-7' : 'w-9 h-9'
   )}>
-    <Bot className={cn('text-white', size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4')} />
+    <span className={cn('text-white font-bold leading-none', size === 'sm' ? 'text-[11px]' : 'text-sm')}>C</span>
   </div>
 );
 
@@ -252,7 +251,7 @@ export function PromptConsole() {
 
   return (
     <div className="w-full max-w-3xl mx-auto mb-8">
-      <div className="rounded-2xl border border-border/60 bg-background shadow-sm overflow-hidden flex flex-col">
+      <div className="rounded-2xl border border-border bg-background shadow-md overflow-hidden flex flex-col">
 
         {/* Header */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50 bg-muted/30">
@@ -287,10 +286,10 @@ export function PromptConsole() {
                       form.setValue('prompt', text);
                       inputRef.current?.focus();
                     }}
-                    className="flex items-center gap-2.5 text-left px-3 py-2.5 rounded-xl border border-border/60 bg-card hover:bg-muted/60 hover:border-border transition-colors group"
+                    className="flex items-center gap-2.5 text-left px-3 py-3 rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 transition-all group"
                   >
-                    <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0 group-hover:text-primary transition-colors" />
-                    <span className="text-xs text-muted-foreground group-hover:text-foreground leading-snug transition-colors">{text}</span>
+                    <Icon className="w-4 h-4 text-primary/70 shrink-0 group-hover:text-primary transition-colors" />
+                    <span className="text-xs text-foreground/80 group-hover:text-foreground font-medium leading-snug transition-colors">{text}</span>
                   </button>
                 ))}
               </div>
