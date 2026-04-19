@@ -29,6 +29,8 @@ export async function callBedrock(
     model?: string;
     maxTokens?: number;
     temperature?: number;
+    /** Override the default single-turn messages with a full conversation history */
+    messages?: BedrockMessage[];
   }
 ): Promise<BedrockResponse> {
   const modelId = options?.model || 'anthropic.claude-3-haiku-20240307-v1:0';
@@ -38,12 +40,7 @@ export async function callBedrock(
     max_tokens: options?.maxTokens || 1000,
     temperature: options?.temperature || 0.7,
     system: systemPrompt || 'You are a helpful AI assistant for a Nigerian business management app.',
-    messages: [
-      {
-        role: 'user',
-        content: prompt,
-      },
-    ],
+    messages: options?.messages ?? [{ role: 'user', content: prompt }],
   };
 
   const maxRetries = 3;
@@ -235,6 +232,37 @@ Output: [{"action":"CREATE_PRODUCT","item":"Meatpie","price":500,"recipe":[{"ite
       error: 'Could not parse command. Please check your connection or try rephrasing.',
     };
   }
+}
+
+/**
+ * Multi-turn conversational chat with live business context injected into the system prompt.
+ * Used for CHAT / CLARIFY actions and any follow-up questions the user asks.
+ */
+export async function chatConversational(
+  messages: BedrockMessage[],
+  businessContext: string,
+): Promise<BedrockResponse> {
+  const systemPrompt = `You are CORE, an AI business advisor built into a Nigerian SME management app called CORE Biz Manager.
+You are talking directly to the business owner. Be helpful, practical, and concise.
+Use ₦ for all currency. Avoid jargon — this is a small business owner, not an accountant.
+Do NOT make up data. Only use numbers that appear in the business snapshot below.
+If you cannot answer something from the data, say so and suggest what action they could take.
+
+LIVE BUSINESS SNAPSHOT:
+${businessContext}
+
+You can help with:
+- Reading and explaining their sales, profit, and expenses
+- Spotting trends or problems in their data (e.g. low stock, thin margins)
+- Pricing advice, restocking priorities, product profitability
+- General business questions and casual conversation
+- Explaining what a command just did and what it means for the business`;
+
+  return callBedrock('', systemPrompt, {
+    maxTokens: 800,
+    temperature: 0.75,
+    messages,
+  });
 }
 
 /**

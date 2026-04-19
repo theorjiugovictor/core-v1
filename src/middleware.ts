@@ -1,5 +1,5 @@
+import { auth } from '@/lib/auth';
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
 
 const PROTECTED_PREFIXES = [
   '/dashboard',
@@ -13,22 +13,15 @@ const PROTECTED_PREFIXES = [
   '/help',
 ];
 
-export function middleware(request: NextRequest) {
+export default auth((request) => {
   const { pathname } = request.nextUrl;
 
-  // Route protection: redirect unauthenticated users to login
+  // Route protection: verify JWT via auth() — not just cookie presence
   const isProtected = PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
-  if (isProtected) {
-    const hasSession =
-      request.cookies.has('next-auth.session-token') ||
-      request.cookies.has('__Secure-next-auth.session-token') ||
-      request.cookies.has('authjs.session-token') ||
-      request.cookies.has('__Secure-authjs.session-token');
-    if (!hasSession) {
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('callbackUrl', pathname);
-      return NextResponse.redirect(loginUrl);
-    }
+  if (isProtected && !request.auth) {
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('callbackUrl', pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   const response = NextResponse.next();
@@ -49,7 +42,7 @@ export function middleware(request: NextRequest) {
     response.headers.set(
       'Content-Security-Policy',
       "default-src 'self'; " +
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline'; " +
+      "script-src 'self' 'unsafe-inline'; " +
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
       "font-src 'self' https://fonts.gstatic.com; " +
       "img-src 'self' data: https: blob:; " +
@@ -59,7 +52,7 @@ export function middleware(request: NextRequest) {
   }
 
   return response;
-}
+});
 
 export const config = {
   matcher: [
