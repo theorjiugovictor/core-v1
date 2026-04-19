@@ -23,7 +23,7 @@ export async function callGemini(
   const client = getClient();
 
   const model = client.getGenerativeModel({
-    model: options?.model || 'gemini-2.0-flash',
+    model: options?.model || 'gemini-1.5-flash',
     systemInstruction: systemPrompt,
     generationConfig: {
       maxOutputTokens: options?.maxTokens || 1000,

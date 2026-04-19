@@ -7,11 +7,12 @@
 
 import type { BedrockMessage, BedrockResponse } from './bedrock';
 
-const HAS_BEDROCK = !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY);
-const HAS_GEMINI  = !!process.env.GEMINI_API_KEY;
-
-if (!HAS_BEDROCK && !HAS_GEMINI) {
-  console.warn('[AI] No provider configured. Set AWS_ACCESS_KEY_ID or GEMINI_API_KEY.');
+// Read at call time (not module init) so env vars are always current in serverless
+function hasBedrock() {
+  return !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY);
+}
+function hasGemini() {
+  return !!process.env.GEMINI_API_KEY;
 }
 
 async function withFallback<T>(
@@ -19,7 +20,7 @@ async function withFallback<T>(
   fallback: (() => Promise<T>) | null,
   label: string,
 ): Promise<T> {
-  if (HAS_BEDROCK) {
+  if (hasBedrock()) {
     try {
       return await primary();
     } catch (err) {
@@ -28,7 +29,7 @@ async function withFallback<T>(
     }
   }
   if (fallback) return fallback();
-  throw new Error(`[AI] No provider available for ${label}`);
+  throw new Error(`[AI] No provider configured. Set AWS_ACCESS_KEY_ID or GEMINI_API_KEY in your environment.`);
 }
 
 export async function parseBusinessCommand(input: string) {
@@ -37,7 +38,7 @@ export async function parseBusinessCommand(input: string) {
       const { parseBusinessCommand: bedrockParse } = await import('./bedrock');
       return bedrockParse(input);
     },
-    HAS_GEMINI ? async () => {
+    hasGemini() ? async () => {
       const { parseBusinessCommand: geminiParse } = await import('./gemini');
       return geminiParse(input);
     } : null,
@@ -54,7 +55,7 @@ export async function chatConversational(
       const { chatConversational: bedrockChat } = await import('./bedrock');
       return bedrockChat(messages, businessContext);
     },
-    HAS_GEMINI ? async () => {
+    hasGemini() ? async () => {
       const { chatConversational: geminiChat } = await import('./gemini');
       return geminiChat(messages, businessContext);
     } : null,
@@ -72,7 +73,7 @@ export async function generateBusinessInsights(businessData: {
       const { generateBusinessInsights: bedrockInsights } = await import('./bedrock');
       return bedrockInsights(businessData);
     },
-    HAS_GEMINI ? async () => {
+    hasGemini() ? async () => {
       const { generateBusinessInsights: geminiInsights } = await import('./gemini');
       return geminiInsights(businessData);
     } : null,
