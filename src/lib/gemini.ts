@@ -51,7 +51,7 @@ export async function callGemini(
 }
 
 /** Parse business command — same interface as bedrock.parseBusinessCommand */
-export async function parseBusinessCommand(input: string) {
+export async function parseBusinessCommand(input: string, history?: BedrockMessage[]) {
   const today = new Date().toISOString().split('T')[0];
   const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
@@ -133,8 +133,14 @@ Respond ONLY with a valid JSON ARRAY. No explanation, no markdown.
   "recipe": [{"item": "ingredient", "quantity": number}]
 }]`;
 
+  // Include recent conversation so follow-up answers ("2000 each") resolve correctly
+  const recentHistory = (history ?? []).slice(-6);
+  const contextBlock = recentHistory.length > 0
+    ? `\nRECENT CONVERSATION (use this to resolve follow-up messages):\n${recentHistory.map(m => `${m.role === 'user' ? 'User' : 'CORE'}: ${m.content}`).join('\n')}\n`
+    : '';
+
   try {
-    const response = await callGemini(`Parse this command: "${input}"`, systemPrompt, {
+    const response = await callGemini(`${contextBlock}\nNow parse this message: "${input}"`, systemPrompt, {
       maxTokens: 1000,
       temperature: 0.1,
     });
@@ -176,9 +182,17 @@ RULES:
 - Always end with a small actionable nudge if relevant — something they can do right now.
 - Do NOT use bullet points for simple answers. Use them only for lists of 3+ items.
 
+GUIDING USERS TO RECORD THINGS:
+When someone asks a question that reveals they did something but haven't recorded it, guide them.
+Examples:
+- "I sold a lot today" → "Great! To save that, just tell me what you sold. e.g. 'Sold 10 bags of rice at ₦2,000 each'"
+- "I spent money on fuel" → "Got it. To record it say: 'Spent ₦3,000 on fuel'"
+- "I bought more stock" → "To add that to your inventory, say: 'Bought 20 bags of garri for ₦45,000'"
+- If they ask how to do something, show them the exact words to type, not a description.
+
 WHEN BUSINESS DATA IS EMPTY:
 Don't say "no data available." Instead say something like:
-"You haven't recorded any sales yet. Try saying 'Sold 5 bags of rice at ₦2000 each' to get started."
+"You haven't recorded any sales yet. Try saying something like: 'Sold 5 bags of rice at ₦2,000 each' — I'll handle the rest."
 
 LIVE BUSINESS SNAPSHOT:
 ${businessContext}`;

@@ -32,15 +32,15 @@ async function withFallback<T>(
   throw new Error(`[AI] No provider configured. Set AWS_ACCESS_KEY_ID or GEMINI_API_KEY in your environment.`);
 }
 
-export async function parseBusinessCommand(input: string) {
+export async function parseBusinessCommand(input: string, history?: import('./bedrock').BedrockMessage[]) {
   return withFallback(
     async () => {
       const { parseBusinessCommand: bedrockParse } = await import('./bedrock');
-      return bedrockParse(input);
+      return bedrockParse(input, history);
     },
     hasGemini() ? async () => {
       const { parseBusinessCommand: geminiParse } = await import('./gemini');
-      return geminiParse(input);
+      return geminiParse(input, history);
     } : null,
     'parseBusinessCommand',
   );

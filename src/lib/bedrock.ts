@@ -94,7 +94,7 @@ export async function callBedrock(
 /**
  * Parse business command using Bedrock Claude
  */
-export async function parseBusinessCommand(input: string) {
+export async function parseBusinessCommand(input: string, history?: BedrockMessage[]) {
   const systemPrompt = `You are a business command parser for a Nigerian SME management app.
 Parse natural language commands into a structured JSON ARRAY of actions.
 You must return a JSON ARRAY, even for a single command.
@@ -201,12 +201,17 @@ Input: "Create Meatpie at 500 using 0.2kg flour and 1 egg"
 Output: [{"action":"CREATE_PRODUCT","item":"Meatpie","price":500,"recipe":[{"item":"flour","quantity":0.2},{"item":"egg","quantity":1}]}]
 `;
 
-  const prompt = `Parse this command: "${input}"`;
+  const recentHistory = (history ?? []).slice(-6);
+  const contextBlock = recentHistory.length > 0
+    ? `\nRECENT CONVERSATION (use this to resolve follow-up messages):\n${recentHistory.map(m => `${m.role === 'user' ? 'User' : 'CORE'}: ${m.content}`).join('\n')}\n`
+    : '';
+
+  const prompt = `${contextBlock}\nNow parse this message: "${input}"`;
 
   try {
     const response = await callBedrock(prompt, systemPrompt, {
       maxTokens: 1000,
-      temperature: 0.1, // Lower temperature for more deterministic parsing
+      temperature: 0.1,
     });
 
     // Extract JSON array

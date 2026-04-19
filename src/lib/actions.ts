@@ -87,12 +87,12 @@ export async function executeCommandForUser(
 ) {
   let parsedResult;
   try {
-    parsedResult = await parseWithAI(rawInput);
+    parsedResult = await parseWithAI(rawInput, conversationHistory);
     if (!parsedResult.success || !parsedResult.data) {
-      throw new Error("Bedrock parsing failed or returned no data");
+      throw new Error("AI parsing failed or returned no data");
     }
   } catch (error) {
-    console.error('Bedrock parsing failed, using fallback:', error);
+    console.error('AI parsing failed, using fallback:', error);
     parsedResult = parseCommandWithRegex(rawInput);
   }
 
