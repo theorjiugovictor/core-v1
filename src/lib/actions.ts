@@ -820,47 +820,55 @@ export async function getKpisAction() {
 
   const netMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
+  const grossMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+
   return [
     {
       title: 'Total Revenue',
       value: `₦${totalRevenue.toLocaleString()}`,
       change: `${revenueChange > 0 ? '+' : ''}${revenueChange.toFixed(1)}%`,
-      trend: revenueChange >= 0 ? 'up' as const : 'down' as const,
+      changeType: revenueChange >= 0 ? 'increase' as const : 'decrease' as const,
+      description: 'vs last month',
       iconName: 'TrendingUp',
     },
     {
       title: 'Total Expenses',
       value: `₦${totalExpenses.toLocaleString()}`,
-      change: `${expenses.length} records`,
-      trend: 'neutral' as const,
+      change: `${expenses.length} ${expenses.length === 1 ? 'record' : 'records'}`,
+      changeType: 'decrease' as const,
+      description: 'total logged',
       iconName: 'TrendingDown',
     },
     {
       title: 'Gross Profit',
       value: `₦${grossProfit.toLocaleString()}`,
-      change: 'Margin from Goods',
-      trend: 'neutral' as const,
+      change: `${grossMargin.toFixed(1)}% margin`,
+      changeType: grossProfit >= 0 ? 'increase' as const : 'decrease' as const,
+      description: 'revenue minus cost of goods',
       iconName: 'DollarSign',
     },
     {
       title: 'Net Profit',
       value: `₦${netProfit.toLocaleString()}`,
       change: `${netMargin.toFixed(1)}% net margin`,
-      trend: netMargin >= 10 ? 'up' as const : 'neutral' as const,
+      changeType: netProfit >= 0 ? 'increase' as const : 'decrease' as const,
+      description: 'after all expenses',
       iconName: 'Activity',
     },
     {
       title: 'Active Products',
       value: products.length.toString(),
-      change: 'Catalog Size',
-      trend: 'neutral' as const,
+      change: `${products.length} ${products.length === 1 ? 'product' : 'products'}`,
+      changeType: 'increase' as const,
+      description: 'in your catalog',
       iconName: 'Package',
     },
     {
       title: 'Inventory Value',
       value: `₦${inventoryValue.toLocaleString()}`,
-      change: `${materials.length} raw materials`,
-      trend: 'neutral' as const,
+      change: `${materials.length} ${materials.length === 1 ? 'material' : 'materials'}`,
+      changeType: 'increase' as const,
+      description: 'raw materials tracked',
       iconName: 'Boxes',
     }
   ];

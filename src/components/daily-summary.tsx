@@ -47,7 +47,7 @@ export function DailySummary({ sales, expenses }: DailySummaryProps) {
                             {todayExpenses.length > 0 && <ArrowDownRight className="h-4 w-4" />}
                             ₦{totalExpensesAmount.toLocaleString()}
                         </p>
-                        <p className="text-xs text-muted-foreground">{todayExpenses.length} records</p>
+                        <p className="text-xs text-muted-foreground">{todayExpenses.length} {todayExpenses.length === 1 ? 'record' : 'records'}</p>
                     </div>
                     <div>
                         <p className="text-xs text-muted-foreground uppercase font-semibold">Net Flow</p>
