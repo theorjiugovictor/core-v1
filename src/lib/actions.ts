@@ -1,6 +1,6 @@
 'use server';
 
-import { parseBusinessCommand as parseWithBedrock, generateBusinessInsights as generateWithBedrock } from './bedrock';
+import { parseBusinessCommand as parseWithBedrock, generateBusinessInsights as generateWithBedrock, chatConversational, type BedrockMessage } from './bedrock';
 import { salesService } from './firebase/sales';
 import { materialsService } from './firebase/materials';
 import { productsService } from './firebase/products';
@@ -11,6 +11,8 @@ import { auth } from '@/lib/auth';
 
 export type ParseBusinessCommandInput = {
   input: string;
+  /** Full conversation history from the client, oldest-first. Used to give CHAT responses real context. */
+  conversationHistory?: BedrockMessage[];
 };
 
 // Fallback regex-based parser
@@ -76,7 +78,11 @@ function parseCommandWithRegex(input: string) {
 }
 
 // Core execution logic — shared by the web console and messaging webhooks
-export async function executeCommandForUser(userId: string, rawInput: string) {
+export async function executeCommandForUser(
+  userId: string,
+  rawInput: string,
+  conversationHistory: BedrockMessage[] = [],
+) {
   let parsedResult;
   try {
     parsedResult = await parseWithBedrock(rawInput);
@@ -418,12 +424,80 @@ export async function executeCommandForUser(userId: string, rawInput: string) {
         }
 
         case 'CHAT':
-          message = actionData.message || "I'm listening.";
-          break;
+        case 'CLARIFY': {
+          // Fetch live business data to ground the AI's response
+          const [chatMats, chatProds, chatSales, chatExps] = await Promise.all([
+            materialsService.getAll(userId),
+            productsService.getAll(userId),
+            salesService.getAll(userId),
+            expensesService.getAll(userId),
+          ]);
 
-        case 'CLARIFY':
-          message = actionData.message || "Could you clarify?";
+          const now = new Date();
+          const todaySales = chatSales.filter(s => new Date(s.date).toDateString() === now.toDateString());
+          const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7);
+          const weekSales = chatSales.filter(s => new Date(s.date) >= weekAgo);
+          const monthSales = chatSales.filter(s => {
+            const d = new Date(s.date);
+            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+          });
+
+          const todayRevenue = todaySales.reduce((s, r) => s + (r.totalAmount || 0), 0);
+          const weekRevenue  = weekSales.reduce((s, r) => s + (r.totalAmount || 0), 0);
+          const monthRevenue = monthSales.reduce((s, r) => s + (r.totalAmount || 0), 0);
+          const totalCogs    = chatSales.reduce((s, r) => s + (r.costAmount || 0), 0);
+          const totalRev     = chatSales.reduce((s, r) => s + (r.totalAmount || 0), 0);
+          const totalExp     = chatExps.reduce((s, e) => s + (e.amount || 0), 0);
+
+          const lowStock = chatMats.filter(m => m.quantity <= (m.lowStockThreshold ?? 5));
+
+          // Top products by revenue
+          const revByProduct: Record<string, number> = {};
+          chatSales.forEach(s => {
+            revByProduct[s.productName] = (revByProduct[s.productName] || 0) + (s.totalAmount || 0);
+          });
+          const topProducts = Object.entries(revByProduct)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .map(([name, rev]) => `${name} (₦${rev.toLocaleString()})`);
+
+          const businessContext = [
+            `INVENTORY (${chatMats.length} items):`,
+            chatMats.slice(0, 20).map(m =>
+              `- ${m.name}: ${m.quantity} ${m.unit}(s), cost ₦${m.costPrice}/unit`
+            ).join('\n'),
+            '',
+            `LOW STOCK (${lowStock.length} items):`,
+            lowStock.length > 0
+              ? lowStock.map(m => `- ${m.name}: ${m.quantity} left (threshold ${m.lowStockThreshold ?? 5})`).join('\n')
+              : '- None',
+            '',
+            `PRODUCTS / MENU (${chatProds.length} items):`,
+            chatProds.slice(0, 15).map(p =>
+              `- ${p.name}: sells @ ₦${p.sellingPrice}${p.costPrice ? `, cost ₦${p.costPrice}` : ''}`
+            ).join('\n'),
+            '',
+            `SALES SUMMARY:`,
+            `- Today: ₦${todayRevenue.toLocaleString()} (${todaySales.length} sales)`,
+            `- This week: ₦${weekRevenue.toLocaleString()} (${weekSales.length} sales)`,
+            `- This month: ₦${monthRevenue.toLocaleString()} (${monthSales.length} sales)`,
+            `- All-time revenue: ₦${totalRev.toLocaleString()}, COGS: ₦${totalCogs.toLocaleString()}, gross profit: ₦${(totalRev - totalCogs).toLocaleString()}`,
+            `- All-time expenses: ₦${totalExp.toLocaleString()}, net profit: ₦${(totalRev - totalCogs - totalExp).toLocaleString()}`,
+            '',
+            `TOP PRODUCTS BY REVENUE:`,
+            topProducts.length > 0 ? topProducts.map(p => `- ${p}`).join('\n') : '- No sales yet',
+          ].join('\n');
+
+          // Build the message thread: history + current user message
+          const thread: BedrockMessage[] = [
+            ...conversationHistory,
+            { role: 'user', content: rawInput },
+          ];
+
+          const chatResponse = await chatConversational(thread, businessContext);
+          message = chatResponse.content;
           break;
+        }
 
         default:
           message = `Unknown action: ${action}`;
@@ -452,7 +526,7 @@ export async function processBusinessCommand(input: ParseBusinessCommandInput) {
   if (!session?.user?.id) {
     return { success: false, error: "Unauthorized. Please log in." };
   }
-  return executeCommandForUser(session.user.id, input.input);
+  return executeCommandForUser(session.user.id, input.input, input.conversationHistory ?? []);
 }
 
 export async function getBusinessInsights() {
