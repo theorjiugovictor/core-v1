@@ -110,7 +110,18 @@ export async function executeCommandForUser(
       let message = "";
 
       switch (action) {
+        case 'CLARIFY': {
+          // Parser determined it needs more info — return the question directly
+          message = actionData.message || "Could you give me a bit more detail? e.g. the quantity and price.";
+          break;
+        }
+
         case 'SALE': {
+          // Guard: missing price on a sale
+          if (!price || price === 0) {
+            message = actionData.message || `What price did you sell the ${item || 'item'} at? e.g. ₦2,000 each`;
+            break;
+          }
           const products = await productsService.getAll(userId);
           const product = products.find(p => p.name.toLowerCase() === (item || '').toLowerCase());
           const materials = await materialsService.getAll(userId);
@@ -218,7 +229,7 @@ export async function executeCommandForUser(
           const allMaterials = await materialsService.getAll(userId);
           const existingMaterial = allMaterials.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
           if (!existingMaterial) {
-            message = `"${item}" not found in your inventory. Go to Materials to create it first, or say "Create product ${item}".`;
+            message = `"${item}" isn't in your inventory yet. Go to the Materials page to add it first, then come back to restock. Or say "Add ${item} to inventory" to create it.`;
             break;
           }
           const newQty = existingMaterial.quantity + qty;
@@ -384,11 +395,16 @@ export async function executeCommandForUser(
         }
 
         case 'EXPENSE': {
+          if (!price || price === 0) {
+            message = `How much did you spend on ${item || 'that'}? e.g. ₦3,000`;
+            break;
+          }
+          const expenseCategory = actionData.category || 'General';
           await expensesService.create({
-            userId, amount: price || 0, description: item || 'Expense',
-            category: 'General', date: new Date().toISOString()
+            userId, amount: price, description: item || 'Expense',
+            category: expenseCategory, date: new Date().toISOString()
           });
-          message = `Expense recorded: ₦${(price || 0).toLocaleString()} for ${item}`;
+          message = `Recorded: ₦${price.toLocaleString()} spent on ${item}${expenseCategory !== 'General' ? ` (${expenseCategory})` : ''}.`;
           break;
         }
 
@@ -418,15 +434,15 @@ export async function executeCommandForUser(
           const label = ({ today: 'Today', week: 'This Week', month: 'This Month', all: 'All Time' } as Record<string, string>)[period] ?? period;
 
           if (sales.length === 0 && expenses.length === 0) {
-            message = `No transactions recorded ${label.toLowerCase()}.`;
+            message = `No sales or expenses recorded ${label.toLowerCase()} yet. Start by saying something like "Sold 5 bags of rice at ₦2,000 each".`;
           } else {
-            message = `${label}\n• Revenue: ₦${revenue.toLocaleString()}\n• Cost of Goods: ₦${cogs.toLocaleString()}\n• Gross Profit: ₦${grossProfit.toLocaleString()}\n• Other Expenses: ₦${expenseTotal.toLocaleString()}\n• Net Profit: ₦${netProfit.toLocaleString()}`;
+            const netLabel = netProfit >= 0 ? `✅ ₦${netProfit.toLocaleString()} profit` : `⚠️ ₦${Math.abs(netProfit).toLocaleString()} loss`;
+            message = `${label} Summary\n• Revenue: ₦${revenue.toLocaleString()}\n• Cost of Goods: ₦${cogs.toLocaleString()}\n• Expenses: ₦${expenseTotal.toLocaleString()}\n• ${netLabel}`;
           }
           break;
         }
 
-        case 'CHAT':
-        case 'CLARIFY': {
+        case 'CHAT': {
           // Fetch live business data to ground the AI's response
           const [chatMats, chatProds, chatSales, chatExps] = await Promise.all([
             materialsService.getAll(userId),
