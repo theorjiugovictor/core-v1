@@ -9,6 +9,7 @@ import { usersService } from './firebase/users';
 import { expensesService } from './firebase/expenses';
 import { revalidatePath, unstable_cache } from 'next/cache';
 import { auth } from '@/lib/auth';
+import { aiLimiter } from '@/lib/ratelimit';
 
 export type ParseBusinessCommandInput = {
   input: string;
@@ -527,6 +528,12 @@ export async function processBusinessCommand(input: ParseBusinessCommandInput) {
   if (!session?.user?.id) {
     return { success: false, error: "Unauthorized. Please log in." };
   }
+
+  const { success: withinLimit } = await aiLimiter.limit(session.user.id);
+  if (!withinLimit) {
+    return { success: false, error: "Too many requests. Please wait a moment before trying again." };
+  }
+
   return executeCommandForUser(session.user.id, input.input, input.conversationHistory ?? []);
 }
 

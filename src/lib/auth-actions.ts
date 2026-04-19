@@ -3,8 +3,17 @@
 import { signIn, signOut } from './auth';
 import { usersService } from './firebase/users';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
+import { authLimiter } from '@/lib/ratelimit';
 
 export async function loginAction(email: string, password: string) {
+  const headersList = await headers();
+  const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  const { success: withinLimit } = await authLimiter.limit(ip);
+  if (!withinLimit) {
+    return { success: false, error: 'Too many login attempts. Please wait 15 minutes before trying again.' };
+  }
+
   try {
     const result = await signIn('credentials', {
       email,
