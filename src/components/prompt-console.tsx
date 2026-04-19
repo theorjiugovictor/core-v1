@@ -6,18 +6,17 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import {
-  ArrowRight, Loader2, Mic, MicOff, HelpCircle,
-  ShoppingCart, TrendingDown, Package, Boxes, Search,
-  AlertCircle, CheckCircle2, Sparkles, Bot,
+  ArrowUp, Loader2, Mic, MicOff,
+  ShoppingCart, TrendingDown, Package, Boxes,
+  AlertCircle, CheckCircle2, Sparkles, Bot, Search,
+  MessageSquare, BarChart2, PackageSearch,
 } from 'lucide-react';
 
 type CommandResponse = { success: true; message: string; data: any[] } | { success: false; error: string };
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { processBusinessCommand } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -35,108 +34,94 @@ interface ConversationMessage {
   content: string;
 }
 
-// These actions render as chat bubbles instead of activity cards
-const CHAT_ACTIONS = new Set(['CHAT', 'CLARIFY']);
-
 const formSchema = z.object({
-  prompt: z.string().min(1, { message: 'Say something.' }),
+  prompt: z.string().min(1),
 });
 
-const SUGGESTIONS = [
-  'Sold 5 bags of rice at 28k',
-  'Spent 5000 on fuel',
-  'How are my margins looking?',
-  'What should I restock first?',
-];
-
-const ACTION_CONFIG: Record<string, { icon: React.ElementType; color: string; border: string; bg: string; label: string }> = {
-  SALE:           { icon: ShoppingCart,  color: 'text-emerald-600 dark:text-emerald-400', border: 'border-l-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/30',  label: 'Sale' },
-  EXPENSE:        { icon: TrendingDown,  color: 'text-orange-600 dark:text-orange-400',   border: 'border-l-orange-500', bg: 'bg-orange-50 dark:bg-orange-950/30',    label: 'Expense' },
-  STOCK_IN:       { icon: Package,       color: 'text-blue-600 dark:text-blue-400',       border: 'border-l-blue-500',   bg: 'bg-blue-50 dark:bg-blue-950/30',        label: 'Restocked' },
-  STOCK_REMOVE:   { icon: Package,       color: 'text-red-600 dark:text-red-400',         border: 'border-l-red-500',    bg: 'bg-red-50 dark:bg-red-950/30',          label: 'Stock Out' },
-  STOCK_SET:      { icon: Package,       color: 'text-blue-600 dark:text-blue-400',       border: 'border-l-blue-500',   bg: 'bg-blue-50 dark:bg-blue-950/30',        label: 'Stock Set' },
-  STOCK_CHECK:    { icon: Search,        color: 'text-slate-600 dark:text-slate-400',     border: 'border-l-slate-400',  bg: 'bg-slate-50 dark:bg-slate-900/30',      label: 'Stock Check' },
-  LIST_INVENTORY: { icon: Boxes,         color: 'text-slate-600 dark:text-slate-400',     border: 'border-l-slate-400',  bg: 'bg-slate-50 dark:bg-slate-900/30',      label: 'Inventory' },
-  LOW_STOCK:      { icon: AlertCircle,   color: 'text-amber-600 dark:text-amber-400',     border: 'border-l-amber-500',  bg: 'bg-amber-50 dark:bg-amber-950/30',      label: 'Low Stock' },
-  CREATE_PRODUCT: { icon: Sparkles,      color: 'text-violet-600 dark:text-violet-400',   border: 'border-l-violet-500', bg: 'bg-violet-50 dark:bg-violet-950/30',    label: 'Created' },
-  UPDATE_PRODUCT: { icon: Package,       color: 'text-violet-600 dark:text-violet-400',   border: 'border-l-violet-500', bg: 'bg-violet-50 dark:bg-violet-950/30',    label: 'Updated' },
-  DELETE_PRODUCT: { icon: Package,       color: 'text-red-600 dark:text-red-400',         border: 'border-l-red-500',    bg: 'bg-red-50 dark:bg-red-950/30',          label: 'Deleted' },
-  PROFIT_QUERY:   { icon: TrendingDown,  color: 'text-indigo-600 dark:text-indigo-400',   border: 'border-l-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-950/30',    label: 'Profit' },
-  BATCH:          { icon: CheckCircle2,  color: 'text-emerald-600 dark:text-emerald-400', border: 'border-l-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/30', label: 'Batch' },
-  ERROR:          { icon: AlertCircle,   color: 'text-red-600 dark:text-red-400',         border: 'border-l-red-400',    bg: 'bg-red-50 dark:bg-red-950/30',          label: 'Error' },
+const ACTION_META: Record<string, { label: string; color: string; bg: string }> = {
+  SALE:           { label: 'Sale recorded',    color: 'text-emerald-700 dark:text-emerald-300', bg: 'bg-emerald-100 dark:bg-emerald-900/40' },
+  EXPENSE:        { label: 'Expense logged',   color: 'text-orange-700 dark:text-orange-300',   bg: 'bg-orange-100 dark:bg-orange-900/40' },
+  STOCK_IN:       { label: 'Restocked',        color: 'text-blue-700 dark:text-blue-300',       bg: 'bg-blue-100 dark:bg-blue-900/40' },
+  STOCK_REMOVE:   { label: 'Stock removed',    color: 'text-red-700 dark:text-red-300',         bg: 'bg-red-100 dark:bg-red-900/40' },
+  STOCK_SET:      { label: 'Stock updated',    color: 'text-blue-700 dark:text-blue-300',       bg: 'bg-blue-100 dark:bg-blue-900/40' },
+  STOCK_CHECK:    { label: 'Stock check',      color: 'text-slate-600 dark:text-slate-400',     bg: 'bg-slate-100 dark:bg-slate-800/40' },
+  LIST_INVENTORY: { label: 'Inventory',        color: 'text-slate-600 dark:text-slate-400',     bg: 'bg-slate-100 dark:bg-slate-800/40' },
+  LOW_STOCK:      { label: 'Low stock',        color: 'text-amber-700 dark:text-amber-300',     bg: 'bg-amber-100 dark:bg-amber-900/40' },
+  CREATE_PRODUCT: { label: 'Product created',  color: 'text-violet-700 dark:text-violet-300',   bg: 'bg-violet-100 dark:bg-violet-900/40' },
+  UPDATE_PRODUCT: { label: 'Product updated',  color: 'text-violet-700 dark:text-violet-300',   bg: 'bg-violet-100 dark:bg-violet-900/40' },
+  DELETE_PRODUCT: { label: 'Product deleted',  color: 'text-red-700 dark:text-red-300',         bg: 'bg-red-100 dark:bg-red-900/40' },
+  PROFIT_QUERY:   { label: 'Profit',           color: 'text-indigo-700 dark:text-indigo-300',   bg: 'bg-indigo-100 dark:bg-indigo-900/40' },
+  BATCH:          { label: 'Batch recorded',   color: 'text-emerald-700 dark:text-emerald-300', bg: 'bg-emerald-100 dark:bg-emerald-900/40' },
+  ERROR:          { label: 'Error',            color: 'text-red-700 dark:text-red-300',         bg: 'bg-red-100 dark:bg-red-900/40' },
 };
 
-const CoreAvatar = ({ className }: { className?: string }) => (
+const CHAT_ACTIONS = new Set(['CHAT', 'CLARIFY']);
+
+const SUGGESTIONS = [
+  { icon: ShoppingCart,  text: 'Sold 5 bags of rice at 28k' },
+  { icon: TrendingDown,  text: 'Spent ₦5,000 on fuel' },
+  { icon: BarChart2,     text: 'How are my margins looking?' },
+  { icon: PackageSearch, text: 'Which items are low on stock?' },
+];
+
+const CoreAvatar = ({ size = 'sm' }: { size?: 'sm' | 'md' }) => (
   <div className={cn(
-    'w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shrink-0 shadow-sm',
-    className
+    'rounded-full bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shrink-0',
+    size === 'sm' ? 'w-7 h-7' : 'w-9 h-9'
   )}>
-    <Bot className="w-3.5 h-3.5 text-white" />
+    <Bot className={cn('text-white', size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4')} />
   </div>
 );
 
-/** Chat bubble — used for CHAT and CLARIFY responses */
-function ChatBubble({ entry }: { entry: ActivityEntry }) {
+function MessageBubble({ entry }: { entry: ActivityEntry }) {
+  const isChat = CHAT_ACTIONS.has(entry.action);
+  const meta = !isChat ? (ACTION_META[entry.action] ?? ACTION_META.ERROR) : null;
+
   return (
-    <div className="space-y-2 animate-in fade-in slide-in-from-bottom-1 duration-200">
-      {/* User message — right aligned */}
+    <div className="space-y-1.5 animate-in fade-in slide-in-from-bottom-2 duration-200">
+      {/* User message */}
       <div className="flex justify-end">
-        <div className="max-w-[78%] bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2.5 shadow-sm">
+        <div className="max-w-[75%] bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2.5 shadow-sm">
           <p className="text-sm leading-relaxed">{entry.command}</p>
         </div>
       </div>
 
-      {/* CORE response — left aligned with avatar */}
-      <div className="flex items-start gap-2.5">
-        <CoreAvatar className="mt-0.5" />
-        <div className="max-w-[78%] bg-muted rounded-2xl rounded-tl-sm px-4 py-2.5 shadow-sm">
-          <p className="text-sm leading-relaxed whitespace-pre-wrap">{entry.message}</p>
+      {/* Assistant response */}
+      <div className="flex items-end gap-2">
+        <CoreAvatar size="sm" />
+        <div className={cn(
+          'max-w-[75%] rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm',
+          entry.success
+            ? 'bg-card border border-border/50'
+            : 'bg-destructive/10 border border-destructive/20'
+        )}>
+          {meta && (
+            <span className={cn(
+              'inline-block text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full mb-2',
+              meta.color, meta.bg
+            )}>
+              {meta.label}
+            </span>
+          )}
+          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+            {entry.message}
+          </p>
         </div>
       </div>
     </div>
   );
 }
 
-/** Activity card — used for all operational commands (SALE, STOCK, EXPENSE, etc.) */
-function ActivityCard({ entry }: { entry: ActivityEntry }) {
-  const config = ACTION_CONFIG[entry.action] ?? ACTION_CONFIG.ERROR;
-  const Icon = config.icon;
-
-  return (
-    <div className={cn(
-      'border-l-4 rounded-r-lg px-3 py-2.5 animate-in fade-in slide-in-from-bottom-1 duration-200',
-      config.border,
-      config.bg,
-    )}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-2 min-w-0 flex-1">
-          <Icon className={cn('w-3.5 h-3.5 shrink-0 mt-[3px]', config.color)} />
-          <div className="min-w-0 space-y-0.5">
-            <p className="text-[11px] text-muted-foreground font-mono truncate leading-none">
-              {entry.command}
-            </p>
-            <p className="text-sm leading-snug whitespace-pre-wrap break-words">
-              {entry.message}
-            </p>
-          </div>
-        </div>
-        <span className={cn('text-[10px] font-bold uppercase tracking-widest shrink-0 mt-0.5', config.color)}>
-          {config.label}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-/** Typing indicator shown while waiting for a response */
 function TypingIndicator() {
   return (
-    <div className="flex items-center gap-2.5 animate-in fade-in duration-200">
-      <CoreAvatar />
-      <div className="bg-muted rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm flex gap-1 items-center">
-        <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:0ms]" />
-        <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:150ms]" />
-        <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:300ms]" />
+    <div className="flex items-end gap-2 animate-in fade-in duration-200">
+      <CoreAvatar size="sm" />
+      <div className="bg-card border border-border/50 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
+        <div className="flex gap-1 items-center h-4">
+          <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:0ms]" />
+          <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:150ms]" />
+          <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:300ms]" />
+        </div>
       </div>
     </div>
   );
@@ -177,7 +162,6 @@ export function PromptConsole() {
       const current = form.getValues('prompt');
       form.setValue('prompt', current ? `${current} ${transcript}` : transcript);
       setIsListening(false);
-      toast({ title: 'Heard you!', description: `"${transcript}"` });
     };
 
     recognition.onerror = (event: any) => {
@@ -204,7 +188,6 @@ export function PromptConsole() {
       try {
         recognitionRef.current.start();
         setIsListening(true);
-        toast({ title: 'Listening...', description: 'Speak now.' });
       } catch {
         setIsListening(false);
       }
@@ -269,65 +252,64 @@ export function PromptConsole() {
 
   return (
     <div className="w-full max-w-3xl mx-auto mb-8">
-      <Card className="border-primary/20 shadow-lg bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-70" />
+      <div className="rounded-2xl border border-border/60 bg-background shadow-sm overflow-hidden flex flex-col">
 
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2.5 text-xl font-bold">
-              <CoreAvatar />
-              CORE Assistant
-            </CardTitle>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" asChild>
-              <Link href="/help" title="Help & Commands">
-                <HelpCircle className="h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-          {!hasHistory && (
-            <p className="text-sm text-muted-foreground">
-              Log sales, check stock, track expenses — or just ask.
+        {/* Header */}
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50 bg-muted/30">
+          <CoreAvatar size="md" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold leading-none">CORE Assistant</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {isPending ? 'Thinking…' : 'Online'}
             </p>
-          )}
-        </CardHeader>
+          </div>
+          <div className={cn(
+            'w-2 h-2 rounded-full',
+            isPending ? 'bg-amber-400 animate-pulse' : 'bg-emerald-500'
+          )} />
+        </div>
 
-        <CardContent className="pt-0 space-y-3">
-
-          {/* Feed */}
-          {hasHistory && (
+        {/* Message feed */}
+        <div className="flex-1 flex flex-col">
+          {!hasHistory ? (
+            /* Empty state */
+            <div className="px-4 pt-6 pb-4 space-y-4">
+              <div className="text-center space-y-1">
+                <p className="text-sm font-medium text-foreground">What can I help with?</p>
+                <p className="text-xs text-muted-foreground">Record transactions, check stock, or just ask.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {SUGGESTIONS.map(({ icon: Icon, text }) => (
+                  <button
+                    key={text}
+                    type="button"
+                    onClick={() => {
+                      form.setValue('prompt', text);
+                      inputRef.current?.focus();
+                    }}
+                    className="flex items-center gap-2.5 text-left px-3 py-2.5 rounded-xl border border-border/60 bg-card hover:bg-muted/60 hover:border-border transition-colors group"
+                  >
+                    <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0 group-hover:text-primary transition-colors" />
+                    <span className="text-xs text-muted-foreground group-hover:text-foreground leading-snug transition-colors">{text}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
             <div
               ref={feedRef}
-              className="space-y-3 max-h-[420px] overflow-y-auto pr-0.5 scroll-smooth"
+              className="px-4 py-4 space-y-4 max-h-[420px] overflow-y-auto scroll-smooth"
             >
-              {history.map(entry =>
-                CHAT_ACTIONS.has(entry.action)
-                  ? <ChatBubble key={entry.id} entry={entry} />
-                  : <ActivityCard key={entry.id} entry={entry} />
-              )}
+              {history.map(entry => (
+                <MessageBubble key={entry.id} entry={entry} />
+              ))}
               {isPending && <TypingIndicator />}
             </div>
           )}
+        </div>
 
-          {/* Suggestion chips — shown before first message */}
-          {!hasHistory && (
-            <div className="flex flex-wrap gap-2">
-              {SUGGESTIONS.map(s => (
-                <Badge
-                  key={s}
-                  variant="secondary"
-                  className="cursor-pointer hover:bg-secondary/80 font-normal px-3 py-1 transition-colors text-muted-foreground hover:text-foreground"
-                  onClick={() => {
-                    form.setValue('prompt', s);
-                    inputRef.current?.focus();
-                  }}
-                >
-                  {s}
-                </Badge>
-              ))}
-            </div>
-          )}
-
-          {/* Input bar */}
+        {/* Input bar */}
+        <div className="px-3 py-3 border-t border-border/50 bg-muted/20">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
               <FormField
@@ -336,66 +318,57 @@ export function PromptConsole() {
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <div className="relative flex items-center group">
-                        <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/30 to-purple-600/30 rounded-lg blur opacity-0 group-focus-within:opacity-100 transition duration-500" />
-                        <div className="relative flex items-center w-full bg-background rounded-md">
+                      <div className="flex items-center gap-2">
+                        <div className="relative flex-1">
                           <Input
-                            placeholder={
-                              hasHistory
-                                ? 'Reply or give a new command...'
-                                : 'e.g. "Sold 5 Indomie at 500" or "How are my margins?"'
-                            }
+                            placeholder={hasHistory ? 'Continue the conversation…' : 'e.g. "Sold 10 Indomie at ₦500 each"'}
                             {...field}
                             ref={(el) => {
                               (field as any).ref(el);
                               (inputRef as any).current = el;
                             }}
-                            className="pr-24 h-12 text-sm bg-muted/30 border-input focus-visible:ring-0 focus-visible:border-primary shadow-sm"
+                            className="pr-4 h-11 text-sm bg-background border-border/60 focus-visible:ring-1 focus-visible:ring-primary/40 rounded-xl shadow-none"
                             disabled={isPending}
                             autoComplete="off"
                           />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={toggleListening}
-                            className={cn(
-                              'absolute right-12 h-9 w-9 hover:bg-muted transition-all',
-                              isListening
-                                ? 'text-red-500 animate-pulse bg-red-100 dark:bg-red-900/20'
-                                : 'text-muted-foreground hover:text-primary'
-                            )}
-                            disabled={isPending}
-                            title="Speak"
-                          >
-                            {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                          </Button>
-                          <Button
-                            size="icon"
-                            type="submit"
-                            className={cn(
-                              'absolute right-1.5 h-9 w-9 transition-all shadow-sm',
-                              isPending ? 'bg-muted' : 'bg-primary hover:bg-primary/90'
-                            )}
-                            disabled={isPending}
-                          >
-                            {isPending
-                              ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                              : <ArrowRight className="h-4 w-4 text-primary-foreground" />
-                            }
-                            <span className="sr-only">Send</span>
-                          </Button>
                         </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={toggleListening}
+                          className={cn(
+                            'h-11 w-11 shrink-0 rounded-xl transition-all',
+                            isListening
+                              ? 'text-red-500 bg-red-100 dark:bg-red-900/30 hover:bg-red-100'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                          )}
+                          disabled={isPending}
+                        >
+                          {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                        </Button>
+                        <Button
+                          size="icon"
+                          type="submit"
+                          className="h-11 w-11 shrink-0 rounded-xl bg-primary hover:bg-primary/90 shadow-sm"
+                          disabled={isPending}
+                        >
+                          {isPending
+                            ? <Loader2 className="h-4 w-4 animate-spin" />
+                            : <ArrowUp className="h-4 w-4" />
+                          }
+                          <span className="sr-only">Send</span>
+                        </Button>
                       </div>
                     </FormControl>
-                    <FormMessage />
                   </FormItem>
                 )}
               />
             </form>
           </Form>
-        </CardContent>
-      </Card>
+        </div>
+
+      </div>
     </div>
   );
 }
