@@ -20,10 +20,31 @@ export async function POST(request: Request) {
     const telegramId: string = String(message.from.id);
     const text: string = message.text.trim();
 
-    if (!text || text.startsWith('/start')) {
-      // Respond to /start with onboarding instructions
+    if (!text || text === '/start') {
       await sendTelegramMessage(chatId,
-        `👋 Welcome to CORE!\n\nYour Telegram ID is: ${telegramId}\n\nTo get started:\n1. Log in at usecoreapp.com\n2. Go to Settings → Connected Channels\n3. Enter your Telegram ID above\n\nThen come back and type any business command like:\n"Sold 10 bags of rice at ₦2000 each"`
+        `👋 Welcome to CORE!\n\nYour Telegram ID is: <b>${telegramId}</b>\n\nTo get started:\n1. Log in at usecoreapp.com\n2. Go to Settings → Connected Channels\n3. Enter your Telegram ID above\n\nThen come back and send any command like:\n"Sold 10 bags of rice at ₦2000 each"`,
+        { parse_mode: 'HTML' }
+      );
+      return NextResponse.json({ ok: true });
+    }
+
+    // Map slash commands to natural language so they go through the AI parser
+    const commandMap: Record<string, string> = {
+      '/sales':    'show me my sales for today',
+      '/stock':    'list my inventory',
+      '/profit':   'what is my profit for today',
+      '/lowstock': 'which items are low on stock',
+      '/help':     'HELP',
+    };
+
+    const mappedText = commandMap[text.toLowerCase()] ?? text;
+
+    if (text === '/help') {
+      await sendTelegramMessage(chatId,
+        `📋 <b>CORE Commands</b>\n\nYou can type naturally or use shortcuts:\n\n` +
+        `/sales — Today's sales\n/stock — Inventory list\n/profit — Today's profit\n/lowstock — Low stock alert\n\n` +
+        `<b>Examples:</b>\n• "Sold 5 bags of rice at ₦2000 each"\n• "Add 10 tins of tomato at ₦500"\n• "Spent ₦3000 on transport"\n• "How many bags of flour do I have?"`
+        , { parse_mode: 'HTML' }
       );
       return NextResponse.json({ ok: true });
     }
@@ -39,7 +60,7 @@ export async function POST(request: Request) {
     }
 
     // Process the command using the shared executor
-    const result = await executeCommandForUser(user.id, text);
+    const result = await executeCommandForUser(user.id, mappedText);
 
     const reply = result.success
       ? result.message || '✅ Done!'

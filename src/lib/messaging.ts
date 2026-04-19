@@ -28,11 +28,15 @@ export async function sendWhatsAppMessage(to: string, text: string) {
 
 const TG_API_URL = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}`;
 
-export async function sendTelegramMessage(chatId: string | number, text: string) {
+export async function sendTelegramMessage(
+  chatId: string | number,
+  text: string,
+  options?: { parse_mode?: 'HTML' | 'Markdown' },
+) {
   const res = await fetch(`${TG_API_URL}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text }),
+    body: JSON.stringify({ chat_id: chatId, text, ...options }),
   });
 
   if (!res.ok) {
