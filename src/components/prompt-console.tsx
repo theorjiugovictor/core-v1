@@ -65,10 +65,10 @@ const SUGGESTIONS = [
 
 const CoreAvatar = ({ size = 'sm' }: { size?: 'sm' | 'md' }) => (
   <div className={cn(
-    'rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shrink-0 shadow-sm',
+    'rounded-full bg-primary flex items-center justify-center shrink-0',
     size === 'sm' ? 'w-7 h-7' : 'w-9 h-9'
   )}>
-    <span className={cn('text-white font-bold leading-none', size === 'sm' ? 'text-[11px]' : 'text-sm')}>C</span>
+    <span className={cn('text-primary-foreground font-bold leading-none tracking-tight', size === 'sm' ? 'text-xs' : 'text-sm')}>C</span>
   </div>
 );
 
