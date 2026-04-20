@@ -10,6 +10,7 @@ import { expensesService } from './firebase/expenses';
 import { revalidatePath, unstable_cache } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { aiLimiter } from '@/lib/ratelimit';
+import { telemetry } from '@/lib/telemetry';
 
 export type ParseBusinessCommandInput = {
   input: string;
@@ -547,10 +548,17 @@ export async function processBusinessCommand(input: ParseBusinessCommandInput) {
 
   const { success: withinLimit } = await aiLimiter.limit(session.user.id);
   if (!withinLimit) {
+    telemetry.rateLimitHit(session.user.id, 'ai');
     return { success: false, error: "Too many requests. Please wait a moment before trying again." };
   }
 
-  return executeCommandForUser(session.user.id, input.input, input.conversationHistory ?? []);
+  const start = Date.now();
+  const result = await executeCommandForUser(session.user.id, input.input, input.conversationHistory ?? []);
+  const action = Array.isArray((result as any).data) && (result as any).data[0]?.action
+    ? (result as any).data[0].action
+    : 'UNKNOWN';
+  telemetry.aiCommand(session.user.id, input.input, action, result.success, Date.now() - start);
+  return result;
 }
 
 export async function getBusinessInsights() {

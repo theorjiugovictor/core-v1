@@ -5,12 +5,14 @@ import { usersService } from './firebase/users';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { authLimiter } from '@/lib/ratelimit';
+import { telemetry } from '@/lib/telemetry';
 
 export async function loginAction(email: string, password: string) {
   const headersList = await headers();
   const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
   const { success: withinLimit } = await authLimiter.limit(ip);
   if (!withinLimit) {
+    telemetry.rateLimitHit(ip, 'auth');
     return { success: false, error: 'Too many login attempts. Please wait 15 minutes before trying again.' };
   }
 
@@ -22,12 +24,15 @@ export async function loginAction(email: string, password: string) {
     });
 
     if (result?.error) {
+      telemetry.auth('login.failed', ip);
       return { success: false, error: 'Invalid email or password' };
     }
 
+    telemetry.auth('login.success', ip);
     return { success: true };
   } catch (error: any) {
     console.error('Login error:', error);
+    telemetry.auth('login.failed', ip);
 
     if (error.message.includes('User not found')) {
       return { success: false, error: 'No account found with this email' };
