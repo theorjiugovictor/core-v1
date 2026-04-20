@@ -137,8 +137,12 @@ Nigerian local measurement units (use as the unit field):
 - "paint" or "paint tin" = paint
 - "bottle", "sachet", "pack", "carton", "bag", "kg", "litre" = use as-is
 
-Nigerian product recognition:
-- Indomie, noodles, Golden Penny flour, Dangote sugar, semovita, garri, eba, akamu, beans, groundnut oil, palm oil, zobo, kunu → recognize and spell correctly.
+Nigerian product recognition — spell these correctly:
+- Food: Indomie, Golden Penny flour, Dangote sugar, semovita, garri, eba, akamu, beans, groundnut oil, palm oil, zobo, kunu, chin chin, puff puff, suya, kilishi
+- Clothing/fashion: ankara, aso-ebi, agbada, buba, iro, wrapper, lace fabric, Senator material, polo shirt, jeans, gown, sneakers, slippers, sandals, shoes
+- Electronics: phone charger, earpiece, power bank, screen protector, phone case, cable, adapter
+- Cosmetics: hair cream, body lotion, pomade, weave, hair extensions, lace wig, relaxer
+- Stationery/general: exercise book, biro, ream of paper, nylon bag, sachet water, pure water
 
 Respond ONLY with a JSON ARRAY of objects in this format:
 [

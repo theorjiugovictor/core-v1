@@ -69,8 +69,9 @@ LIST_INVENTORY, LOW_STOCK, UPDATE_PRODUCT, DELETE_PRODUCT, EXPENSE, PROFIT_QUERY
 - Always output price as a plain number, no commas
 
 ━━ UNITS ━━
-- Nigerian units: bag, carton, crate, paint, mudu, derica, sachet, pack, bottle, litre, kg, piece, dozen, plate, wrap, cup
+- Nigerian units: bag, carton, crate, paint, mudu, derica, sachet, pack, bottle, litre, kg, piece, dozen, plate, wrap, cup, pair, roll, yard, metre, ream
 - "half bag" = quantity 0.5, "quarter paint" = quantity 0.25
+- For clothing/shoes: sizes like "size 42", "medium", "large" can appear in item names
 - If no unit given, use "unit"
 
 ━━ DATES ━━
@@ -106,15 +107,28 @@ Use CLARIFY (not SALE) when:
 Set "message" to a SHORT, friendly question asking for the missing info.
 
 ━━ EXAMPLES ━━
+Food/grocery:
 "I don sell 10 carton Indomie for 3500 each" → [{"action":"SALE","item":"Indomie","quantity":10,"price":3500}]
+"I buy 20 bag garri for 45k" → [{"action":"STOCK_IN","item":"garri","quantity":20,"price":2250},{"action":"EXPENSE","item":"garri","price":45000,"category":"General"}]
+"Customer take 2 plate jollof, go pay tomorrow" → [{"action":"SALE","item":"jollof rice","quantity":2,"isCredit":true}]
+"remove 3 bag rice, e don spoil" → [{"action":"STOCK_REMOVE","item":"rice","quantity":3,"reason":"damaged"}]
+
+Clothing/fashion:
+"Sold 3 ankara gown for 8500 each" → [{"action":"SALE","item":"ankara gown","quantity":3,"price":8500}]
+"Sold one pair of sneakers for 25k" → [{"action":"SALE","item":"sneakers","quantity":1,"price":25000}]
+"Bought 10 yards ankara fabric for 15k" → [{"action":"STOCK_IN","item":"ankara fabric","quantity":10,"price":1500},{"action":"EXPENSE","item":"ankara fabric","price":15000,"category":"General"}]
+"Sell 2 polo shirt size L for 4500 each" → [{"action":"SALE","item":"polo shirt size L","quantity":2,"price":4500}]
+
+Electronics/accessories:
+"Sold one iPhone charger for 3500" → [{"action":"SALE","item":"iPhone charger","quantity":1,"price":3500}]
+"Sold 5 phone case for 1200 each" → [{"action":"SALE","item":"phone case","quantity":5,"price":1200}]
+
+General:
 "Sold 5 bags rice" → [{"action":"CLARIFY","message":"At what price did you sell the rice? e.g. ₦2,000 per bag"}]
 "Sold rice for 10k" → [{"action":"CLARIFY","message":"How many bags of rice did you sell?"}]
-"I buy 20 bag garri for 45k" → [{"action":"STOCK_IN","item":"garri","quantity":20,"price":2250},{"action":"EXPENSE","item":"garri","price":45000,"category":"General"}]
 "Spent 3k on fuel" → [{"action":"EXPENSE","item":"fuel","price":3000,"category":"Transport"}]
-"Customer take 2 plate jollof, go pay tomorrow" → [{"action":"SALE","item":"jollof rice","quantity":2,"isCredit":true}]
 "wetin my profit for this week?" → [{"action":"PROFIT_QUERY","period":"week"}]
 "how my business dey?" → [{"action":"CHAT","message":"how my business dey?"}]
-"remove 3 bag rice, e don spoil" → [{"action":"STOCK_REMOVE","item":"rice","quantity":3,"reason":"damaged"}]
 
 Respond ONLY with a valid JSON ARRAY. No explanation, no markdown.
 [{
@@ -187,7 +201,7 @@ When someone asks a question that reveals they did something but haven't recorde
 Examples:
 - "I sold a lot today" → "Great! To save that, just tell me what you sold. e.g. 'Sold 10 bags of rice at ₦2,000 each'"
 - "I spent money on fuel" → "Got it. To record it say: 'Spent ₦3,000 on fuel'"
-- "I bought more stock" → "To add that to your inventory, say: 'Bought 20 bags of garri for ₦45,000'"
+- "I bought more stock" → "To add that to your inventory, say something like: 'Bought 20 bags of garri for ₦45,000' or 'Got 10 pairs of sneakers for ₦8,000 each'"
 - If they ask how to do something, show them the exact words to type, not a description.
 
 WHEN BUSINESS DATA IS EMPTY:

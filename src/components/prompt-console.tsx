@@ -58,21 +58,35 @@ const ACTION_META: Record<string, { label: string; color: string; bg: string }> 
 const CHAT_ACTIONS = new Set(['CHAT', 'CLARIFY']);
 
 const ALL_SUGGESTIONS = [
+  // Sales — food
   { icon: ShoppingCart,   text: 'Sold 5 bags of rice at 28k' },
   { icon: ShoppingCart,   text: 'Sold 10 cartons of Indomie at 3,500 each' },
   { icon: ShoppingCart,   text: 'Customer bought 2 plates of jollof, pay later' },
+  // Sales — fashion
+  { icon: ShoppingCart,   text: 'Sold 3 ankara gowns at 8,500 each' },
+  { icon: ShoppingCart,   text: 'Sold one pair of sneakers for 25k' },
+  { icon: ShoppingCart,   text: 'Sold 2 polo shirts size L for 4,500 each' },
+  // Sales — electronics / cosmetics
+  { icon: ShoppingCart,   text: 'Sold 5 phone cases at 1,200 each' },
+  { icon: ShoppingCart,   text: 'Sold 4 body lotions at 2,800 each' },
+  // Expenses
   { icon: TrendingDown,   text: 'Spent ₦5,000 on fuel' },
   { icon: TrendingDown,   text: 'Paid ₦15,000 for shop rent' },
   { icon: Wallet,         text: 'Spent 2k on packaging materials' },
+  { icon: Wallet,         text: 'Paid delivery guy ₦1,500' },
+  // Restocking
   { icon: Package,        text: 'Bought 20 bags of garri for 45k' },
-  { icon: RefreshCw,      text: 'Restocked palm oil — 10 litres at 1,800 each' },
+  { icon: Package,        text: 'Got 10 pairs of sneakers for ₦8,000 each' },
+  { icon: RefreshCw,      text: 'Restocked ankara fabric — 15 yards at 1,200 each' },
+  { icon: RefreshCw,      text: 'Bought 50 phone cases for 30k' },
+  // Queries
   { icon: BarChart2,      text: 'How are my margins looking?' },
   { icon: BarChart2,      text: 'What is my profit this week?' },
   { icon: BarChart2,      text: 'How much did I make today?' },
   { icon: PackageSearch,  text: 'Which items are low on stock?' },
   { icon: Boxes,          text: 'Show me my full inventory' },
   { icon: ClipboardList,  text: 'What were my top selling items this month?' },
-  { icon: Tag,            text: 'Update the price of rice to ₦32,000 per bag' },
+  { icon: Tag,            text: 'Update the price of sneakers to ₦28,000' },
   { icon: MessageCircle,  text: 'How is my business doing overall?' },
 ];
 
