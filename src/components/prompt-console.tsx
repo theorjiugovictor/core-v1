@@ -7,8 +7,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import {
   ArrowUp, Loader2, Mic, MicOff,
-  ShoppingCart, TrendingDown,
-  AlertCircle, BarChart2, PackageSearch,
+  ShoppingCart, TrendingDown, Package, Boxes,
+  AlertCircle, BarChart2, PackageSearch, Wallet,
+  MessageCircle, RefreshCw, Tag, ClipboardList,
 } from 'lucide-react';
 
 type CommandResponse = { success: true; message: string; data: any[] } | { success: false; error: string };
@@ -56,12 +57,29 @@ const ACTION_META: Record<string, { label: string; color: string; bg: string }> 
 
 const CHAT_ACTIONS = new Set(['CHAT', 'CLARIFY']);
 
-const SUGGESTIONS = [
-  { icon: ShoppingCart,  text: 'Sold 5 bags of rice at 28k' },
-  { icon: TrendingDown,  text: 'Spent ₦5,000 on fuel' },
-  { icon: BarChart2,     text: 'How are my margins looking?' },
-  { icon: PackageSearch, text: 'Which items are low on stock?' },
+const ALL_SUGGESTIONS = [
+  { icon: ShoppingCart,   text: 'Sold 5 bags of rice at 28k' },
+  { icon: ShoppingCart,   text: 'Sold 10 cartons of Indomie at 3,500 each' },
+  { icon: ShoppingCart,   text: 'Customer bought 2 plates of jollof, pay later' },
+  { icon: TrendingDown,   text: 'Spent ₦5,000 on fuel' },
+  { icon: TrendingDown,   text: 'Paid ₦15,000 for shop rent' },
+  { icon: Wallet,         text: 'Spent 2k on packaging materials' },
+  { icon: Package,        text: 'Bought 20 bags of garri for 45k' },
+  { icon: RefreshCw,      text: 'Restocked palm oil — 10 litres at 1,800 each' },
+  { icon: BarChart2,      text: 'How are my margins looking?' },
+  { icon: BarChart2,      text: 'What is my profit this week?' },
+  { icon: BarChart2,      text: 'How much did I make today?' },
+  { icon: PackageSearch,  text: 'Which items are low on stock?' },
+  { icon: Boxes,          text: 'Show me my full inventory' },
+  { icon: ClipboardList,  text: 'What were my top selling items this month?' },
+  { icon: Tag,            text: 'Update the price of rice to ₦32,000 per bag' },
+  { icon: MessageCircle,  text: 'How is my business doing overall?' },
 ];
+
+function pickSuggestions() {
+  const shuffled = [...ALL_SUGGESTIONS].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, 4);
+}
 
 const CoreAvatar = ({ size = 'sm' }: { size?: 'sm' | 'md' }) => (
   <div className={cn(
@@ -130,6 +148,7 @@ export function PromptConsole() {
   const [isPending, startTransition] = useTransition();
   const [history, setHistory] = useState<ActivityEntry[]>([]);
   const [conversationHistory, setConversationHistory] = useState<ConversationMessage[]>([]);
+  const [suggestions] = useState(() => pickSuggestions());
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
   const feedRef = useRef<HTMLDivElement>(null);
@@ -278,7 +297,7 @@ export function PromptConsole() {
                 <p className="text-xs text-muted-foreground">Record transactions, check stock, or just ask.</p>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                {SUGGESTIONS.map(({ icon: Icon, text }) => (
+                {suggestions.map(({ icon: Icon, text }) => (
                   <button
                     key={text}
                     type="button"
