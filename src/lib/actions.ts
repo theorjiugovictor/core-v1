@@ -789,70 +789,86 @@ export async function deleteExpenseAction(id: string) {
   }
 }
 
+export type KpiPeriod = 'today' | 'week' | 'month' | 'all';
+
 // KPIs
-export async function getKpisAction() {
+export async function getKpisAction(period: KpiPeriod = 'month') {
   const session = await auth();
   if (!session?.user?.id) return [];
   const userId = session.user.id;
 
-  const materials = await materialsService.getAll(userId);
-  const sales = await salesService.getAll(userId);
-  const expenses = await expensesService.getAll(userId);
-  const products = await productsService.getAll(userId);
+  const [materials, allSales, allExpenses, products] = await Promise.all([
+    materialsService.getAll(userId),
+    salesService.getAll(userId),
+    expensesService.getAll(userId),
+    productsService.getAll(userId),
+  ]);
 
-  // Calculate total revenue
-  const totalRevenue = sales.reduce((sum, sale) => sum + (sale.totalAmount || 0), 0);
-
-  // Calculate inventory value (materials cost)
-  const inventoryValue = materials.reduce((sum, material) =>
-    sum + ((material.quantity || 0) * (material.costPrice || 0)), 0
-  );
-
-  // Get sales this month
   const now = new Date();
-  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const salesThisMonth = sales.filter(sale => new Date(sale.date) >= firstDayOfMonth);
-  const revenueThisMonth = salesThisMonth.reduce((sum, sale) => sum + (sale.totalAmount || 0), 0);
 
-  // Calculate previous month for comparison
-  const firstDayOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const lastDayOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-  const salesLastMonth = sales.filter(sale => {
-    const saleDate = new Date(sale.date);
-    return saleDate >= firstDayOfLastMonth && saleDate <= lastDayOfLastMonth;
-  });
-  const revenueLastMonth = salesLastMonth.reduce((sum, sale) => sum + (sale.totalAmount || 0), 0);
+  // Period boundaries
+  const periodStart = (() => {
+    if (period === 'today') { const d = new Date(now); d.setHours(0,0,0,0); return d; }
+    if (period === 'week')  { const d = new Date(now); d.setDate(now.getDate() - 6); d.setHours(0,0,0,0); return d; }
+    if (period === 'month') return new Date(now.getFullYear(), now.getMonth(), 1);
+    return new Date(0); // all
+  })();
 
-  const revenueChange = revenueLastMonth > 0
-    ? ((revenueThisMonth - revenueLastMonth) / revenueLastMonth) * 100
-    : 0;
+  // Previous period boundaries (for % change — only meaningful for today/week/month)
+  const prevStart = (() => {
+    if (period === 'today') { const d = new Date(now); d.setDate(now.getDate() - 1); d.setHours(0,0,0,0); return d; }
+    if (period === 'week')  { const d = new Date(now); d.setDate(now.getDate() - 13); d.setHours(0,0,0,0); return d; }
+    if (period === 'month') return new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return null;
+  })();
+  const prevEnd = (() => {
+    if (period === 'today') { const d = new Date(now); d.setDate(now.getDate() - 1); d.setHours(23,59,59,999); return d; }
+    if (period === 'week')  { const d = new Date(now); d.setDate(now.getDate() - 7); d.setHours(23,59,59,999); return d; }
+    if (period === 'month') return new Date(now.getFullYear(), now.getMonth(), 0);
+    return null;
+  })();
 
-  // Calculate Gross Profit
-  const totalCost = sales.reduce((sum, sale) => sum + (sale.costAmount || 0), 0);
-  const grossProfit = totalRevenue - totalCost;
-  // Net Profit = Gross Profit - Expenses
-  const totalExpenses = expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
-  const netProfit = grossProfit - totalExpenses;
+  const inPeriod = (dateStr: string) => new Date(dateStr) >= periodStart;
+  const inPrev   = (dateStr: string) => prevStart && prevEnd
+    ? new Date(dateStr) >= prevStart && new Date(dateStr) <= prevEnd
+    : false;
 
-  const netMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+  const sales    = allSales.filter(s => inPeriod(s.date));
+  const expenses = allExpenses.filter(e => inPeriod(e.date));
+  const prevSales = allSales.filter(s => inPrev(s.date));
 
-  const grossMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+  const revenue      = sales.reduce((s, r) => s + (r.totalAmount || 0), 0);
+  const cogs         = sales.reduce((s, r) => s + (r.costAmount || 0), 0);
+  const expenseTotal = expenses.reduce((s, e) => s + (e.amount || 0), 0);
+  const grossProfit  = revenue - cogs;
+  const netProfit    = grossProfit - expenseTotal;
+  const grossMargin  = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
+  const netMargin    = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+
+  const prevRevenue  = prevSales.reduce((s, r) => s + (r.totalAmount || 0), 0);
+  const revenueChange = prevRevenue > 0 ? ((revenue - prevRevenue) / prevRevenue) * 100 : 0;
+
+  const inventoryValue = materials.reduce((s, m) => s + ((m.quantity || 0) * (m.costPrice || 0)), 0);
+
+  const periodLabel: Record<KpiPeriod, string> = {
+    today: 'vs yesterday', week: 'vs prev week', month: 'vs last month', all: 'all time',
+  };
 
   return [
     {
-      title: 'Total Revenue',
-      value: `₦${totalRevenue.toLocaleString()}`,
-      change: `${revenueChange > 0 ? '+' : ''}${revenueChange.toFixed(1)}%`,
+      title: 'Revenue',
+      value: `₦${revenue.toLocaleString()}`,
+      change: period !== 'all' ? `${revenueChange > 0 ? '+' : ''}${revenueChange.toFixed(1)}%` : undefined,
       changeType: revenueChange >= 0 ? 'increase' as const : 'decrease' as const,
-      description: 'vs last month',
+      description: periodLabel[period],
       iconName: 'TrendingUp',
     },
     {
-      title: 'Total Expenses',
-      value: `₦${totalExpenses.toLocaleString()}`,
+      title: 'Expenses',
+      value: `₦${expenseTotal.toLocaleString()}`,
       change: `${expenses.length} ${expenses.length === 1 ? 'record' : 'records'}`,
       changeType: 'decrease' as const,
-      description: 'total logged',
+      description: 'logged',
       iconName: 'TrendingDown',
     },
     {
@@ -872,7 +888,7 @@ export async function getKpisAction() {
       iconName: 'Activity',
     },
     {
-      title: 'Active Products',
+      title: 'Products',
       value: products.length.toString(),
       change: `${products.length} ${products.length === 1 ? 'product' : 'products'}`,
       changeType: 'increase' as const,
@@ -884,9 +900,9 @@ export async function getKpisAction() {
       value: `₦${inventoryValue.toLocaleString()}`,
       change: `${materials.length} ${materials.length === 1 ? 'material' : 'materials'}`,
       changeType: 'increase' as const,
-      description: 'raw materials tracked',
+      description: 'current stock value',
       iconName: 'Boxes',
-    }
+    },
   ];
 }
 

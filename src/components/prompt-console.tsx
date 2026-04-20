@@ -110,12 +110,14 @@ function MessageBubble({ entry }: { entry: ActivityEntry }) {
 
   return (
     <div className="space-y-1.5 animate-in fade-in slide-in-from-bottom-2 duration-200">
-      {/* User message */}
-      <div className="flex justify-end">
-        <div className="max-w-[75%] bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2.5 shadow-sm">
-          <p className="text-sm leading-relaxed">{entry.command}</p>
+      {/* User message — skip if empty (e.g. onboarding first message) */}
+      {entry.command && (
+        <div className="flex justify-end">
+          <div className="max-w-[75%] bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2.5 shadow-sm">
+            <p className="text-sm leading-relaxed">{entry.command}</p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Assistant response */}
       <div className="flex items-end gap-2">
@@ -158,10 +160,29 @@ function TypingIndicator() {
   );
 }
 
-export function PromptConsole() {
+const ONBOARDING_MESSAGE = `Welcome to CORE! 👋
+
+Before we start tracking, do you already have stock or products in your business?
+
+If yes, just tell me what you have — e.g:
+"50 bags of rice, 20 cartons of Indomie, 10 pairs of sneakers"
+
+I'll add everything at once. Or if you're starting fresh, just say "starting fresh" and we'll begin from zero.`;
+
+export function PromptConsole({ hasData = true }: { hasData?: boolean }) {
   const [isPending, startTransition] = useTransition();
-  const [history, setHistory] = useState<ActivityEntry[]>([]);
-  const [conversationHistory, setConversationHistory] = useState<ConversationMessage[]>([]);
+  const [history, setHistory] = useState<ActivityEntry[]>(() =>
+    !hasData ? [{
+      id: 'onboarding',
+      command: '',
+      message: ONBOARDING_MESSAGE,
+      action: 'CHAT',
+      success: true,
+    }] : []
+  );
+  const [conversationHistory, setConversationHistory] = useState<ConversationMessage[]>(() =>
+    !hasData ? [{ role: 'assistant', content: ONBOARDING_MESSAGE }] : []
+  );
   const [suggestions] = useState(() => pickSuggestions());
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);

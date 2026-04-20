@@ -1,23 +1,13 @@
 import { Suspense } from 'react';
-import { KpiCard } from "@/components/kpi-card";
 import { PromptConsole } from "@/components/prompt-console";
+import { KpiSection } from "@/components/kpi-section";
 import { RevenueChart } from "@/components/revenue-chart";
 import { getKpisAction, getRevenueChartData, getSalesAction, getExpensesAction } from "@/lib/actions";
-import { Activity, DollarSign, Package, TrendingDown, TrendingUp, Boxes } from "lucide-react";
 import { DashboardInsights } from "@/components/dashboard-insights";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { OnboardingTour } from "@/components/onboarding-tour";
 import { DailySummary } from "@/components/daily-summary";
-
-const iconMap = {
-    DollarSign,
-    Package,
-    TrendingUp,
-    TrendingDown,
-    Activity,
-    Boxes
-};
 
 function DashboardInsightsSkeleton() {
     return (
@@ -46,33 +36,25 @@ function DashboardInsightsSkeleton() {
 }
 
 export default async function DashboardPage() {
-    // Parallelize fast data fetching
-    // Parallelize fast data fetching
     const [kpis, revenueData, sales, expenses] = await Promise.all([
-        getKpisAction(),
+        getKpisAction('month'),
         getRevenueChartData(),
         getSalesAction(),
-        getExpensesAction()
+        getExpensesAction(),
     ]);
+
+    // Detect new users — no sales, no expenses, no materials recorded yet
+    const hasData = sales.length > 0 || expenses.length > 0;
 
     return (
         <div className="space-y-8 animate-fade-in-up">
-            {/* 1. Intelligent Core Layer */}
+            {/* 1. CORE Assistant */}
             <section className="relative z-10">
-                <PromptConsole />
+                <PromptConsole hasData={hasData} />
             </section>
 
-            {/* 2. Key Metrics Layer - Bento Grid Row 1 */}
-            <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {kpis.map((kpi: any, index: number) => {
-                    const IconComponent = iconMap[kpi.iconName as keyof typeof iconMap] || Activity;
-                    return (
-                        <div key={kpi.title} style={{ animationDelay: `${index * 100}ms` }} className="animate-fade-in-up">
-                            <KpiCard {...kpi} icon={IconComponent} />
-                        </div>
-                    );
-                })}
-            </section>
+            {/* 2. KPI Section with period toggle */}
+            <KpiSection initialKpis={kpis} initialPeriod="month" />
 
             {/* 3. Daily Summary */}
             <section>
