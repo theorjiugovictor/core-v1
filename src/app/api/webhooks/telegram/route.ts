@@ -1,40 +1,12 @@
 import { NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
 import { usersService } from '@/lib/firebase/users';
 import { executeCommandForUser } from '@/lib/actions';
 import { sendTelegramMessage } from '@/lib/messaging';
 import { telemetry } from '@/lib/telemetry';
+import { historyKey, loadHistory, saveHistory } from '@/lib/conversation-history';
 import type { BedrockMessage } from '@/lib/bedrock';
 
 export const runtime = 'nodejs';
-
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
-
-// Keep last 20 turns (10 exchanges) per user, expire after 2 hours of inactivity
-const HISTORY_KEY = (userId: string) => `tg:conv:${userId}`;
-const MAX_TURNS = 20;
-const TTL_SECONDS = 60 * 60 * 2;
-
-async function loadHistory(userId: string): Promise<BedrockMessage[]> {
-  try {
-    const raw = await redis.get<BedrockMessage[]>(HISTORY_KEY(userId));
-    return Array.isArray(raw) ? raw : [];
-  } catch {
-    return [];
-  }
-}
-
-async function saveHistory(userId: string, history: BedrockMessage[]) {
-  try {
-    const trimmed = history.slice(-MAX_TURNS);
-    await redis.set(HISTORY_KEY(userId), trimmed, { ex: TTL_SECONDS });
-  } catch {
-    // Non-fatal — conversation just loses memory
-  }
-}
 
 const UNLINKED_MESSAGE =
   "👋 Hi! I don't recognize your Telegram account yet.\n\nTo use CORE on Telegram:\n1. Log in at usecoreapp.com\n2. Go to Settings → Connected Channels\n3. Enter your Telegram ID: {telegramId}\n\nThen come back and try again!";
@@ -97,7 +69,8 @@ export async function POST(request: Request) {
     const input = SLASH_COMMANDS[text.toLowerCase()] ?? text;
 
     // Load conversation history from Redis
-    const history = await loadHistory(user.id);
+    const key = historyKey('tg', user.id);
+    const history = await loadHistory(key);
 
     // Process with full conversation context
     const result = await executeCommandForUser(user.id, input, history);
@@ -121,7 +94,7 @@ export async function POST(request: Request) {
         { role: 'user', content: input },
         { role: 'assistant', content: reply },
       ];
-      await saveHistory(user.id, updated);
+      await saveHistory(key, updated);
     }
 
     await sendTelegramMessage(chatId, reply);
