@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { usersService } from '@/lib/firebase/users';
 import { salesService } from '@/lib/firebase/sales';
 import { sendDailyNudge } from '@/lib/email';
+import { telemetry } from '@/lib/telemetry';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -44,6 +45,11 @@ export async function GET(request: Request) {
         results.push({ email: user.email, status: 'sent' });
       } catch (err) {
         console.error(`Daily nudge failed for ${user.email}:`, err);
+        telemetry.error('Daily nudge failed for user', user.id, {
+          'event.name': 'cron.daily_nudge.user_failed',
+          'user.email': user.email,
+          'error.message': err instanceof Error ? err.message : String(err),
+        });
         results.push({ email: user.email, status: 'failed' });
       }
     }
@@ -51,6 +57,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: true, results });
   } catch (error) {
     console.error('Daily nudge cron failed:', error);
+    telemetry.error('Daily nudge cron job crashed', undefined, {
+      'event.name': 'cron.daily_nudge.crashed',
+      'error.message': error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

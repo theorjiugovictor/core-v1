@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { usersService } from '@/lib/firebase/users';
 import { salesService } from '@/lib/firebase/sales';
 import { sendWeeklySummary } from '@/lib/email';
+import { telemetry } from '@/lib/telemetry';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -62,6 +63,11 @@ export async function GET(request: Request) {
         results.push({ email: user.email, status: 'sent' });
       } catch (err) {
         console.error(`Weekly summary failed for ${user.email}:`, err);
+        telemetry.error('Weekly summary failed for user', user.id, {
+          'event.name': 'cron.weekly_summary.user_failed',
+          'user.email': user.email,
+          'error.message': err instanceof Error ? err.message : String(err),
+        });
         results.push({ email: user.email, status: 'failed' });
       }
     }
@@ -69,6 +75,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: true, results });
   } catch (error) {
     console.error('Weekly summary cron failed:', error);
+    telemetry.error('Weekly summary cron job crashed', undefined, {
+      'event.name': 'cron.weekly_summary.crashed',
+      'error.message': error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

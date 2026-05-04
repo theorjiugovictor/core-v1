@@ -3,6 +3,7 @@ import { Redis } from '@upstash/redis';
 import { usersService } from '@/lib/firebase/users';
 import { executeCommandForUser } from '@/lib/actions';
 import { sendTelegramMessage } from '@/lib/messaging';
+import { telemetry } from '@/lib/telemetry';
 import type { BedrockMessage } from '@/lib/bedrock';
 
 export const runtime = 'nodejs';
@@ -81,6 +82,11 @@ export async function POST(request: Request) {
     const user = await usersService.getByTelegramId(telegramId);
 
     if (!user) {
+      telemetry.error('Telegram message from unlinked account', undefined, {
+        'event.name': 'telegram.unlinked_user',
+        'telegram.id': telegramId,
+        'telegram.chat_id': chatId,
+      });
       await sendTelegramMessage(chatId,
         UNLINKED_MESSAGE.replace('{telegramId}', telegramId)
       );
@@ -100,6 +106,14 @@ export async function POST(request: Request) {
       ? result.message || '✅ Done!'
       : `❌ ${result.error || 'Something went wrong. Please try again.'}`;
 
+    if (!result.success) {
+      telemetry.error('Telegram AI command failed', user.id, {
+        'event.name': 'telegram.command_failed',
+        'ai.input': input.slice(0, 200),
+        'error.message': result.error || 'unknown',
+      });
+    }
+
     // Persist updated history (append this exchange)
     if (result.success) {
       const updated: BedrockMessage[] = [
@@ -114,6 +128,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('Telegram webhook error:', error);
+    telemetry.error('Unhandled error in Telegram webhook', undefined, {
+      'event.name': 'telegram.webhook_error',
+      'error.message': error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json({ ok: true });
   }
 }

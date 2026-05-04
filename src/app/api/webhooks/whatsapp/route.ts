@@ -3,6 +3,7 @@ import { Redis } from '@upstash/redis';
 import { usersService } from '@/lib/firebase/users';
 import { executeCommandForUser } from '@/lib/actions';
 import { sendWhatsAppMessage } from '@/lib/messaging';
+import { telemetry } from '@/lib/telemetry';
 import type { BedrockMessage } from '@/lib/bedrock';
 
 export const runtime = 'nodejs';
@@ -72,6 +73,10 @@ export async function POST(request: Request) {
     const user = await usersService.getByWhatsappPhone(from);
 
     if (!user) {
+      telemetry.error('WhatsApp message from unlinked number', undefined, {
+        'event.name': 'whatsapp.unlinked_user',
+        'whatsapp.from': from,
+      });
       await sendWhatsAppMessage(from, UNLINKED_MESSAGE);
       return NextResponse.json({ ok: true });
     }
@@ -85,6 +90,14 @@ export async function POST(request: Request) {
     const reply = result.success
       ? result.message || '✅ Done!'
       : `❌ ${result.error || 'Something went wrong. Please try again.'}`;
+
+    if (!result.success) {
+      telemetry.error('WhatsApp AI command failed', user.id, {
+        'event.name': 'whatsapp.command_failed',
+        'ai.input': text.slice(0, 200),
+        'error.message': result.error || 'unknown',
+      });
+    }
 
     // Persist updated history
     if (result.success) {
@@ -100,6 +113,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('WhatsApp webhook error:', error);
+    telemetry.error('Unhandled error in WhatsApp webhook', undefined, {
+      'event.name': 'whatsapp.webhook_error',
+      'error.message': error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json({ ok: true });
   }
 }

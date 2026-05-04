@@ -6,6 +6,7 @@
  */
 
 import type { BedrockMessage, BedrockResponse } from './bedrock';
+import { telemetry } from './telemetry';
 
 // Read at call time (not module init) so env vars are always current in serverless
 function hasBedrock() {
@@ -26,6 +27,11 @@ async function withFallback<T>(
     } catch (err) {
       if (!fallback) throw err;
       console.warn(`[AI] Bedrock failed for ${label}, falling back to Gemini:`, err);
+      telemetry.error(`Bedrock failed for ${label} — falling back to Gemini`, undefined, {
+        'ai.provider': 'bedrock',
+        'ai.label': label,
+        'error.message': err instanceof Error ? err.message : String(err),
+      });
     }
   }
   if (fallback) return fallback();

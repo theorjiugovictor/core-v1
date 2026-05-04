@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { usersService } from '@/lib/firebase/users';
 import { materialsService } from '@/lib/firebase/materials';
 import { sendLowStockAlert } from '@/lib/email';
+import { telemetry } from '@/lib/telemetry';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -46,6 +47,11 @@ export async function GET(request: Request) {
         results.push({ email: user.email, status: 'sent', lowItems: lowItems.length });
       } catch (err) {
         console.error(`Low stock alert failed for ${user.email}:`, err);
+        telemetry.error('Low stock alert failed for user', user.id, {
+          'event.name': 'cron.low_stock.user_failed',
+          'user.email': user.email,
+          'error.message': err instanceof Error ? err.message : String(err),
+        });
         results.push({ email: user.email, status: 'failed' });
       }
     }
@@ -53,6 +59,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: true, results });
   } catch (error) {
     console.error('Low stock cron failed:', error);
+    telemetry.error('Low stock cron job crashed', undefined, {
+      'event.name': 'cron.low_stock.crashed',
+      'error.message': error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
