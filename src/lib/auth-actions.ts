@@ -4,16 +4,27 @@ import { signIn, signOut } from './auth';
 import { usersService } from './firebase/users';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
-import { authLimiter } from '@/lib/ratelimit';
+import { authLimiter, emailAuthLimiter } from '@/lib/ratelimit';
 import { telemetry } from '@/lib/telemetry';
 
 export async function loginAction(email: string, password: string) {
   const headersList = await headers();
   const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  const { success: withinLimit } = await authLimiter.limit(ip);
-  if (!withinLimit) {
+
+  const { success: withinIpLimit } = await authLimiter.limit(ip);
+  if (!withinIpLimit) {
     telemetry.rateLimitHit(ip, 'auth');
     return { success: false, error: 'Too many login attempts. Please wait 15 minutes before trying again.' };
+  }
+
+  const { success: withinEmailLimit } = await emailAuthLimiter.limit(email.toLowerCase());
+  if (!withinEmailLimit) {
+    telemetry.error('Per-email auth rate limit hit', undefined, {
+      'event.name': 'auth.email_lockout',
+      'user.email': email.toLowerCase(),
+      'http.client_ip': ip,
+    });
+    return { success: false, error: 'Too many failed attempts for this account. Please wait 30 minutes.' };
   }
 
   try {
@@ -88,6 +99,10 @@ export async function registerAction(data: {
     return { success: true };
   } catch (error: any) {
     console.error('Registration error:', error);
+    telemetry.error('Registration failed', undefined, {
+      'event.name': 'auth.register_failed',
+      'error.message': error.message ?? 'unknown',
+    });
 
     if (error.message === 'User with this email already exists') {
       return { success: false, error: 'User with this email already exists' };

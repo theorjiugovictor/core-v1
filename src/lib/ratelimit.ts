@@ -27,3 +27,14 @@ export const authLimiter = new Ratelimit({
   prefix: 'rl:auth',
   analytics: true,
 });
+
+/**
+ * Per-email login limiter — 5 failures per 30 minutes per email address.
+ * Catches credential stuffing that rotates IPs.
+ */
+export const emailAuthLimiter = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(5, '30 m'),
+  prefix: 'rl:auth:email',
+  analytics: true,
+});
