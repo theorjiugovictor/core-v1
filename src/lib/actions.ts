@@ -81,14 +81,35 @@ function parseCommandWithRegex(input: string) {
 }
 
 // Core execution logic — shared by the web console and messaging webhooks
+const MAX_INPUT_LENGTH = 1000;
+
 export async function executeCommandForUser(
   userId: string,
   rawInput: string,
   conversationHistory: BedrockMessage[] = [],
 ) {
+  if (!rawInput || typeof rawInput !== 'string') {
+    return { success: false, error: 'Input is required.' };
+  }
+
+  const trimmed = rawInput.trim();
+
+  if (trimmed.length === 0) {
+    return { success: false, error: 'Input cannot be empty.' };
+  }
+
+  if (trimmed.length > MAX_INPUT_LENGTH) {
+    telemetry.error('AI input exceeded max length', userId, {
+      'event.name': 'ai.input_too_long',
+      'input.length': trimmed.length,
+      'input.max': MAX_INPUT_LENGTH,
+    });
+    return { success: false, error: `Input too long. Please keep commands under ${MAX_INPUT_LENGTH} characters.` };
+  }
+
   let parsedResult;
   try {
-    parsedResult = await parseWithAI(rawInput, conversationHistory);
+    parsedResult = await parseWithAI(trimmed, conversationHistory);
     if (!parsedResult.success || !parsedResult.data) {
       throw new Error("AI parsing failed or returned no data");
     }
