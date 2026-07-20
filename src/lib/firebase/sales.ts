@@ -2,8 +2,8 @@ import { db, Collections } from './config';
 import type { Sale } from '../types';
 
 export const salesService = {
-  // Get all sales for a user
-  async getAll(userId: string): Promise<Sale[]> {
+  // Get all sales for a user (optional limit for UI pagination)
+  async getAll(userId: string, limit?: number): Promise<Sale[]> {
     try {
       const snapshot = await db
         .collection(Collections.SALES)
@@ -16,13 +16,13 @@ export const salesService = {
         ...doc.data(),
       })) as Sale[];
 
-      return sales
-        .sort((a, b) => {
-          const dateA = new Date(a.date || 0).getTime();
-          const dateB = new Date(b.date || 0).getTime();
-          return dateB - dateA; // desc order
-        })
-        .slice(0, 100); // limit to 100 results
+      const sorted = sales.sort((a, b) => {
+        const dateA = new Date(a.date || 0).getTime();
+        const dateB = new Date(b.date || 0).getTime();
+        return dateB - dateA; // desc order
+      });
+
+      return typeof limit === 'number' && limit > 0 ? sorted.slice(0, limit) : sorted;
     } catch (error) {
       console.error('Error getting sales:', error);
       throw new Error('Failed to fetch sales');

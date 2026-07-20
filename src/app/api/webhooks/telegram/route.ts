@@ -8,10 +8,13 @@ import type { BedrockMessage } from '@/lib/bedrock';
 
 export const runtime = 'nodejs';
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
+const redis =
+  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+    ? new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN,
+      })
+    : null;
 
 // Keep last 20 turns (10 exchanges) per user, expire after 2 hours of inactivity
 const HISTORY_KEY = (userId: string) => `tg:conv:${userId}`;
@@ -19,6 +22,7 @@ const MAX_TURNS = 20;
 const TTL_SECONDS = 60 * 60 * 2;
 
 async function loadHistory(userId: string): Promise<BedrockMessage[]> {
+  if (!redis) return [];
   try {
     const raw = await redis.get<BedrockMessage[]>(HISTORY_KEY(userId));
     return Array.isArray(raw) ? raw : [];
@@ -28,6 +32,7 @@ async function loadHistory(userId: string): Promise<BedrockMessage[]> {
 }
 
 async function saveHistory(userId: string, history: BedrockMessage[]) {
+  if (!redis) return;
   try {
     const trimmed = history.slice(-MAX_TURNS);
     await redis.set(HISTORY_KEY(userId), trimmed, { ex: TTL_SECONDS });

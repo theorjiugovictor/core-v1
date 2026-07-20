@@ -8,26 +8,28 @@ import { authLimiter, emailAuthLimiter } from '@/lib/ratelimit';
 import { telemetry } from '@/lib/telemetry';
 
 export async function loginAction(email: string, password: string) {
-  const headersList = await headers();
-  const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-
-  const { success: withinIpLimit } = await authLimiter.limit(ip);
-  if (!withinIpLimit) {
-    telemetry.rateLimitHit(ip, 'auth');
-    return { success: false, error: 'Too many login attempts. Please wait 15 minutes before trying again.' };
-  }
-
-  const { success: withinEmailLimit } = await emailAuthLimiter.limit(email.toLowerCase());
-  if (!withinEmailLimit) {
-    telemetry.error('Per-email auth rate limit hit', undefined, {
-      'event.name': 'auth.email_lockout',
-      'user.email': email.toLowerCase(),
-      'http.client_ip': ip,
-    });
-    return { success: false, error: 'Too many failed attempts for this account. Please wait 30 minutes.' };
-  }
+  let ip = 'unknown';
 
   try {
+    const headersList = await headers();
+    ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+
+    const { success: withinIpLimit } = await authLimiter.limit(ip);
+    if (!withinIpLimit) {
+      telemetry.rateLimitHit(ip, 'auth');
+      return { success: false, error: 'Too many login attempts. Please wait 15 minutes before trying again.' };
+    }
+
+    const { success: withinEmailLimit } = await emailAuthLimiter.limit(email.toLowerCase());
+    if (!withinEmailLimit) {
+      telemetry.error('Per-email auth rate limit hit', undefined, {
+        'event.name': 'auth.email_lockout',
+        'user.email': email.toLowerCase(),
+        'http.client_ip': ip,
+      });
+      return { success: false, error: 'Too many failed attempts for this account. Please wait 30 minutes.' };
+    }
+
     const result = await signIn('credentials', {
       email,
       password,
@@ -42,20 +44,22 @@ export async function loginAction(email: string, password: string) {
     telemetry.auth('login.success', ip);
     return { success: true };
   } catch (error: any) {
+    // If Next.js redirect error, rethrow it so navigation succeeds
+    if (error?.digest?.includes('NEXT_REDIRECT') || error?.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
+
     console.error('Login error:', error);
     telemetry.auth('login.failed', ip);
 
-    if (error.message.includes('User not found')) {
+    const errMsg = error?.message || error?.cause?.err?.message || '';
+
+    if (errMsg.includes('User not found')) {
       return { success: false, error: 'No account found with this email' };
     }
 
-    if (error.message.includes('Invalid password')) {
+    if (errMsg.includes('Invalid password')) {
       return { success: false, error: 'Incorrect password' };
-    }
-
-    // NextAuth sometimes wraps errors
-    if (error.cause?.err?.message === 'User not found' || error.cause?.err?.message === 'Invalid password') {
-      return { success: false, error: error.cause.err.message === 'User not found' ? 'No account found with this email' : 'Incorrect password' };
     }
 
     return { success: false, error: 'Invalid email or password' };

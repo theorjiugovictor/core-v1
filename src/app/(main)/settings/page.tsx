@@ -8,7 +8,7 @@ export default async function SettingsPage() {
   const user = await getUserProfileAction();
 
   if (!user) {
-    redirect("/api/auth/signin");
+    redirect("/login");
   }
 
   return (

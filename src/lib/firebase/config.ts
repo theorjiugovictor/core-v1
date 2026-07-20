@@ -4,16 +4,28 @@ import { getFirestore } from 'firebase-admin/firestore';
 // Initialize Firebase Admin (for server-side operations)
 const initializeFirebaseAdmin = () => {
   if (getApps().length === 0) {
-    // In production, use service account credentials
-    // For development, Firebase will use application default credentials
     if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-      initializeApp({
-        credential: cert(serviceAccount),
-        projectId: process.env.FIREBASE_PROJECT_ID,
-      });
+      try {
+        let keyStr = process.env.FIREBASE_SERVICE_ACCOUNT_KEY.trim();
+        if (!keyStr.startsWith('{') && keyStr.length > 50) {
+          keyStr = Buffer.from(keyStr, 'base64').toString('utf-8');
+        }
+        const serviceAccount = JSON.parse(keyStr);
+        if (typeof serviceAccount.private_key === 'string') {
+          serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+        }
+        initializeApp({
+          credential: cert(serviceAccount),
+          projectId: process.env.FIREBASE_PROJECT_ID || serviceAccount.project_id,
+        });
+      } catch (error) {
+        console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY, falling back to default options:', error);
+        initializeApp({
+          projectId: process.env.FIREBASE_PROJECT_ID || 'demo-project',
+        });
+      }
     } else {
-      // Development mode - requires Firebase emulator or default credentials
+      // Development / default mode
       initializeApp({
         projectId: process.env.FIREBASE_PROJECT_ID || 'demo-project',
       });

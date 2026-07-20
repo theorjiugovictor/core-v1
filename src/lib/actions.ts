@@ -409,6 +409,15 @@ export async function executeCommandForUser(
           break;
         }
 
+function parseNormalizedDate(dateStr: string): Date {
+  if (!dateStr) return new Date(0);
+  if (dateStr.length === 10 && dateStr.includes('-')) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  return new Date(dateStr);
+}
+
         case 'PROFIT_QUERY': {
           const period: string = actionData.period || 'today';
           const allSales = await salesService.getAll(userId);
@@ -416,7 +425,7 @@ export async function executeCommandForUser(
           const now = new Date();
 
           const inPeriod = (dateStr: string) => {
-            const d = new Date(dateStr);
+            const d = parseNormalizedDate(dateStr);
             if (period === 'today') return d.toDateString() === now.toDateString();
             if (period === 'week') { const w = new Date(now); w.setDate(now.getDate() - 7); return d >= w; }
             if (period === 'month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
@@ -608,6 +617,20 @@ export async function createMaterialAction(data: { name: string; quantity: numbe
   return { success: true };
 }
 
+export async function updateMaterialAction(id: string, data: { name: string; quantity: number; unit: string; costPrice: number }) {
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+  const userId = session.user.id;
+  try {
+    await materialsService.update(id, userId, data);
+    revalidatePath('/materials');
+    revalidatePath('/dashboard');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Failed to update material" };
+  }
+}
+
 export async function deleteMaterialAction(id: string) {
   const session = await auth();
   if (!session?.user?.id) return { success: false, error: "Unauthorized" };
@@ -677,25 +700,55 @@ export async function createSaleAction(data: { productName: string; quantity: nu
   try {
     const products = await productsService.getAll(userId);
     const materials = await materialsService.getAll(userId);
-    const product = products.find(p => p.name === data.productName);
+    const product = products.find(p => p.name.toLowerCase() === data.productName.toLowerCase());
+    const directMat = materials.find(m => m.name.toLowerCase() === data.productName.toLowerCase());
 
-    // 1. Calculate Unit Cost
+    const hasRecipe = Boolean(product && product.materials && product.materials.length > 0);
+
+    // 1. Stock Validation
+    if (hasRecipe) {
+      for (const ingredient of product!.materials) {
+        const mat = materials.find(m => m.id === ingredient.materialId);
+        if (mat) {
+          const needed = ingredient.quantity * data.quantity;
+          if (mat.quantity < needed) {
+            return {
+              success: false,
+              error: mat.quantity === 0
+                ? `${mat.name} is out of stock. Restock before selling.`
+                : `Not enough ${mat.name}: need ${needed} ${mat.unit}(s), only ${mat.quantity} in stock.`
+            };
+          }
+        }
+      }
+    } else if (directMat) {
+      if (directMat.quantity < data.quantity) {
+        return {
+          success: false,
+          error: directMat.quantity === 0
+            ? `${directMat.name} is out of stock. Restock before selling.`
+            : `Not enough ${directMat.name}: need ${data.quantity} ${directMat.unit}(s), only ${directMat.quantity} in stock.`
+        };
+      }
+    }
+
+    // 2. Calculate Unit Cost
     let costAmount = 0;
     if (product) {
-      if (product.materials && product.materials.length > 0) {
-        // Recipe Cost
+      if (hasRecipe) {
         const unitCost = product.materials.reduce((acc, curr) => {
           const mat = materials.find(m => m.id === curr.materialId);
           return acc + (mat ? mat.costPrice * curr.quantity : 0);
         }, 0);
         costAmount = unitCost * data.quantity;
       } else {
-        // Retail Cost
         costAmount = (product.costPrice || 0) * data.quantity;
       }
+    } else if (directMat) {
+      costAmount = directMat.costPrice * data.quantity;
     }
 
-    // 2. Create Sale
+    // 3. Create Sale
     await salesService.create({
       userId,
       ...data,
@@ -703,9 +756,9 @@ export async function createSaleAction(data: { productName: string; quantity: nu
       date: new Date().toISOString()
     });
 
-    // 3. Deduct Inventory (if product exists and has recipe)
-    if (product && product.materials) {
-      for (const ingredient of product.materials) {
+    // 4. Deduct Inventory
+    if (hasRecipe) {
+      for (const ingredient of product!.materials) {
         const material = materials.find(m => m.id === ingredient.materialId);
         if (material) {
           const qtyToDeduct = ingredient.quantity * data.quantity;
@@ -714,14 +767,19 @@ export async function createSaleAction(data: { productName: string; quantity: nu
           });
         }
       }
+    } else if (directMat) {
+      await materialsService.update(directMat.id, userId, {
+        quantity: Math.max(0, directMat.quantity - data.quantity)
+      });
     }
 
     revalidatePath('/sales');
     revalidatePath('/dashboard');
     revalidatePath('/materials');
     return { success: true };
-  } catch (error) {
-    return { success: false, error: "Failed to create sale" };
+  } catch (error: any) {
+    console.error('Failed to create sale:', error);
+    return { success: false, error: error.message || "Failed to create sale" };
   }
 }
 
@@ -836,9 +894,9 @@ export async function getKpisAction(period: KpiPeriod = 'month') {
     return null;
   })();
 
-  const inPeriod = (dateStr: string) => new Date(dateStr) >= periodStart;
+  const inPeriod = (dateStr: string) => parseNormalizedDate(dateStr) >= periodStart;
   const inPrev   = (dateStr: string) => prevStart && prevEnd
-    ? new Date(dateStr) >= prevStart && new Date(dateStr) <= prevEnd
+    ? parseNormalizedDate(dateStr) >= prevStart && parseNormalizedDate(dateStr) <= prevEnd
     : false;
 
   const sales    = allSales.filter(s => inPeriod(s.date));

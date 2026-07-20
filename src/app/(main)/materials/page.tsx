@@ -37,13 +37,15 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-import { getMaterialsAction, createMaterialAction, deleteMaterialAction } from '@/lib/actions';
+import { getMaterialsAction, createMaterialAction, updateMaterialAction, deleteMaterialAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import type { Material } from '@/lib/types';
 
 export default function MaterialsPage() {
   const [materials, setMaterials] = React.useState<Material[]>([]);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [isEditOpen, setIsEditOpen] = React.useState(false);
+  const [editingMaterial, setEditingMaterial] = React.useState<Material | null>(null);
   const { toast } = useToast();
 
   React.useEffect(() => {
@@ -59,31 +61,62 @@ export default function MaterialsPage() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    try {
-      await createMaterialAction({
-        name: formData.get('name') as string,
-        quantity: Number(formData.get('quantity')),
-        unit: formData.get('unit') as string,
-        costPrice: Number(formData.get('costPrice'))
-      });
+    const result = await createMaterialAction({
+      name: formData.get('name') as string,
+      quantity: Number(formData.get('quantity')),
+      unit: formData.get('unit') as string,
+      costPrice: Number(formData.get('costPrice'))
+    });
 
+    if (result.success) {
       toast({ title: "Success", description: "Material added successfully" });
       setIsDialogOpen(false);
       loadMaterials();
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to add material", variant: "destructive" });
+    } else {
+      toast({ title: "Error", description: result.error || "Failed to add material", variant: "destructive" });
+    }
+  }
+
+  async function handleEdit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!editingMaterial) return;
+    const formData = new FormData(e.currentTarget);
+
+    const result = await updateMaterialAction(editingMaterial.id, {
+      name: formData.get('name') as string,
+      quantity: Number(formData.get('quantity')),
+      unit: formData.get('unit') as string,
+      costPrice: Number(formData.get('costPrice'))
+    });
+
+    if (result.success) {
+      toast({ title: "Success", description: "Material updated successfully" });
+      setIsEditOpen(false);
+      setEditingMaterial(null);
+      loadMaterials();
+    } else {
+      toast({ title: "Error", description: result.error || "Failed to update material", variant: "destructive" });
     }
   }
 
   async function handleDelete(id: string) {
     if (!confirm("Are you sure you want to delete this material?")) return;
     try {
-      await deleteMaterialAction(id);
-      toast({ title: "Success", description: "Material deleted" });
-      loadMaterials();
+      const result = await deleteMaterialAction(id);
+      if (result.success) {
+        toast({ title: "Success", description: "Material deleted" });
+        loadMaterials();
+      } else {
+        toast({ title: "Error", description: result.error || "Failed to delete material", variant: "destructive" });
+      }
     } catch (error) {
       toast({ title: "Error", description: "Failed to delete material", variant: "destructive" });
     }
+  }
+
+  function openEditModal(mat: Material) {
+    setEditingMaterial(mat);
+    setIsEditOpen(true);
   }
 
   const formatCurrency = (amount: number) => {
@@ -138,6 +171,39 @@ export default function MaterialsPage() {
               </form>
             </DialogContent>
           </Dialog>
+
+          {/* Edit Dialog */}
+          <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Edit Material</DialogTitle>
+                <DialogDescription>Update material inventory details.</DialogDescription>
+              </DialogHeader>
+              {editingMaterial && (
+                <form onSubmit={handleEdit} className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="edit-name" className="text-right">Name</Label>
+                    <Input id="edit-name" name="name" defaultValue={editingMaterial.name} className="col-span-3" required />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="edit-quantity" className="text-right">Quantity</Label>
+                    <Input id="edit-quantity" name="quantity" type="number" defaultValue={editingMaterial.quantity} className="col-span-3" required />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="edit-unit" className="text-right">Unit</Label>
+                    <Input id="edit-unit" name="unit" defaultValue={editingMaterial.unit} className="col-span-3" required />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="edit-costPrice" className="text-right">Cost Price (₦)</Label>
+                    <Input id="edit-costPrice" name="costPrice" type="number" defaultValue={editingMaterial.costPrice} className="col-span-3" required />
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit">Update material</Button>
+                  </DialogFooter>
+                </form>
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
       </CardHeader>
       <CardContent>
@@ -169,7 +235,7 @@ export default function MaterialsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => openEditModal(material)}>Edit</DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(material.id)}>Delete</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

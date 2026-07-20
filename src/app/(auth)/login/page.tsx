@@ -34,12 +34,17 @@ export default function LoginPage() {
   const onSubmit = (data: LoginFormData) => {
     setError(null);
     startTransition(async () => {
-      const result = await loginAction(data.email, data.password);
-      if (result.success) {
-        router.push('/dashboard');
-        router.refresh();
-      } else {
-        setError(result.error || 'Login failed. Please try again.');
+      try {
+        const result = await loginAction(data.email, data.password);
+        if (result?.success) {
+          router.push('/dashboard');
+          router.refresh();
+        } else {
+          setError(result?.error || 'Login failed. Please try again.');
+        }
+      } catch (err: any) {
+        console.error('Submit error:', err);
+        setError('A server error occurred. Please try again.');
       }
     });
   };

@@ -66,6 +66,18 @@ export default function SalesPage() {
     setProducts(productsData);
   };
 
+  // Auto-calculate total based on product price for manual entry
+  const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null);
+  const [qty, setQty] = React.useState("1");
+  const [totalAmountState, setTotalAmountState] = React.useState<string>("");
+
+  React.useEffect(() => {
+    if (selectedProduct) {
+      const calculated = selectedProduct.sellingPrice * (Number(qty) || 1);
+      setTotalAmountState(String(calculated));
+    }
+  }, [selectedProduct, qty]);
+
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -74,14 +86,22 @@ export default function SalesPage() {
     const totalAmount = Number(formData.get('totalAmount'));
     const paymentMethod = formData.get('paymentMethod') as 'Cash' | 'Card' | 'Transfer';
 
+    if (!productName) {
+      toast({ title: "Validation Error", description: "Please select a product", variant: "destructive" });
+      return;
+    }
+
     const result = await createSaleAction({ productName, quantity, totalAmount, paymentMethod });
 
     if (result.success) {
       toast({ title: "Success", description: "Sale recorded successfully" });
       setIsCreateOpen(false);
+      setSelectedProduct(null);
+      setQty("1");
+      setTotalAmountState("");
       loadData();
     } else {
-      toast({ title: "Error", description: "Failed to record sale", variant: "destructive" });
+      toast({ title: "Error", description: result.error || "Failed to record sale", variant: "destructive" });
     }
   };
 
@@ -101,7 +121,7 @@ export default function SalesPage() {
       setEditingSale(null);
       loadData();
     } else {
-      toast({ title: "Error", description: "Failed to update sale", variant: "destructive" });
+      toast({ title: "Error", description: result.error || "Failed to update sale", variant: "destructive" });
     }
   };
 
@@ -112,20 +132,14 @@ export default function SalesPage() {
       toast({ title: "Deleted", description: "Sale deleted successfully" });
       loadData();
     } else {
-      toast({ title: "Error", description: "Failed to delete sale", variant: "destructive" });
+      toast({ title: "Error", description: result.error || "Failed to delete sale", variant: "destructive" });
     }
   };
 
   const openEditDialog = (sale: Sale) => {
     setEditingSale(sale);
     setIsEditOpen(true);
-  }
-
-  // Auto-calculate total based on product price for manual entry
-  const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null);
-  const [qty, setQty] = React.useState("1");
-
-  const estimatedTotal = selectedProduct ? (selectedProduct.sellingPrice * Number(qty)) : 0;
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(amount);
@@ -173,7 +187,7 @@ export default function SalesPage() {
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Total (₦)</Label>
-                <Input name="totalAmount" type="number" className="col-span-3" defaultValue={estimatedTotal} required />
+                <Input name="totalAmount" type="number" className="col-span-3" value={totalAmountState} onChange={e => setTotalAmountState(e.target.value)} required />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Payment</Label>
