@@ -20,7 +20,7 @@ export async function callGemini(
   }
 
   const modelName = options?.model || 'gemini-1.5-flash';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
 
   // Format contents for REST API
   let contents = [];
@@ -50,6 +50,7 @@ export async function callGemini(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'x-goog-api-key': apiKey,
     },
     body: JSON.stringify(payload),
   });
