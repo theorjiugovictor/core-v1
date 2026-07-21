@@ -1,14 +1,8 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { BedrockMessage, BedrockResponse } from './bedrock';
 
-function getClient() {
-  if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is not set');
-  return new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-}
-
 /**
- * Call Google Gemini — drop-in equivalent of callBedrock.
- * Gemini roles: 'user' | 'model' (not 'assistant')
+ * Call Google Gemini REST API directly using fetch.
+ * This bypasses SDK header parsing bugs with new "AQ." prefix API keys.
  */
 export async function callGemini(
   prompt: string,
@@ -20,34 +14,54 @@ export async function callGemini(
     messages?: BedrockMessage[];
   }
 ): Promise<BedrockResponse> {
-  const client = getClient();
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY is not set');
+  }
 
-  const model = client.getGenerativeModel({
-    model: options?.model || 'gemini-1.5-flash',
-    systemInstruction: systemPrompt,
+  const modelName = options?.model || 'gemini-1.5-flash';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+  // Format contents for REST API
+  let contents = [];
+  if (options?.messages && options.messages.length > 0) {
+    contents = options.messages.map(m => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }],
+    }));
+  } else {
+    contents = [{ role: 'user', parts: [{ text: prompt }] }];
+  }
+
+  const payload = {
+    contents,
     generationConfig: {
       maxOutputTokens: options?.maxTokens || 1000,
       temperature: options?.temperature ?? 0.7,
     },
+    systemInstruction: systemPrompt
+      ? {
+          parts: [{ text: systemPrompt }],
+        }
+      : undefined,
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
   });
 
-  // Multi-turn: convert history and send last message via chat
-  if (options?.messages && options.messages.length > 0) {
-    const allMessages = options.messages;
-    const history = allMessages.slice(0, -1).map(m => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }],
-    }));
-    const lastMessage = allMessages[allMessages.length - 1];
-
-    const chat = model.startChat({ history });
-    const result = await chat.sendMessage(lastMessage.content);
-    return { content: result.response.text() };
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${errText}`);
   }
 
-  // Single-turn
-  const result = await model.generateContent(prompt);
-  return { content: result.response.text() };
+  const data = await response.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  return { content: text };
 }
 
 /** Parse business command — same interface as bedrock.parseBusinessCommand */
