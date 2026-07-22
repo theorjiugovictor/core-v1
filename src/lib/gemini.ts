@@ -19,7 +19,7 @@ export async function callGemini(
     throw new Error('GEMINI_API_KEY is not set');
   }
 
-  const modelName = options?.model || 'gemini-1.5-flash';
+  const modelName = options?.model || 'gemini-2.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
 
   // Format contents for REST API
@@ -62,6 +62,13 @@ export async function callGemini(
 
   const data = await response.json();
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  if (!text) {
+    const blockReason = data.promptFeedback?.blockReason;
+    const finishReason = data.candidates?.[0]?.finishReason;
+    throw new Error(
+      `Gemini API returned no content (blockReason: ${blockReason ?? 'none'}, finishReason: ${finishReason ?? 'none'})`
+    );
+  }
   return { content: text };
 }
 

@@ -18,6 +18,15 @@ export type ParseBusinessCommandInput = {
   conversationHistory?: BedrockMessage[];
 };
 
+function parseNormalizedDate(dateStr: string): Date {
+  if (!dateStr) return new Date(0);
+  if (dateStr.length === 10 && dateStr.includes('-')) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  return new Date(dateStr);
+}
+
 // Fallback regex-based parser
 function parseCommandWithRegex(input: string) {
   const normalized = input.toLowerCase().trim();
@@ -408,15 +417,6 @@ export async function executeCommandForUser(
           message = `Recorded: ₦${price.toLocaleString()} spent on ${item}${expenseCategory !== 'General' ? ` (${expenseCategory})` : ''}.`;
           break;
         }
-
-function parseNormalizedDate(dateStr: string): Date {
-  if (!dateStr) return new Date(0);
-  if (dateStr.length === 10 && dateStr.includes('-')) {
-    const [y, m, d] = dateStr.split('-').map(Number);
-    return new Date(y, m - 1, d);
-  }
-  return new Date(dateStr);
-}
 
         case 'PROFIT_QUERY': {
           const period: string = actionData.period || 'today';
