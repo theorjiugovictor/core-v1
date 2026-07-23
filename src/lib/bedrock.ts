@@ -116,6 +116,7 @@ Supported actions:
 - CLARIFY: Intent is ambiguous or missing critical info.
 
 IMPORTANT RULES:
+- A bare list of quantities and items with NO verb and NO price (e.g. "10 bags of rice", "50 bags of rice, 20 cartons of Indomie, 10 pairs of sneakers") means the user is declaring stock they ALREADY have — usually during onboarding. Return one STOCK_IN action per item, with quantity and unit, and NO price and NO EXPENSE.
 - "Bought X bags of rice for ₦Y" = BOTH a STOCK_IN (inventory restocked) AND an EXPENSE (money spent). Return BOTH actions.
 - "Spent ₦Y on fuel/transport/rent/electricity" = EXPENSE only (not inventory).
 - Natural language variations for STOCK_IN: "put in stock", "received", "got", "restocked", "added to inventory" → all map to STOCK_IN.
@@ -150,6 +151,7 @@ Respond ONLY with a JSON ARRAY of objects in this format:
     "action": "SALE|STOCK_IN|STOCK_REMOVE|STOCK_SET|CREATE_PRODUCT|STOCK_CHECK|LIST_INVENTORY|LOW_STOCK|UPDATE_PRODUCT|DELETE_PRODUCT|EXPENSE|PROFIT_QUERY|CHAT|CLARIFY",
     "item": "product or material name",
     "quantity": number,
+    "unit": "the unit, e.g. bag|carton|crate|kg|piece|pair (only when relevant, e.g. STOCK_IN)",
     "price": number,
     "discount": number (percentage, e.g. 10 means 10% off — only for SALE),
     "reason": "damaged|expired|lost|correction (only for STOCK_REMOVE)",
@@ -162,6 +164,12 @@ Respond ONLY with a JSON ARRAY of objects in this format:
 ]
 
 Examples:
+Input: "10 bags of rice"
+Output: [{"action":"STOCK_IN","item":"rice","quantity":10,"unit":"bag"}]
+
+Input: "50 bags of rice, 20 cartons of Indomie, 10 pairs of sneakers"
+Output: [{"action":"STOCK_IN","item":"rice","quantity":50,"unit":"bag"},{"action":"STOCK_IN","item":"Indomie","quantity":20,"unit":"carton"},{"action":"STOCK_IN","item":"sneakers","quantity":10,"unit":"pair"}]
+
 Input: "Sold 5 Rice at 2000 and 3 Beans at 1500"
 Output: [{"action":"SALE","item":"Rice","quantity":5,"price":2000},{"action":"SALE","item":"Beans","quantity":3,"price":1500}]
 

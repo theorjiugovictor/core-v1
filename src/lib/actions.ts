@@ -83,6 +83,33 @@ function parseCommandWithRegex(input: string) {
     }
   }
 
+  // Bulk stock declaration (onboarding): comma-separated "<qty> <unit>? <item>" with no verb/price,
+  // e.g. "50 bags of rice, 20 cartons of Indomie, 10 pairs of sneakers"
+  const bareStockPattern = /^(\d+(?:\.\d+)?)\s*(bags?|cartons?|crates?|paints?|mudus?|dericas?|sachets?|packs?|packets?|bottles?|litres?|liters?|kgs?|kg|pieces?|dozens?|plates?|wraps?|cups?|pairs?|rolls?|yards?|metres?|reams?|units?)?\s*(?:of\s+)?(.+)$/i;
+  // Guard against misreading actions ("3 bags rice are damaged") as a plain stock declaration
+  const nonDeclarativeWords = /\b(is|are|was|were|sold|sell|selling|buy|bought|spent|spend|damaged|expired|spoiled|spoilt|lost|stolen|broken|remove|removed|removing|returned|refund)\b/i;
+  const segments = normalized.split(',').map(s => s.trim()).filter(Boolean);
+  const bulkMatches = segments.length > 0 ? segments.map(seg => {
+    const m = seg.match(bareStockPattern);
+    if (!m || nonDeclarativeWords.test(m[3])) return null;
+    return m;
+  }) : [];
+  if (bulkMatches.length > 0 && bulkMatches.every((m): m is RegExpMatchArray => m !== null)) {
+    return {
+      success: true,
+      data: bulkMatches.map(m => {
+        const [, qtyStr, unitRaw, itemRaw] = m;
+        return {
+          action: 'STOCK_IN',
+          item: itemRaw.trim(),
+          quantity: parseFloat(qtyStr),
+          unit: unitRaw ? unitRaw.replace(/s$/i, '') : 'unit',
+          date: new Date().toISOString().split('T')[0],
+        };
+      }),
+    };
+  }
+
   return {
     success: false,
     error: 'Could not understand command. Try: "Sold 5 bags of Rice at 1000 each"'
@@ -116,7 +143,7 @@ export async function executeCommandForUser(
 
   try {
     for (const actionData of actions) {
-      const { action, item, quantity, price, isCredit, recipe } = actionData;
+      const { action, item, quantity, price, isCredit, recipe, unit } = actionData;
       let message = "";
 
       switch (action) {
@@ -236,10 +263,20 @@ export async function executeCommandForUser(
             message = `Quantity must be greater than 0.`;
             break;
           }
+          if (!item) {
+            message = `What item did you add stock for?`;
+            break;
+          }
           const allMaterials = await materialsService.getAll(userId);
-          const existingMaterial = allMaterials.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
+          const existingMaterial = allMaterials.find(m => m.name.toLowerCase() === item.toLowerCase());
           if (!existingMaterial) {
-            message = `"${item}" isn't in your inventory yet. Go to the Materials page to add it first, then come back to restock. Or say "Add ${item} to inventory" to create it.`;
+            // New item — create it. Covers onboarding ("50 bags of rice") as well as
+            // ad-hoc restocking of something not yet tracked.
+            const newMaterial = await materialsService.create({
+              userId, name: item, quantity: qty, unit: unit || 'unit', costPrice: price || 0,
+              createdAt: new Date().toISOString(),
+            });
+            message = `Added ${item} to inventory: ${qty} ${newMaterial.unit}(s).`;
             break;
           }
           const newQty = existingMaterial.quantity + qty;

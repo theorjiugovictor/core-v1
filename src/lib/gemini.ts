@@ -103,6 +103,7 @@ LIST_INVENTORY, LOW_STOCK, UPDATE_PRODUCT, DELETE_PRODUCT, EXPENSE, PROFIT_QUERY
 - If no date mentioned, use ${today}
 
 ━━ PARSING RULES ━━
+- A bare list of quantities and items with NO verb and NO price (e.g. "10 bags of rice", "50 bags of rice, 20 cartons of Indomie, 10 pairs of sneakers") means the user is declaring stock they ALREADY have — usually during onboarding. Return one STOCK_IN action per item, with quantity and unit, and NO price and NO EXPENSE.
 - "Bought X for ₦Y" OR "I don buy X for ₦Y" = STOCK_IN + EXPENSE (return both)
 - "Sold X" / "I sell X" / "I don sell X" / "customer buy X" = SALE
 - "Spent ₦Y on X" / "I use ₦Y for X" / "I send ₦Y on X" = EXPENSE
@@ -129,6 +130,10 @@ Use CLARIFY (not SALE) when:
 Set "message" to a SHORT, friendly question asking for the missing info.
 
 ━━ EXAMPLES ━━
+Onboarding / declaring existing stock (no verb, no price):
+"10 bags of rice" → [{"action":"STOCK_IN","item":"rice","quantity":10,"unit":"bag"}]
+"50 bags of rice, 20 cartons of Indomie, 10 pairs of sneakers" → [{"action":"STOCK_IN","item":"rice","quantity":50,"unit":"bag"},{"action":"STOCK_IN","item":"Indomie","quantity":20,"unit":"carton"},{"action":"STOCK_IN","item":"sneakers","quantity":10,"unit":"pair"}]
+
 Food/grocery:
 "I don sell 10 carton Indomie for 3500 each" → [{"action":"SALE","item":"Indomie","quantity":10,"price":3500}]
 "I buy 20 bag garri for 45k" → [{"action":"STOCK_IN","item":"garri","quantity":20,"price":2250},{"action":"EXPENSE","item":"garri","price":45000,"category":"General"}]
@@ -157,6 +162,7 @@ Respond ONLY with a valid JSON ARRAY. No explanation, no markdown.
   "action": "SALE|STOCK_IN|STOCK_REMOVE|STOCK_SET|CREATE_PRODUCT|STOCK_CHECK|LIST_INVENTORY|LOW_STOCK|UPDATE_PRODUCT|DELETE_PRODUCT|EXPENSE|PROFIT_QUERY|CHAT|CLARIFY",
   "item": "product or material name",
   "quantity": number,
+  "unit": "the unit, e.g. bag|carton|crate|kg|piece|pair (only when relevant, e.g. STOCK_IN)",
   "price": number,
   "discount": number,
   "category": "Transport|Rent|Utilities|Salaries|Packaging|Maintenance|General",
