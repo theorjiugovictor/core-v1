@@ -237,9 +237,17 @@ export async function executeCommandForUser(
             break;
           }
           const allMaterials = await materialsService.getAll(userId);
-          const existingMaterial = allMaterials.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
+          const existingMaterial = allMaterials.find(m => m.name.toLowerCase().trim() === (item || '').toLowerCase().trim());
           if (!existingMaterial) {
-            message = `"${item}" isn't in your inventory yet. Go to the Materials page to add it first, then come back to restock. Or say "Add ${item} to inventory" to create it.`;
+            const newMat = await materialsService.create({
+              userId,
+              name: item?.trim() || 'New Item',
+              quantity: qty,
+              unit: 'unit',
+              costPrice: price || 0,
+              createdAt: new Date().toISOString()
+            });
+            message = `Added new inventory item: ${newMat.name} (+${qty} in stock${price ? ` @ ₦${price.toLocaleString()}/unit` : ''})`;
             break;
           }
           const newQty = existingMaterial.quantity + qty;
@@ -247,34 +255,41 @@ export async function executeCommandForUser(
             quantity: newQty,
             costPrice: price || existingMaterial.costPrice
           });
-          message = `Restocked ${item}: +${qty} (now ${newQty} ${existingMaterial.unit}(s))`;
+          message = `Restocked ${existingMaterial.name}: +${qty} (now ${newQty} ${existingMaterial.unit}(s))`;
           break;
         }
 
         case 'CREATE_PRODUCT': {
           const newProductMaterials = [];
+          let computedCost = 0;
           if (recipe && Array.isArray(recipe)) {
             const currentMaterials = await materialsService.getAll(userId);
             for (const ingredient of recipe) {
+              if (!ingredient.item) continue;
               let matId = '';
-              const existingMat = currentMaterials.find(m => m.name.toLowerCase() === ingredient.item.toLowerCase());
+              let unitCost = 0;
+              const existingMat = currentMaterials.find(m => m.name.toLowerCase().trim() === ingredient.item.toLowerCase().trim());
               if (existingMat) {
                 matId = existingMat.id;
+                unitCost = existingMat.costPrice || 0;
               } else {
                 const newMat = await materialsService.create({
-                  userId, name: ingredient.item, quantity: 0,
+                  userId, name: ingredient.item.trim(), quantity: 0,
                   unit: 'unit', costPrice: 0, createdAt: new Date().toISOString()
                 });
                 matId = newMat.id;
               }
               newProductMaterials.push({ materialId: matId, quantity: ingredient.quantity });
+              computedCost += (ingredient.quantity || 1) * unitCost;
             }
           }
+          const finalPrice = price || 0;
           await productsService.create({
-            userId, name: item || 'New Product', sellingPrice: price || 0,
-            costPrice: 0, materials: newProductMaterials, createdAt: new Date().toISOString()
+            userId, name: item?.trim() || 'New Product', sellingPrice: finalPrice,
+            costPrice: computedCost, materials: newProductMaterials, createdAt: new Date().toISOString()
           });
-          message = `Product created: ${item} @ ₦${price}${newProductMaterials.length > 0 ? ` with ${newProductMaterials.length} ingredients` : ''}`;
+          const priceDisplay = finalPrice > 0 ? `@ ₦${finalPrice.toLocaleString()}` : '(price not set)';
+          message = `Product created: ${item?.trim() || 'New Product'} ${priceDisplay}${newProductMaterials.length > 0 ? ` with ${newProductMaterials.length} ingredient(s)` : ''}`;
           break;
         }
 

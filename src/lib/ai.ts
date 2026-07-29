@@ -17,25 +17,26 @@ function hasGemini() {
 }
 
 async function withFallback<T>(
-  primary: () => Promise<T>,
-  fallback: (() => Promise<T>) | null,
+  bedrockFn: () => Promise<T>,
+  geminiFn: (() => Promise<T>) | null,
   label: string,
 ): Promise<T> {
-  if (hasBedrock()) {
-    try {
-      return await primary();
-    } catch (err) {
-      if (!fallback) throw err;
-      console.warn(`[AI] Bedrock failed for ${label}, falling back to Gemini:`, err);
-      telemetry.error(`Bedrock failed for ${label} — falling back to Gemini`, undefined, {
-        'ai.provider': 'bedrock',
-        'ai.label': label,
-        'error.message': err instanceof Error ? err.message : String(err),
-      });
-    }
+  const provider = (process.env.AI_PROVIDER || (hasGemini() ? 'gemini' : 'bedrock')).toLowerCase();
+  const primary = provider === 'gemini' && geminiFn ? geminiFn : bedrockFn;
+  const secondary = primary === geminiFn ? (hasBedrock() ? bedrockFn : null) : geminiFn;
+
+  try {
+    return await primary();
+  } catch (err) {
+    if (!secondary) throw err;
+    console.warn(`[AI] Primary provider (${provider}) failed for ${label}, trying fallback:`, err);
+    telemetry.error(`Primary AI provider failed for ${label} — trying fallback`, undefined, {
+      'ai.provider': provider,
+      'ai.label': label,
+      'error.message': err instanceof Error ? err.message : String(err),
+    });
+    return await secondary();
   }
-  if (fallback) return fallback();
-  throw new Error(`[AI] No provider configured. Set AWS_ACCESS_KEY_ID or GEMINI_API_KEY in your environment.`);
 }
 
 export async function parseBusinessCommand(input: string, history?: import('./bedrock').BedrockMessage[]) {
