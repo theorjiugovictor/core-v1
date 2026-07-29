@@ -109,6 +109,8 @@ LIST_INVENTORY, LOW_STOCK, UPDATE_PRODUCT, DELETE_PRODUCT, EXPENSE, PROFIT_QUERY
 - "How much I get?" / "wetin my profit?" / "how my business?" = PROFIT_QUERY or CHAT
 - "My X don finish" / "X is out" = STOCK_CHECK for that item
 - Credit sales: "on credit" / "go pay later" / "owe me" → isCredit: true
+- "Emeka paid 5k" / "Fatima don pay 10000" / "debt payment from X" → PAY_DEBT (set "customer": "Emeka", "price": 5000)
+- "Who owes me money?" / "Who dey owe me?" / "Wetin Emeka owe me?" → DEBT_CHECK (set "customer" if specific name mentioned)
 
 ━━ EXPENSE CATEGORIES ━━
 Detect category from description:

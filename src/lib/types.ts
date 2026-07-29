@@ -3,6 +3,8 @@ export type User = {
   name: string;
   email: string;
   businessName: string;
+  businessType?: string; // e.g. "Bakery", "Supermarket", "Boutique", "Restaurant"
+  languagePreference?: 'English' | 'Pidgin';
   avatarUrl?: string;
   whatsappPhone?: string; // e.g. "2348012345678" (no +)
   telegramId?: string;    // Telegram numeric user ID as string

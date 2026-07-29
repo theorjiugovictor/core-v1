@@ -7,6 +7,7 @@ import { materialsService } from './firebase/materials';
 import { productsService } from './firebase/products';
 import { usersService } from './firebase/users';
 import { expensesService } from './firebase/expenses';
+import { debtsService } from './firebase/debts';
 import { revalidatePath, unstable_cache } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { aiLimiter } from '@/lib/ratelimit';
@@ -223,6 +224,17 @@ export async function executeCommandForUser(
               message = `Recorded sale: ${qty}x ${item} @ ₦${finalUnitPrice.toLocaleString()}${discountNote}`;
             }
           }
+
+          if (isCredit) {
+            const customerName = actionData.customer || 'Customer';
+            await debtsService.recordDebt({
+              userId,
+              customerName,
+              amount: totalAmount,
+              notes: `Credit sale of ${qty}x ${item}`,
+            });
+            message += ` 📝 Recorded unpaid debt for ${customerName}: ₦${totalAmount.toLocaleString()}`;
+          }
           break;
         }
 
@@ -434,6 +446,43 @@ export async function executeCommandForUser(
             category: expenseCategory, date: new Date().toISOString()
           });
           message = `Recorded: ₦${price.toLocaleString()} spent on ${item}${expenseCategory !== 'General' ? ` (${expenseCategory})` : ''}.`;
+          break;
+        }
+
+        case 'PAY_DEBT': {
+          const customer = actionData.customer || actionData.item;
+          if (!customer) {
+            message = `Whose debt payment are you recording? e.g. "Emeka paid ₦5,000"`;
+            break;
+          }
+          if (!price || price <= 0) {
+            message = `How much did ${customer} pay? e.g. "${customer} paid ₦5,000"`;
+            break;
+          }
+          const payResult = await debtsService.recordPayment(userId, customer, price);
+          message = payResult.message;
+          break;
+        }
+
+        case 'DEBT_CHECK': {
+          const customer = actionData.customer || actionData.item;
+          if (customer) {
+            const debt = await debtsService.getByCustomer(userId, customer);
+            if (!debt || debt.amountOwed <= 0) {
+              message = `${customer} has no outstanding debt balance.`;
+            } else {
+              message = `${debt.customerName} owes ₦${debt.amountOwed.toLocaleString()} (Original debt: ₦${debt.originalAmount.toLocaleString()}).`;
+            }
+          } else {
+            const unpaid = await debtsService.getUnpaid(userId);
+            if (unpaid.length === 0) {
+              message = `Great news! No customers owe you money right now. All debts are clear. 🎉`;
+            } else {
+              const totalDebt = unpaid.reduce((sum, d) => sum + d.amountOwed, 0);
+              const lines = unpaid.map(d => `• ${d.customerName}: ₦${d.amountOwed.toLocaleString()}`);
+              message = `Outstanding Debt Balance (${unpaid.length} customer(s) - Total ₦${totalDebt.toLocaleString()}):\n${lines.join('\n')}`;
+            }
+          }
           break;
         }
 
