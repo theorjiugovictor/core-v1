@@ -239,15 +239,19 @@ export async function executeCommandForUser(
           const allMaterials = await materialsService.getAll(userId);
           const existingMaterial = allMaterials.find(m => m.name.toLowerCase().trim() === (item || '').toLowerCase().trim());
           if (!existingMaterial) {
+            if (!price || price === 0) {
+              message = `"${item}" is not in your inventory yet. What is the cost price per unit for ${item}? e.g. "Bought ${qty} ${item} at 5,000 cost each"`;
+              break;
+            }
             const newMat = await materialsService.create({
               userId,
               name: item?.trim() || 'New Item',
               quantity: qty,
               unit: 'unit',
-              costPrice: price || 0,
+              costPrice: price,
               createdAt: new Date().toISOString()
             });
-            message = `Added new inventory item: ${newMat.name} (+${qty} in stock${price ? ` @ ₦${price.toLocaleString()}/unit` : ''})`;
+            message = `Added new inventory item: ${newMat.name} (+${qty} in stock @ ₦${price.toLocaleString()}/unit)`;
             break;
           }
           const newQty = existingMaterial.quantity + qty;
