@@ -134,10 +134,23 @@ export async function executeCommandForUser(
             break;
           }
           const products = await productsService.getAll(userId);
-          const product = products.find(p => p.name.toLowerCase() === (item || '').toLowerCase());
           const materials = await materialsService.getAll(userId);
+          const itemLower = (item || '').toLowerCase().trim();
+          const singularItem = itemLower.replace(/es$/, 'e').replace(/s$/, '');
+
+          const findProduct = () => products.find(p => {
+            const name = p.name.toLowerCase().trim();
+            return name === itemLower || name === singularItem || itemLower.startsWith(name) || (singularItem && name.startsWith(singularItem));
+          });
+
+          const findMaterial = () => materials.find(m => {
+            const name = m.name.toLowerCase().trim();
+            return name === itemLower || name === singularItem || itemLower.startsWith(name) || (singularItem && name.startsWith(singularItem));
+          });
+
+          const product = findProduct();
           const qty = quantity || 1;
-          const hasRecipe = product && product.materials && product.materials.length > 0;
+          const hasRecipe = Boolean(product && product.materials && product.materials.length > 0);
 
           // ── Pre-sale stock validation (must happen before any DB write) ──
           if (hasRecipe) {
@@ -154,7 +167,7 @@ export async function executeCommandForUser(
               }
             }
           } else {
-            const directMat = materials.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
+            const directMat = findMaterial();
             if (directMat && directMat.quantity < qty) {
               message = directMat.quantity === 0
                 ? `${directMat.name} is out of stock. Restock before selling.`
@@ -177,7 +190,7 @@ export async function executeCommandForUser(
               unitCost = product.costPrice || 0;
             }
           } else {
-            const directMat = materials.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
+            const directMat = findMaterial();
             if (directMat) unitCost = directMat.costPrice;
           }
 
@@ -193,7 +206,7 @@ export async function executeCommandForUser(
           // ── Record sale ──
           await salesService.create({
             userId,
-            productName: item || 'Unknown Product',
+            productName: product ? product.name : (item || 'Unknown Product'),
             quantity: qty,
             totalAmount,
             costAmount: unitCost * qty,
@@ -211,17 +224,17 @@ export async function executeCommandForUser(
                 });
               }
             }
-            message = `Sold ${qty}x ${item} @ ₦${finalUnitPrice.toLocaleString()} (Ingredients deducted)${discountNote}`;
+            message = `Sold ${qty}x ${product!.name} @ ₦${finalUnitPrice.toLocaleString()} (Ingredients deducted)${discountNote}`;
           } else {
-            const material = materials.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
+            const material = findMaterial();
             if (material) {
               const remaining = material.quantity - qty;
               await materialsService.update(material.id, userId, { quantity: remaining });
               message = remaining === 0
-                ? `Sold ${qty}x ${item}${discountNote}. ${item} is now out of stock — remember to restock.`
-                : `Sold ${qty}x ${item} @ ₦${finalUnitPrice.toLocaleString()}${discountNote} (${remaining} ${material.unit}(s) remaining)`;
+                ? `Sold ${qty}x ${material.name}${discountNote}. ${material.name} is now out of stock — remember to restock.`
+                : `Sold ${qty}x ${material.name} @ ₦${finalUnitPrice.toLocaleString()}${discountNote} (${remaining} ${material.unit}(s) remaining)`;
             } else {
-              message = `Recorded sale: ${qty}x ${item} @ ₦${finalUnitPrice.toLocaleString()}${discountNote}`;
+              message = `Recorded sale: ${qty}x ${product ? product.name : item} @ ₦${finalUnitPrice.toLocaleString()}${discountNote}`;
             }
           }
 
@@ -602,10 +615,14 @@ export async function executeCommandForUser(
     }
 
     finalMessage = processedActions.join('\n');
-    revalidatePath('/dashboard');
-    revalidatePath('/materials');
-    revalidatePath('/sales');
-    revalidatePath('/products');
+    try {
+      revalidatePath('/dashboard');
+      revalidatePath('/materials');
+      revalidatePath('/sales');
+      revalidatePath('/products');
+    } catch {
+      // Non-fatal if called outside Next.js request context (e.g. messaging webhooks/crons)
+    }
 
     return { success: true, message: finalMessage, data: actions };
   } catch (dbError) {
