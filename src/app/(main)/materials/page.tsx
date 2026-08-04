@@ -36,6 +36,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 
 import { getMaterialsAction, createMaterialAction, updateMaterialAction, deleteMaterialAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
@@ -46,6 +48,8 @@ export default function MaterialsPage() {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [isEditOpen, setIsEditOpen] = React.useState(false);
   const [editingMaterial, setEditingMaterial] = React.useState<Material | null>(null);
+  const [deleteTarget, setDeleteTarget] = React.useState<Material | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
   const { toast } = useToast();
 
   React.useEffect(() => {
@@ -53,8 +57,13 @@ export default function MaterialsPage() {
   }, []);
 
   async function loadMaterials() {
-    const data = await getMaterialsAction();
-    setMaterials(data);
+    setIsLoading(true);
+    try {
+      const data = await getMaterialsAction();
+      setMaterials(data);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
@@ -100,7 +109,6 @@ export default function MaterialsPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Are you sure you want to delete this material?")) return;
     try {
       const result = await deleteMaterialAction(id);
       if (result.success) {
@@ -220,32 +228,60 @@ export default function MaterialsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {materials.map((material) => (
-                <TableRow key={material.id}>
-                  <TableCell className="font-medium">{material.name}</TableCell>
-                  <TableCell>{material.quantity} {material.unit}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(material.costPrice)}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => openEditModal(material)}>Edit</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(material.id)}>Delete</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+              {isLoading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell className="text-right"><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
+                    <TableCell><Skeleton className="h-8 w-8 rounded-md" /></TableCell>
+                  </TableRow>
+                ))
+              ) : materials.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="h-32 text-center text-muted-foreground">
+                    No materials yet. Add one above, or just tell CORE what you have from the dashboard.
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                materials.map((material) => (
+                  <TableRow key={material.id}>
+                    <TableCell className="font-medium">{material.name}</TableCell>
+                    <TableCell>{material.quantity} {material.unit}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(material.costPrice)}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button aria-haspopup="true" size="icon" variant="ghost">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => openEditModal(material)}>Edit</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive" onClick={() => setDeleteTarget(material)}>Delete</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>
       </CardContent>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title={`Delete ${deleteTarget?.name}?`}
+        description="This can't be undone. Existing sales and product recipes that reference it won't be affected, but the stock record itself will be gone."
+        onConfirm={() => {
+          if (deleteTarget) handleDelete(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
+      />
     </Card>
   );
 }

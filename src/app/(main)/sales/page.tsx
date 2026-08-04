@@ -44,6 +44,8 @@ import {
 } from "@/components/ui/select";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { getSalesAction, createSaleAction, updateSaleAction, deleteSaleAction, getProductsAction } from '@/lib/actions';
 import type { Sale, Product } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -54,6 +56,8 @@ export default function SalesPage() {
   const [iscreateOpen, setIsCreateOpen] = React.useState(false);
   const [isEditOpen, setIsEditOpen] = React.useState(false);
   const [editingSale, setEditingSale] = React.useState<Sale | null>(null);
+  const [deleteTarget, setDeleteTarget] = React.useState<Sale | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
   const { toast } = useToast();
 
   React.useEffect(() => {
@@ -61,9 +65,14 @@ export default function SalesPage() {
   }, []);
 
   const loadData = async () => {
-    const [salesData, productsData] = await Promise.all([getSalesAction(), getProductsAction()]);
-    setSales(salesData);
-    setProducts(productsData);
+    setIsLoading(true);
+    try {
+      const [salesData, productsData] = await Promise.all([getSalesAction(), getProductsAction()]);
+      setSales(salesData);
+      setProducts(productsData);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Auto-calculate total based on product price for manual entry
@@ -126,7 +135,6 @@ export default function SalesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure? This cannot be undone.")) return;
     const result = await deleteSaleAction(id);
     if (result.success) {
       toast({ title: "Deleted", description: "Sale deleted successfully" });
@@ -271,7 +279,26 @@ export default function SalesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sales.map((sale) => (
+                {isLoading ? (
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                      <TableCell className="text-center"><Skeleton className="h-4 w-8 mx-auto" /></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
+                      <TableCell className="text-center"><Skeleton className="h-5 w-16 mx-auto" /></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto rounded-md" /></TableCell>
+                    </TableRow>
+                  ))
+                ) : sales.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
+                      No sales recorded yet.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  sales.map((sale) => (
                   <TableRow key={sale.id}>
                     <TableCell className="font-medium">{sale.productName}</TableCell>
                     <TableCell className="text-center">{sale.quantity}</TableCell>
@@ -298,19 +325,31 @@ export default function SalesPage() {
                           <DropdownMenuItem onClick={() => openEditDialog(sale)}>
                             <Pencil className="mr-2 h-4 w-4" /> Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDelete(sale.id)} className="text-red-600">
+                          <DropdownMenuItem onClick={() => setDeleteTarget(sale)} className="text-red-600">
                             <Trash2 className="mr-2 h-4 w-4" /> Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                ))}
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Delete this sale?"
+        description="This can't be undone — inventory changes from this sale won't be reversed automatically."
+        onConfirm={() => {
+          if (deleteTarget) handleDelete(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
+      />
     </div>
   );
 }

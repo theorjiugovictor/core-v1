@@ -37,6 +37,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { getExpensesAction, createExpenseAction, deleteExpenseAction } from '@/lib/actions';
 import type { Expense } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -44,6 +46,8 @@ import { useToast } from '@/hooks/use-toast';
 export default function ExpensesPage() {
     const [expenses, setExpenses] = React.useState<Expense[]>([]);
     const [isCreateOpen, setIsCreateOpen] = React.useState(false);
+    const [deleteTarget, setDeleteTarget] = React.useState<Expense | null>(null);
+    const [isLoading, setIsLoading] = React.useState(true);
     const { toast } = useToast();
 
     React.useEffect(() => {
@@ -51,8 +55,13 @@ export default function ExpensesPage() {
     }, []);
 
     const loadData = async () => {
-        const data = await getExpensesAction();
-        setExpenses(data);
+        setIsLoading(true);
+        try {
+            const data = await getExpensesAction();
+            setExpenses(data);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -74,7 +83,6 @@ export default function ExpensesPage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure? This cannot be undone.")) return;
         const result = await deleteExpenseAction(id);
         if (result.success) {
             toast({ title: "Deleted", description: "Expense deleted successfully" });
@@ -169,7 +177,17 @@ export default function ExpensesPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {expenses.length === 0 ? (
+                                {isLoading ? (
+                                    Array.from({ length: 4 }).map((_, i) => (
+                                        <TableRow key={i}>
+                                            <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                                            <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                                            <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
+                                            <TableCell className="text-right"><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
+                                            <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto rounded-md" /></TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : expenses.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                                             No expenses recorded yet.
@@ -196,7 +214,7 @@ export default function ExpensesPage() {
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
                                                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                        <DropdownMenuItem onClick={() => handleDelete(expense.id)} className="text-red-600">
+                                                        <DropdownMenuItem onClick={() => setDeleteTarget(expense)} className="text-red-600">
                                                             <Trash2 className="mr-2 h-4 w-4" /> Delete
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
@@ -210,6 +228,17 @@ export default function ExpensesPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            <ConfirmDialog
+                open={!!deleteTarget}
+                onOpenChange={(open) => !open && setDeleteTarget(null)}
+                title="Delete this expense?"
+                description="This can't be undone."
+                onConfirm={() => {
+                    if (deleteTarget) handleDelete(deleteTarget.id);
+                    setDeleteTarget(null);
+                }}
+            />
         </div>
     );
 }

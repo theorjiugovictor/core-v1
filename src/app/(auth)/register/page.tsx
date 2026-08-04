@@ -82,26 +82,26 @@ export default function RegisterPage() {
   return (
     <div className="flex min-h-screen">
       {/* Left — Brand Panel */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between bg-foreground text-background p-12 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between bg-hero text-hero-foreground p-12 relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(243,75%,45%,0.4),transparent_50%),radial-gradient(circle_at_80%_80%,hsl(270,50%,30%,0.3),transparent_50%)]" />
 
         <div className="relative z-10">
-          <Logo showText size={36} className="[&_span]:text-background" />
+          <Logo showText size={36} className="[&_span]:text-hero-foreground" />
         </div>
 
         <div className="relative z-10 space-y-6">
           <div>
-            <p className="text-sm font-medium text-background/50 uppercase tracking-widest mb-4">Get started</p>
-            <h2 className="text-4xl font-bold leading-tight text-background">
+            <p className="text-sm font-medium text-hero-foreground/50 uppercase tracking-widest mb-4">Get started</p>
+            <h2 className="text-4xl font-bold leading-tight text-hero-foreground">
               Every business<br />deserves to be<br />taken seriously.
             </h2>
-            <p className="mt-4 text-background/60 text-lg leading-relaxed">
+            <p className="mt-4 text-hero-foreground/60 text-lg leading-relaxed">
               No matter how small, no matter where you're starting from.
             </p>
           </div>
 
-          <div className="bg-background/5 border border-background/10 rounded-2xl p-6 space-y-1">
-            <p className="text-background/40 text-xs uppercase tracking-widest mb-3">Free plan includes</p>
+          <div className="bg-hero-foreground/5 border border-hero-foreground/10 rounded-2xl p-6 space-y-1">
+            <p className="text-hero-foreground/40 text-xs uppercase tracking-widest mb-3">Free plan includes</p>
             {[
               'Unlimited sales recording',
               'AI-powered business insights',
@@ -111,21 +111,27 @@ export default function RegisterPage() {
             ].map(feature => (
               <div key={feature} className="flex items-center gap-2.5 py-1">
                 <Check className="w-3.5 h-3.5 text-primary shrink-0" />
-                <span className="text-background/70 text-sm">{feature}</span>
+                <span className="text-hero-foreground/70 text-sm">{feature}</span>
               </div>
             ))}
           </div>
         </div>
 
         <div className="relative z-10">
-          <p className="text-background/30 text-xs">© 2026 CORE · Built for Nigerian Businesses</p>
+          <p className="text-hero-foreground/30 text-xs">© 2026 CORE · Built for Nigerian Businesses</p>
         </div>
       </div>
 
       {/* Right — Form Panel */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-12 bg-background overflow-y-auto">
-        <div className="lg:hidden mb-8">
-          <Logo size={36} />
+        {/* Mobile brand strip — condensed version of the desktop hero panel, so the
+            value prop isn't lost entirely below the lg breakpoint. */}
+        <div className="lg:hidden w-full max-w-sm mb-8">
+          <Logo size={32} />
+          <p className="mt-3 text-sm leading-relaxed">
+            <span className="font-semibold text-foreground">Every business deserves to be taken seriously.</span>{' '}
+            <span className="text-muted-foreground">No matter how small, no matter where you're starting from.</span>
+          </p>
         </div>
 
         <div className="w-full max-w-sm space-y-7">

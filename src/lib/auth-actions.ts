@@ -116,6 +116,66 @@ export async function registerAction(data: {
   }
 }
 
+export async function forgotPasswordAction(email: string) {
+  // Always returns the same generic success shape regardless of whether the
+  // email is registered — this endpoint must not let callers enumerate accounts.
+  const GENERIC_RESULT = { success: true as const };
+
+  try {
+    const headersList = await headers();
+    const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+
+    const { success: withinIpLimit } = await authLimiter.limit(ip);
+    const { success: withinEmailLimit } = await emailAuthLimiter.limit(email.toLowerCase());
+    if (!withinIpLimit || !withinEmailLimit) {
+      telemetry.rateLimitHit(ip, 'auth');
+      // Still return success — don't reveal rate limiting to a potential enumerator either.
+      return GENERIC_RESULT;
+    }
+
+    const result = await usersService.createPasswordResetToken(email);
+    if (result) {
+      const { sendPasswordResetEmail } = await import('./email');
+      await sendPasswordResetEmail(result.user, result.token);
+    }
+
+    return GENERIC_RESULT;
+  } catch (error: any) {
+    console.error('Forgot password error:', error);
+    telemetry.error('Forgot password request failed', undefined, {
+      'event.name': 'auth.forgot_password_failed',
+      'error.message': error?.message ?? 'unknown',
+    });
+    // Still generic — an email-sending failure shouldn't confirm account existence either.
+    return GENERIC_RESULT;
+  }
+}
+
+export async function resetPasswordAction(token: string, newPassword: string) {
+  try {
+    if (!token) {
+      return { success: false, error: 'Missing reset token.' };
+    }
+    if (newPassword.length < 8) {
+      return { success: false, error: 'Password must be at least 8 characters' };
+    }
+
+    const didReset = await usersService.resetPassword(token, newPassword);
+    if (!didReset) {
+      return { success: false, error: 'This reset link is invalid or has expired. Request a new one.' };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Reset password error:', error);
+    telemetry.error('Reset password failed', undefined, {
+      'event.name': 'auth.reset_password_failed',
+      'error.message': error?.message ?? 'unknown',
+    });
+    return { success: false, error: 'Something went wrong. Please try again.' };
+  }
+}
+
 export async function logoutAction() {
   await signOut({ redirect: false });
   redirect('/login');

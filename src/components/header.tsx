@@ -1,5 +1,6 @@
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { UserNav } from './user-nav';
+import { ThemeToggle } from './theme-toggle';
 import { User } from 'next-auth';
 
 interface HeaderProps {
@@ -14,7 +15,8 @@ export function Header({ title, user }: HeaderProps) {
       <div className="flex items-center gap-4">
         <h1 className="font-headline text-xl font-semibold md:text-2xl">{title}</h1>
       </div>
-      <div className="ml-auto flex items-center gap-4">
+      <div className="ml-auto flex items-center gap-2">
+        <ThemeToggle />
         <UserNav user={user} />
       </div>
     </header>

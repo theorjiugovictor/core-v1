@@ -36,6 +36,8 @@ import {
 } from "@/components/ui/select"
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { getProductsAction, createProductAction, deleteProductAction, getMaterialsAction, updateProductAction } from '@/lib/actions';
 import type { Product, Material } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
@@ -47,6 +49,8 @@ export default function ProductsPage() {
   const [allMaterials, setAllMaterials] = React.useState<Material[]>([]);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [editingProduct, setEditingProduct] = React.useState<Product | null>(null);
+  const [deleteTarget, setDeleteTarget] = React.useState<Product | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
   const { toast } = useToast();
 
   // Form State
@@ -59,9 +63,14 @@ export default function ProductsPage() {
   }, []);
 
   async function loadData() {
-    const [pData, mData] = await Promise.all([getProductsAction(), getMaterialsAction()]);
-    setProducts(pData);
-    setAllMaterials(mData);
+    setIsLoading(true);
+    try {
+      const [pData, mData] = await Promise.all([getProductsAction(), getMaterialsAction()]);
+      setProducts(pData);
+      setAllMaterials(mData);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   function addToRecipe() {
@@ -127,7 +136,6 @@ export default function ProductsPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Are you sure you want to delete this product?")) return;
     try {
       await deleteProductAction(id);
       toast({ title: "Success", description: "Product deleted" });
@@ -236,6 +244,29 @@ export default function ProductsPage() {
           </DialogContent>
         </Dialog>
       </div>
+      {isLoading ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i} className="flex flex-col">
+              <CardHeader>
+                <Skeleton className="h-5 w-32 mb-2" />
+                <Skeleton className="h-4 w-24" />
+              </CardHeader>
+              <CardContent className="flex-grow">
+                <Skeleton className="h-4 w-20" />
+              </CardContent>
+              <CardFooter className="pt-4">
+                <Skeleton className="h-4 w-full" />
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      ) : products.length === 0 ? (
+        <div className="col-span-full py-12 flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed rounded-xl">
+          <Package className="h-12 w-12 mb-4 opacity-20" />
+          <p>No products yet. Create one above to start selling.</p>
+        </div>
+      ) : (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {products.map((product) => (
           <Card key={product.id} className="flex flex-col">
@@ -258,7 +289,7 @@ export default function ProductsPage() {
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
                     <DropdownMenuItem onClick={() => openEditDialog(product)}>Edit</DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(product.id)}>Delete</DropdownMenuItem>
+                    <DropdownMenuItem className="text-destructive" onClick={() => setDeleteTarget(product)}>Delete</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -289,6 +320,18 @@ export default function ProductsPage() {
           </Card>
         ))}
       </div>
+      )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title={`Delete ${deleteTarget?.name}?`}
+        description="This can't be undone."
+        onConfirm={() => {
+          if (deleteTarget) handleDelete(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
+      />
     </div>
   );
 }

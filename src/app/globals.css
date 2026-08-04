@@ -51,6 +51,23 @@
   /* Amber/Orange */
   --chart-5: 340 75% 55%;
   /* Pink/Rose */
+
+  /* Hero/brand panel (auth screens) — deliberately theme-invariant, always the dark
+     branded strip regardless of light/dark mode. Same values as light-mode
+     foreground/background so nothing changes visually today. */
+  --hero-background: 222 47% 11%;
+  --hero-foreground: 210 40% 98%;
+
+  /* Sidebar — was referenced throughout ui/sidebar.tsx (bg-sidebar, sidebar-border, etc.)
+     but never defined, so the nav sidebar rendered with no background/border at all. */
+  --sidebar-background: 210 40% 97%;
+  --sidebar-foreground: 222 47% 11%;
+  --sidebar-primary: 243 75% 59%;
+  --sidebar-primary-foreground: 210 40% 98%;
+  --sidebar-accent: 210 40% 93%;
+  --sidebar-accent-foreground: 222 47% 11%;
+  --sidebar-border: 214.3 31.8% 91.4%;
+  --sidebar-ring: 243 75% 59%;
 }
 
 
@@ -94,6 +111,18 @@
   --chart-3: 190 90% 50%;
   --chart-4: 30 80% 65%;
   --chart-5: 340 75% 65%;
+
+  /* --hero-background / --hero-foreground intentionally NOT redefined here — the
+     hero panel stays constant across themes. */
+
+  --sidebar-background: 222 47% 9%;
+  --sidebar-foreground: 210 40% 98%;
+  --sidebar-primary: 243 75% 65%;
+  --sidebar-primary-foreground: 222 47% 11%;
+  --sidebar-accent: 217.2 32.6% 17.5%;
+  --sidebar-accent-foreground: 210 40% 98%;
+  --sidebar-border: 217.2 32.6% 22%;
+  --sidebar-ring: 243 75% 65%;
 }
 
 

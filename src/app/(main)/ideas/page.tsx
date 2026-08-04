@@ -4,12 +4,14 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Rocket, CheckCircle, Clock } from 'lucide-react';
+import { Plus, Trash2, Rocket, CheckCircle, Clock, Lightbulb } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { getIdeasAction, createIdeaAction, deleteIdeaAction, updateIdeaStatusAction } from '@/lib/idea-actions';
 import { Idea } from '@/lib/types';
@@ -20,6 +22,8 @@ export default function IdeasPage() {
     const [newIdeaContent, setNewIdeaContent] = useState('');
     const [newIdeaType, setNewIdeaType] = useState<Idea['type']>('note');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState<Idea | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
 
     useEffect(() => {
@@ -27,8 +31,13 @@ export default function IdeasPage() {
     }, []);
 
     async function loadIdeas() {
-        const data = await getIdeasAction();
-        setIdeas(data);
+        setIsLoading(true);
+        try {
+            const data = await getIdeasAction();
+            setIdeas(data);
+        } finally {
+            setIsLoading(false);
+        }
     }
 
     async function handleCreate(e: React.FormEvent) {
@@ -56,7 +65,6 @@ export default function IdeasPage() {
     }
 
     async function handleDelete(id: string) {
-        if (!confirm("Discard this idea?")) return;
         await deleteIdeaAction(id);
         loadIdeas();
     }
@@ -149,6 +157,23 @@ export default function IdeasPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {isLoading ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <Card key={i}>
+                      <CardHeader className="pb-2">
+                        <Skeleton className="h-5 w-20" />
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-2/3" />
+                      </CardContent>
+                      <CardFooter className="pt-2 border-t bg-muted/20 p-3">
+                        <Skeleton className="h-4 w-16" />
+                      </CardFooter>
+                    </Card>
+                  ))
+                ) : (
+                <>
                 {ideas.map((idea) => (
                     <Card key={idea.id} className="relative group hover:shadow-md transition-shadow">
                         <CardHeader className="pb-2">
@@ -158,7 +183,7 @@ export default function IdeasPage() {
                                     {idea.type.toUpperCase()}
                                 </Badge>
                                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDelete(idea.id)}>
+                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setDeleteTarget(idea)}>
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
                                 </div>
@@ -190,9 +215,21 @@ export default function IdeasPage() {
                         <p>No ideas yet. Start thinking big!</p>
                     </div>
                 )}
+                </>
+                )}
             </div>
+
+            <ConfirmDialog
+                open={!!deleteTarget}
+                onOpenChange={(open) => !open && setDeleteTarget(null)}
+                title="Discard this idea?"
+                description="This can't be undone."
+                confirmLabel="Discard"
+                onConfirm={() => {
+                    if (deleteTarget) handleDelete(deleteTarget.id);
+                    setDeleteTarget(null);
+                }}
+            />
         </div>
     );
 }
-
-import { Lightbulb } from 'lucide-react';

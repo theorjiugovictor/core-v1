@@ -52,21 +52,21 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen">
       {/* Left — Brand Panel */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between bg-foreground text-background p-12 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between bg-hero text-hero-foreground p-12 relative overflow-hidden">
         {/* Background texture */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(243,75%,45%,0.4),transparent_50%),radial-gradient(circle_at_80%_80%,hsl(270,50%,30%,0.3),transparent_50%)]" />
 
         <div className="relative z-10">
-          <Logo showText size={36} className="[&_span]:text-background" />
+          <Logo showText size={36} className="[&_span]:text-hero-foreground" />
         </div>
 
         <div className="relative z-10 space-y-8">
           <div>
-            <p className="text-sm font-medium text-background/50 uppercase tracking-widest mb-4">Why CORE?</p>
-            <h2 className="text-4xl font-bold leading-tight text-background">
+            <p className="text-sm font-medium text-hero-foreground/50 uppercase tracking-widest mb-4">Why CORE?</p>
+            <h2 className="text-4xl font-bold leading-tight text-hero-foreground">
               You Sell.<br />We Handle<br />The Rest.
             </h2>
-            <p className="mt-4 text-background/60 text-lg leading-relaxed">
+            <p className="mt-4 text-hero-foreground/60 text-lg leading-relaxed">
               The business accountability partner built for Nigerian SMEs.
             </p>
           </div>
@@ -78,25 +78,30 @@ export default function LoginPage() {
               { icon: Boxes, text: 'Auto-inventory deduction when you sell' },
             ].map(({ icon: Icon, text }) => (
               <div key={text} className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-background/10 flex items-center justify-center shrink-0">
-                  <Icon className="w-4 h-4 text-background/80" />
+                <div className="w-8 h-8 rounded-lg bg-hero-foreground/10 flex items-center justify-center shrink-0">
+                  <Icon className="w-4 h-4 text-hero-foreground/80" />
                 </div>
-                <span className="text-background/70 text-sm">{text}</span>
+                <span className="text-hero-foreground/70 text-sm">{text}</span>
               </div>
             ))}
           </div>
         </div>
 
         <div className="relative z-10">
-          <p className="text-background/30 text-xs">© 2026 CORE · Built for Nigerian Businesses</p>
+          <p className="text-hero-foreground/30 text-xs">© 2026 CORE · Built for Nigerian Businesses</p>
         </div>
       </div>
 
       {/* Right — Form Panel */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-12 bg-background">
-        {/* Mobile logo */}
-        <div className="lg:hidden mb-8">
-          <Logo size={36} />
+        {/* Mobile brand strip — condensed version of the desktop hero panel, so the
+            value prop isn't lost entirely below the lg breakpoint. */}
+        <div className="lg:hidden w-full max-w-sm mb-8">
+          <Logo size={32} />
+          <p className="mt-3 text-sm leading-relaxed">
+            <span className="font-semibold text-foreground">You Sell. We Handle The Rest.</span>{' '}
+            <span className="text-muted-foreground">The business accountability partner built for Nigerian SMEs.</span>
+          </p>
         </div>
 
         <div className="w-full max-w-sm space-y-8">

@@ -131,6 +131,37 @@ export async function sendLowStockAlert(user: {
   });
 }
 
+// ─── Password Reset ────────────────────────────────────────────────────────────
+
+export async function sendPasswordResetEmail(user: {
+  email: string;
+  name: string;
+}, resetToken: string) {
+  const resetUrl = `${APP_URL}/reset-password?token=${resetToken}`;
+
+  await getResend().emails.send({
+    from: FROM,
+    to: user.email,
+    subject: 'Reset your CORE password',
+    html: emailWrapper(`
+      <h2 style="margin:0 0 8px;font-size:22px;color:#111;">Reset your password</h2>
+      <p style="margin:0 0 24px;color:#555;font-size:15px;">Hi ${user.name}, we got a request to reset your CORE password.</p>
+
+      <p style="color:#374151;font-size:15px;line-height:1.6;">
+        Click below to choose a new one. This link expires in 1 hour.
+      </p>
+
+      <a href="${resetUrl}" style="display:inline-block;margin-top:20px;padding:14px 28px;background:#000;color:#fff;border-radius:100px;text-decoration:none;font-size:15px;font-weight:600;">
+        Reset Password →
+      </a>
+
+      <p style="margin-top:28px;color:#9ca3af;font-size:13px;line-height:1.6;">
+        If you didn't request this, you can safely ignore this email — your password won't change.
+      </p>
+    `),
+  });
+}
+
 // ─── Shared helpers ────────────────────────────────────────────────────────────
 
 function statCard(label: string, value: string, sub: string) {
