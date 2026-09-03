@@ -4,10 +4,9 @@ import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 
-// Archivo is used strictly for headings at weights 600 and 800 per brand guidelines
 const archivo = Archivo({
   subsets: ['latin'],
-  weight: ['600', '800'],
+  weight: ['400', '500', '600', '700', '800'],
   variable: '--font-archivo',
 });
 
@@ -24,7 +23,6 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://usecoreapp.com'),
   title: 'CORE | You sell. We handle the rest.',
   description:
     'Infrastructure for the smallest businesses on earth. Speak a sale, and CORE handles the accounting, the inventory and the maths.',

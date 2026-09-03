@@ -44,49 +44,49 @@ export default function HelpPage() {
                             </CardContent>
                         </Card>
 
-                        <Card className="border-l-4 border-l-purple-500">
+                        <Card className="border-l-4 border-l-primary">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-lg flex items-center gap-2">
-                                    <Package className="h-5 w-5 text-purple-500" /> Products & Recipes
+                                    <Package className="h-5 w-5 text-primary" /> Products & Recipes
                                 </CardTitle>
                                 <CardDescription>Create items and define what they are made of.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-3 pt-2">
-                                <div className="bg-muted p-2 rounded-md text-sm font-mono">"Create Product Jollof Rice at 1500"</div>
+                                <div className="bg-muted p-2 rounded-md text-sm font-mono">&quot;Create Product Jollof Rice at 1500&quot;</div>
                                 <div className="bg-muted p-2 rounded-md text-sm font-mono">
-                                    "Create Meatpie at 500 made of 0.2kg flour and 1 egg"
+                                    &quot;Create Meatpie at 500 made of 0.2kg flour and 1 egg&quot;
                                 </div>
                                 <p className="text-xs text-muted-foreground">
-                                    <span className="font-semibold text-primary">Magic:</span> If you mention ingredients ("made of..."), CORE automatically links them so stock is deducted when you sell!
+                                    <span className="font-semibold text-primary">Magic:</span> If you mention ingredients (&quot;made of...&quot;), CORE automatically links them so stock is deducted when you sell!
                                 </p>
                             </CardContent>
                         </Card>
 
-                        <Card className="border-l-4 border-l-blue-500">
+                        <Card className="border-l-4 border-l-primary">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-lg flex items-center gap-2">
-                                    <Calculator className="h-5 w-5 text-blue-500" /> Stock & Expenses
+                                    <Calculator className="h-5 w-5 text-primary" /> Stock & Expenses
                                 </CardTitle>
                                 <CardDescription>Manage your inventory and costs.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-3 pt-2">
-                                <div className="bg-muted p-2 rounded-md text-sm font-mono">"Add 50 bags of sugar"</div>
-                                <div className="bg-muted p-2 rounded-md text-sm font-mono">"How many bags of rice do I have?"</div>
-                                <div className="bg-muted p-2 rounded-md text-sm font-mono">"Paid 5000 for transport"</div>
+                                <div className="bg-muted p-2 rounded-md text-sm font-mono">&quot;Add 50 bags of sugar&quot;</div>
+                                <div className="bg-muted p-2 rounded-md text-sm font-mono">&quot;How many bags of rice do I have?&quot;</div>
+                                <div className="bg-muted p-2 rounded-md text-sm font-mono">&quot;Paid 5000 for transport&quot;</div>
                             </CardContent>
                         </Card>
 
-                        <Card className="border-l-4 border-l-green-500">
+                        <Card className="border-l-4 border-l-primary">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-lg flex items-center gap-2">
-                                    <MessageSquare className="h-5 w-5 text-green-500" /> Chat & Insights
+                                    <MessageSquare className="h-5 w-5 text-primary" /> Chat & Insights
                                 </CardTitle>
                                 <CardDescription>Ask questions about your business.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-3 pt-2">
-                                <div className="bg-muted p-2 rounded-md text-sm font-mono">"How is my business doing today?"</div>
-                                <div className="bg-muted p-2 rounded-md text-sm font-mono">"What is my best selling product?"</div>
-                                <div className="bg-muted p-2 rounded-md text-sm font-mono">"Give me advice on how to grow"</div>
+                                <div className="bg-muted p-2 rounded-md text-sm font-mono">&quot;How is my business doing today?&quot;</div>
+                                <div className="bg-muted p-2 rounded-md text-sm font-mono">&quot;What is my best selling product?&quot;</div>
+                                <div className="bg-muted p-2 rounded-md text-sm font-mono">&quot;Give me advice on how to grow&quot;</div>
                             </CardContent>
                         </Card>
                     </div>

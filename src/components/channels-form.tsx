@@ -68,7 +68,7 @@ export function ChannelsForm({ user }: ChannelsFormProps) {
   }
 
   return (
-    <Card className="max-w-2xl mx-auto border-none shadow-lg bg-card/50 backdrop-blur-md">
+    <Card className="max-w-2xl mx-auto border-none shadow-lg bg-card">
       <CardHeader>
         <CardTitle>Connected Channels</CardTitle>
         <CardDescription>

@@ -9,42 +9,28 @@ import { cn } from '@/lib/utils';
  * <Logo tone="inverse" />           white on indigo/ink
  * <Logo dot="accent" size="lg" />   cowrie stop, for the footer and app icon
  */
-export interface LogoProps {
-  size?: 'sm' | 'md' | 'lg' | number;
-  tone?: 'brand' | 'inverse' | 'ink';
-  dot?: 'match' | 'accent';
-  showText?: boolean;
-  className?: string;
-}
-
 export function Logo({
   size = 'md',
   tone = 'brand',
   dot = 'match',
-  showText = true,
   className,
-}: LogoProps) {
-  // Normalize numeric sizes for backwards compatibility
-  const normalizedSize: 'sm' | 'md' | 'lg' =
-    typeof size === 'number'
-      ? size <= 20
-        ? 'sm'
-        : size <= 44
-        ? 'md'
-        : 'lg'
-      : size;
-
+}: {
+  size?: 'sm' | 'md' | 'lg';
+  tone?: 'brand' | 'inverse' | 'ink';
+  dot?: 'match' | 'accent';
+  className?: string;
+}) {
   const type = {
     sm: 'text-[14px]',
     md: 'text-[24px]',
     lg: 'text-[56px]',
-  }[normalizedSize];
+  }[size];
 
   const square = {
     sm: 'h-[3px] w-[3px]',
     md: 'h-[5px] w-[5px]',
     lg: 'h-[12px] w-[12px]',
-  }[normalizedSize];
+  }[size];
 
   const color = {
     brand: 'text-primary',
@@ -54,11 +40,9 @@ export function Logo({
 
   return (
     <span className={cn('inline-flex items-end gap-px', color, className)}>
-      {showText && (
-        <span className={cn('font-heading font-extrabold leading-[0.82] tracking-[-0.05em]', type)}>
-          CORE
-        </span>
-      )}
+      <span className={cn('font-heading font-extrabold leading-[0.82] tracking-[-0.05em]', type)}>
+        CORE
+      </span>
       <span
         aria-hidden
         className={cn(square, 'mb-px', dot === 'accent' ? 'bg-accent' : 'bg-current')}

@@ -54,10 +54,10 @@ export default function LoginPage() {
       {/* Left — Brand Panel */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between bg-foreground text-background p-12 relative overflow-hidden">
         {/* Background texture */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(243,75%,45%,0.4),transparent_50%),radial-gradient(circle_at_80%_80%,hsl(270,50%,30%,0.3),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(231,56%,27%,0.4),transparent_50%),radial-gradient(circle_at_80%_80%,hsl(230,65%,54%,0.3),transparent_50%)]" />
 
         <div className="relative z-10">
-          <Logo showText size={36} className="[&_span]:text-background" />
+          <Logo size="lg" tone="inverse" />
         </div>
 
         <div className="relative z-10 space-y-8">
@@ -96,7 +96,7 @@ export default function LoginPage() {
       <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-12 bg-background">
         {/* Mobile logo */}
         <div className="lg:hidden mb-8">
-          <Logo size={36} />
+          <Logo size="md" />
         </div>
 
         <div className="w-full max-w-sm space-y-8">

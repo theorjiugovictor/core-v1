@@ -11,7 +11,7 @@ import { DailySummary } from "@/components/daily-summary";
 
 function DashboardInsightsSkeleton() {
     return (
-        <Card className="h-full border-none shadow-lg bg-gradient-to-br from-card to-secondary/30 backdrop-blur-md">
+        <Card className="h-full border-none shadow-lg bg-gradient-to-br from-card to-secondary/30">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <div className="space-y-1">
                     <CardTitle className="flex items-center gap-2 font-heading text-lg">
