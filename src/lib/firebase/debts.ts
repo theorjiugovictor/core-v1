@@ -123,7 +123,7 @@ export const debtsService = {
       return {
         success: true,
         message: remaining === 0
-          ? `Recorded ₦${amountPaid.toLocaleString()} payment from ${existing.customerName}. Debt is fully paid off! 🎉`
+          ? `Recorded ₦${amountPaid.toLocaleString()} payment from ${existing.customerName}. Debt is fully paid off.`
           : `Recorded ₦${amountPaid.toLocaleString()} payment from ${existing.customerName}. Remaining balance: ₦${remaining.toLocaleString()}.`,
         remaining,
       };

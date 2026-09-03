@@ -41,7 +41,7 @@ async function saveHistory(userId: string, history: BedrockMessage[]) {
 }
 
 const UNLINKED_MESSAGE =
-  "👋 Hi! I don't recognize this number yet.\n\nTo use CORE on WhatsApp:\n1. Log in at usecoreapp.com\n2. Go to Settings → Connected Channels\n3. Enter this WhatsApp number\n\nThen come back and try again!";
+  "Hi! I don't recognize this number yet.\n\nTo use CORE on WhatsApp:\n1. Log in at usecoreapp.com\n2. Go to Settings → Connected Channels\n3. Enter this WhatsApp number\n\nThen come back and try again!";
 
 // ─── Webhook verification (Meta sends a GET to confirm the endpoint) ──────────
 export async function GET(request: Request) {
@@ -93,8 +93,8 @@ export async function POST(request: Request) {
     const result = await executeCommandForUser(user.id, text, history);
 
     const reply = result.success
-      ? result.message || '✅ Done!'
-      : `❌ ${result.error || 'Something went wrong. Please try again.'}`;
+      ? result.message || 'Done.'
+      : (result.error || 'Something went wrong. Please try again.');
 
     if (!result.success) {
       telemetry.error('WhatsApp AI command failed', user.id, {

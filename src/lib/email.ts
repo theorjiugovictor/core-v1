@@ -30,7 +30,7 @@ export async function sendDailyNudge(user: {
     to: user.email,
     subject: `Good morning, ${user.name}! Ready to log today's sales?`,
     html: emailWrapper(`
-      <h2 style="margin:0 0 8px;font-size:22px;color:#111;">Good morning, ${user.name} 👋</h2>
+      <h2 style="margin:0 0 8px;font-size:22px;color:#111;">Good morning, ${user.name}</h2>
       <p style="margin:0 0 20px;color:#555;font-size:15px;">${user.businessName}</p>
 
       <div style="background:#f9fafb;border-radius:10px;padding:20px;margin-bottom:24px;">
@@ -108,7 +108,7 @@ export async function sendLowStockAlert(user: {
   await getResend().emails.send({
     from: FROM,
     to: user.email,
-    subject: `⚠️ Low stock alert — ${lowItems.length} item${lowItems.length !== 1 ? 's' : ''} running low`,
+    subject: `Low stock alert — ${lowItems.length} item${lowItems.length !== 1 ? 's' : ''} running low`,
     html: emailWrapper(`
       <h2 style="margin:0 0 8px;font-size:22px;color:#111;">Low Stock Alert</h2>
       <p style="margin:0 0 24px;color:#555;font-size:15px;">${user.businessName} · ${lowItems.length} item${lowItems.length !== 1 ? 's' : ''} need restocking</p>

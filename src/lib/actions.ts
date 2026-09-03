@@ -246,7 +246,7 @@ export async function executeCommandForUser(
               amount: totalAmount,
               notes: `Credit sale of ${qty}x ${item}`,
             });
-            message += ` 📝 Recorded unpaid debt for ${customerName}: ₦${totalAmount.toLocaleString()}`;
+            message += ` Recorded unpaid debt for ${customerName}: ₦${totalAmount.toLocaleString()}`;
           }
           break;
         }
@@ -489,7 +489,7 @@ export async function executeCommandForUser(
           } else {
             const unpaid = await debtsService.getUnpaid(userId);
             if (unpaid.length === 0) {
-              message = `Great news! No customers owe you money right now. All debts are clear. 🎉`;
+              message = `Great news! No customers owe you money right now. All debts are clear.`;
             } else {
               const totalDebt = unpaid.reduce((sum, d) => sum + d.amountOwed, 0);
               const lines = unpaid.map(d => `• ${d.customerName}: ₦${d.amountOwed.toLocaleString()}`);
@@ -527,7 +527,7 @@ export async function executeCommandForUser(
           if (sales.length === 0 && expenses.length === 0) {
             message = `No sales or expenses recorded ${label.toLowerCase()} yet. Start by saying something like "Sold 5 bags of rice at ₦2,000 each".`;
           } else {
-            const netLabel = netProfit >= 0 ? `✅ ₦${netProfit.toLocaleString()} profit` : `⚠️ ₦${Math.abs(netProfit).toLocaleString()} loss`;
+            const netLabel = netProfit >= 0 ? `Net Profit: ₦${netProfit.toLocaleString()}` : `Net Loss: ₦${Math.abs(netProfit).toLocaleString()}`;
             message = `${label} Summary\n• Revenue: ₦${revenue.toLocaleString()}\n• Cost of Goods: ₦${cogs.toLocaleString()}\n• Expenses: ₦${expenseTotal.toLocaleString()}\n• ${netLabel}`;
           }
           break;

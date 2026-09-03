@@ -160,7 +160,7 @@ function TypingIndicator() {
   );
 }
 
-const ONBOARDING_MESSAGE = `Welcome to CORE! 👋
+const ONBOARDING_MESSAGE = `Welcome to CORE!
 
 Before we start tracking, do you already have stock or products in your business?
 

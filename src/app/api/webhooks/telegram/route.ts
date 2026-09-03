@@ -42,7 +42,7 @@ async function saveHistory(userId: string, history: BedrockMessage[]) {
 }
 
 const UNLINKED_MESSAGE =
-  "👋 Hi! I don't recognize your Telegram account yet.\n\nTo use CORE on Telegram:\n1. Log in at usecoreapp.com\n2. Go to Settings → Connected Channels\n3. Enter your Telegram ID: {telegramId}\n\nThen come back and try again!";
+  "Hi! I don't recognize your Telegram account yet.\n\nTo use CORE on Telegram:\n1. Log in at usecoreapp.com\n2. Go to Settings → Connected Channels\n3. Enter your Telegram ID: {telegramId}\n\nThen come back and try again!";
 
 const SLASH_COMMANDS: Record<string, string> = {
   '/sales':    'show me my sales for today',
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     // /start — show onboarding (no auth needed)
     if (!text || text === '/start') {
       await sendTelegramMessage(chatId,
-        `👋 Welcome to CORE!\n\nYour Telegram ID is: <b>${telegramId}</b>\n\nTo get started:\n1. Log in at usecoreapp.com\n2. Go to Settings → Connected Channels\n3. Enter your Telegram ID above\n\nThen come back and talk to me — record sales, check stock, ask about your business, anything.`,
+        `Welcome to CORE!\n\nYour Telegram ID is: <b>${telegramId}</b>\n\nTo get started:\n1. Log in at usecoreapp.com\n2. Go to Settings → Connected Channels\n3. Enter your Telegram ID above\n\nThen come back and talk to me — record sales, check stock, ask about your business, anything.`,
         { parse_mode: 'HTML' }
       );
       return NextResponse.json({ ok: true });
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
     // /help — static guide (no auth needed)
     if (text === '/help') {
       await sendTelegramMessage(chatId,
-        `📋 <b>CORE Assistant</b>\n\nJust talk to me naturally:\n\n` +
+        `<b>CORE Assistant</b>\n\nJust talk to me naturally:\n\n` +
         `<b>Record transactions</b>\n• "Sold 5 bags of rice at ₦2000 each"\n• "Add 10 tins of tomato at ₦500"\n• "Spent ₦3000 on transport"\n\n` +
         `<b>Check your business</b>\n• "How much did I make today?"\n• "What's my profit this week?"\n• "Which items are running low?"\n• "How many bags of flour do I have?"\n\n` +
         `<b>Quick shortcuts</b>\n/sales /stock /profit /lowstock`,
@@ -108,8 +108,8 @@ export async function POST(request: Request) {
     const result = await executeCommandForUser(user.id, input, history);
 
     const reply = result.success
-      ? result.message || '✅ Done!'
-      : `❌ ${result.error || 'Something went wrong. Please try again.'}`;
+      ? result.message || 'Done.'
+      : (result.error || 'Something went wrong. Please try again.');
 
     if (!result.success) {
       telemetry.error('Telegram AI command failed', user.id, {
