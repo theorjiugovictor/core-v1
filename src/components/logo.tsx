@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 /**
  * CORE wordmark — "Full stop" direction.
  * The square period is the brand. It is always square, always solid,
- * always sits on the baseline, and is never rotated or rounded.
+ * sits exactly at the end of CORE on the font baseline (never under or detached).
  *
  * <Logo />                          indigo on light
  * <Logo tone="inverse" />           white on indigo/ink
@@ -35,15 +35,15 @@ export function Logo({
       : size;
 
   const type = {
-    sm: 'text-[14px]',
+    sm: 'text-[15px]',
     md: 'text-[24px]',
-    lg: 'text-[56px]',
+    lg: 'text-[52px]',
   }[normalizedSize];
 
   const square = {
     sm: 'h-[3px] w-[3px]',
-    md: 'h-[5px] w-[5px]',
-    lg: 'h-[12px] w-[12px]',
+    md: 'h-[4.5px] w-[4.5px]',
+    lg: 'h-[9px] w-[9px]',
   }[normalizedSize];
 
   const color = {
@@ -53,15 +53,22 @@ export function Logo({
   }[tone];
 
   return (
-    <span className={cn('inline-flex items-end gap-px', color, className)}>
-      {showText && (
-        <span className={cn('font-heading font-extrabold leading-[0.82] tracking-[-0.05em]', type)}>
-          CORE
-        </span>
+    <span
+      className={cn(
+        'inline-flex items-baseline font-heading font-extrabold tracking-[-0.05em] leading-none select-none',
+        type,
+        color,
+        className
       )}
+    >
+      {showText && <span>CORE</span>}
       <span
         aria-hidden
-        className={cn(square, 'mb-px', dot === 'accent' ? 'bg-accent' : 'bg-current')}
+        className={cn(
+          square,
+          'inline-block ml-0.5 self-baseline translate-y-[-0.08em]',
+          dot === 'accent' ? 'bg-accent' : 'bg-current'
+        )}
       />
       <span className="sr-only">CORE</span>
     </span>
