@@ -1,0 +1,21 @@
+CORE Master Product Plan
+Mission: Infrastructure for the Smallest Businesses on Earth
+
+PHASE 1: LOWEST-HANGING FRUIT (Immediate / 1-2 Weeks)
+1. Frictionless Onboarding: Only require email + business name. AI infers business type & pre-populates starter inventory.
+2. Generous Free Tier: Unlimited sales/inventory tracking via lightweight Gemini (costs < ₦5/100 sales). Cap open-ended advisory chat at 10-15 prompts/day.
+3. Fast-Path Regex & Catalog Matcher: Local fuzzy matching against user's top SKUs (<50ms latency, zero token cost for repeat sales).
+4. Compound Split Transactions: Parse complex sentences into 4 ledgers at once (Sale + Transfer Cash + Customer Debt + Expense).
+
+PHASE 2: HIGH IMPACT / MEDIUM EFFORT (3-5 Weeks)
+5. Inverse Accounting: Evening closing count ("Started with 40 crates, 6 left") -> auto-calculates 34 sold and audits against transfers & cash.
+6. Stateful Customer Debt Graph: Persistent customer tab across days (track debts, returns, partial payments, and balances).
+7. Voice Memo & Audio Ingestion: Voice notes via WhatsApp & web mic for hands-free logging while packing goods.
+
+PHASE 3: DEEP TECHNICAL INFRASTRUCTURE (6-10 Weeks)
+8. Bank Alert Ingestion: Capture instant bank transfers (Moniepoint, OPay, PalmPay) from SMS/push and auto-match to open sales.
+9. Offline-First Market Architecture: Local IndexedDB/SQLite on-device caching so the app never hangs in congested physical markets.
+
+PHASE 4: DEFENSIBLE ENTERPRISE MOATS (3-6 Months)
+10. Contextual Supply Chain Marketplace: Replace intrusive ads with wholesale restock alerts ("Flour low -> Order from Trade Fair distributor"). Monetize via 1-2% take-rate.
+11. Verifiable Financial Passport: 6 months of ledger data creates an audited credit score for uncollateralized working capital loans.
