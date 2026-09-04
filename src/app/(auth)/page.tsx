@@ -47,7 +47,7 @@ export default function LandingPage() {
 
           {/* Subtitle with Generous Line Height */}
           <p className="mt-8 max-w-2xl text-muted-foreground text-lg sm:text-xl md:text-2xl leading-relaxed font-normal">
-            Type naturally via WhatsApp, Telegram, or in-app — or drop a quick voice note. CORE runs the double-entry accounting, stock deduction, and profit math in real time.
+            Type naturally via WhatsApp, Telegram, or web — or drop a quick voice note. CORE runs the double-entry accounting, stock deduction, and profit math in real time.
           </p>
 
           {/* The Single Primary Call to Action in Hero */}
@@ -58,7 +58,7 @@ export default function LandingPage() {
               </Button>
             </EarlyAccessModal>
             <p className="text-xs font-mono text-muted-foreground/70 tracking-wide mt-1">
-              Zero accounting knowledge required · WhatsApp, Telegram & in-app · Voice optional
+              Zero accounting knowledge required · WhatsApp, Telegram, Web & Voice
             </p>
           </div>
 
@@ -106,11 +106,11 @@ export default function LandingPage() {
                   Type or Speak Naturally
                 </h3>
                 <p className="text-muted-foreground text-base leading-relaxed">
-                  Send a quick WhatsApp text, Telegram message, or type shorthand in-app. Or if your hands are full, drop a 5-second voice note in English or Pidgin.
+                  Send a quick WhatsApp text, Telegram message, or type shorthand on the web. Or if your hands are full, drop a 5-second voice note in English or Pidgin.
                 </p>
               </div>
               <div className="pt-6 border-t border-border/70 text-xs font-mono text-primary font-medium">
-                WhatsApp, Telegram & In-App · Voice Optional →
+                WhatsApp, Telegram, Web & Voice →
               </div>
             </div>
 
