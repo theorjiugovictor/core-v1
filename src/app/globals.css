@@ -102,3 +102,29 @@
 * { @apply border-border; }
 
 body { @apply bg-background text-foreground antialiased; }
+
+@keyframes float-slow-1 {
+  0%, 100% {
+    transform: translate(-50%, -8%) scale(1);
+  }
+  50% {
+    transform: translate(-46%, -4%) scale(1.08);
+  }
+}
+
+@keyframes float-slow-2 {
+  0%, 100% {
+    transform: translate(-50%, 2%) scale(1);
+  }
+  50% {
+    transform: translate(-54%, -6%) scale(1.06);
+  }
+}
+
+.animate-glow-1 {
+  animation: float-slow-1 18s ease-in-out infinite;
+}
+
+.animate-glow-2 {
+  animation: float-slow-2 24s ease-in-out infinite;
+}

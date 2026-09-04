@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Check, Loader2, Sparkles } from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
 
 export function EarlyAccessModal({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -69,8 +69,8 @@ export function EarlyAccessModal({ children }: { children: React.ReactNode }) {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 py-2">
             <DialogHeader>
-              <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full w-fit mb-2">
-                <Sparkles className="w-3.5 h-3.5" /> Private Beta
+              <div className="inline-flex items-center text-xs font-mono text-primary bg-primary/10 px-2.5 py-0.5 rounded-full w-fit mb-2">
+                Private Beta · Priority Invite
               </div>
               <DialogTitle className="text-2xl font-heading font-extrabold text-primary">
                 Request Early Access
