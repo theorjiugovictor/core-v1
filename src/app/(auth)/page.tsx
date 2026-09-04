@@ -83,69 +83,128 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Section 3: The 3 Core Pillars with Generous Breathing Room */}
+        {/* Section 3: Bento Grid Layout with Live Product-First UI Snippets */}
         <section className="py-24 sm:py-36 px-6 sm:px-10 lg:px-16 max-w-6xl mx-auto">
           <div className="text-center max-w-3xl mx-auto mb-20">
             <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-3">
-              How It Works
+              How CORE Works
             </div>
             <h2 className="font-display-2 text-3xl sm:text-4xl md:text-5xl text-primary tracking-tight">
-              Institutional precision. <br />
+              Institutional precision<span className="brand-dot text-accent ml-1" /> <br />
               Zero accounting effort.
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-12">
-            {/* Pillar 1 */}
-            <div className="p-8 sm:p-10 rounded-3xl border border-border bg-card shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+            {/* Bento Card 1: Natural AI Messaging */}
+            <div className="p-6 sm:p-8 rounded-[0.625rem] border border-border bg-card shadow-sm hover:shadow-lg transition-all flex flex-col justify-between space-y-6">
               <div className="space-y-4">
-                <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-mono font-bold text-sm">
-                  01
+                <div className="flex items-center justify-between">
+                  <div className="w-10 h-10 rounded-[0.625rem] bg-primary/10 text-primary flex items-center justify-center font-mono font-bold text-sm">
+                    01
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full bg-secondary text-foreground text-[10px] font-mono font-semibold uppercase tracking-wide border border-border">
+                    Omnichannel AI
+                  </span>
                 </div>
                 <h3 className="font-display-2 text-2xl text-primary font-bold">
-                  Type or Speak Naturally
+                  Natural Omnichannel Entry
                 </h3>
-                <p className="text-muted-foreground text-base leading-relaxed">
-                  Send a quick WhatsApp text, Telegram message, or type shorthand on the web. Or if your hands are full, drop a 5-second voice note in English or Pidgin.
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  Send WhatsApp notes, Telegram texts, counter shorthand, or 5-second voice memos. AI parses items, prices, and credit balances instantly.
                 </p>
               </div>
-              <div className="pt-6 border-t border-border/70 text-xs font-mono text-primary font-medium">
-                WhatsApp, Telegram, Web & Voice →
+
+              {/* Interactive Product Snippet */}
+              <div className="p-4 rounded-[0.625rem] bg-background border border-border/80 space-y-2 text-xs font-mono">
+                <div className="flex items-center justify-between text-muted-foreground text-[11px]">
+                  <span>WhatsApp • 10:42 AM</span>
+                  <span className="text-success font-bold">✓ Parsed 28ms</span>
+                </div>
+                <p className="text-foreground font-sans font-medium text-xs bg-card p-2.5 rounded-[0.625rem] border border-border">
+                  "Sold 5 cartons of Indomie @ 9k to Chief Okoye"
+                </p>
+              </div>
+
+              <div className="pt-4 border-t border-border/70 text-xs font-mono text-primary font-medium">
+                WhatsApp • Telegram • Web • Voice →
               </div>
             </div>
 
-            {/* Pillar 2 */}
-            <div className="p-8 sm:p-10 rounded-3xl border border-border bg-card shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between space-y-8">
+            {/* Bento Card 2: FIFO Inventory & Net Profit */}
+            <div className="p-6 sm:p-8 rounded-[0.625rem] border border-border bg-card shadow-sm hover:shadow-lg transition-all flex flex-col justify-between space-y-6">
               <div className="space-y-4">
-                <div className="w-12 h-12 rounded-2xl bg-success/10 text-success flex items-center justify-center font-mono font-bold text-sm">
-                  02
+                <div className="flex items-center justify-between">
+                  <div className="w-10 h-10 rounded-[0.625rem] bg-success/10 text-success flex items-center justify-center font-mono font-bold text-sm">
+                    02
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full bg-success/10 text-success text-[10px] font-mono font-bold uppercase tracking-wide border border-success/30">
+                    FIFO Batch Costing
+                  </span>
                 </div>
                 <h3 className="font-display-2 text-2xl text-primary font-bold">
-                  True Net Profit
+                  True Real-Time Net Profit
                 </h3>
-                <p className="text-muted-foreground text-base leading-relaxed">
-                  Revenue is not profit. CORE instantly recalculates inventory cost using FIFO batch costing on every sale, revealing your exact daily take-home earnings.
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  Revenue isn't profit. CORE automatically recalculates raw inventory cost on every single sale using strict FIFO batch costing.
                 </p>
               </div>
-              <div className="pt-6 border-t border-border/70 text-xs font-mono text-success font-medium">
+
+              {/* Interactive Product Snippet */}
+              <div className="p-4 rounded-[0.625rem] bg-background border border-border/80 space-y-2 text-xs font-mono">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Gross Revenue</span>
+                  <span className="tabular font-bold text-primary">₦45,000</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">FIFO Stock Cost</span>
+                  <span className="tabular font-bold text-destructive">-₦36,500</span>
+                </div>
+                <div className="pt-2 border-t border-border flex items-center justify-between font-bold text-success">
+                  <span>Net Take-Home</span>
+                  <span className="tabular">+₦8,500</span>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-border/70 text-xs font-mono text-success font-medium">
                 Automatic Stock Deduction →
               </div>
             </div>
 
-            {/* Pillar 3 */}
-            <div className="p-8 sm:p-10 rounded-3xl border border-border bg-card shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between space-y-8">
+            {/* Bento Card 3: Living Customer Debt Ledger */}
+            <div className="p-6 sm:p-8 rounded-[0.625rem] border border-border bg-card shadow-sm hover:shadow-lg transition-all flex flex-col justify-between space-y-6">
               <div className="space-y-4">
-                <div className="w-12 h-12 rounded-2xl bg-accent/20 text-accent-foreground flex items-center justify-center font-mono font-bold text-sm">
-                  03
+                <div className="flex items-center justify-between">
+                  <div className="w-10 h-10 rounded-[0.625rem] bg-accent/20 text-accent-foreground flex items-center justify-center font-mono font-bold text-sm">
+                    03
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full bg-accent/20 text-accent-foreground text-[10px] font-mono font-bold uppercase tracking-wide border border-accent/40">
+                    Debt Recovery
+                  </span>
                 </div>
                 <h3 className="font-display-2 text-2xl text-primary font-bold">
-                  Customer Tabs
+                  Living Customer Credit Ledger
                 </h3>
-                <p className="text-muted-foreground text-base leading-relaxed">
-                  Never lose informal customer credit. CORE tracks who owes you, balances partial payments, and helps you recover debts without awkward paper notebooks.
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  Never lose informal credit again. CORE balances partial payments, tracks customer tabs, and sends polite reminders without awkward notebook math.
                 </p>
               </div>
-              <div className="pt-6 border-t border-border/70 text-xs font-mono text-foreground font-medium">
+
+              {/* Interactive Product Snippet with Floating Live Status Pill */}
+              <div className="relative p-4 rounded-[0.625rem] bg-background border border-border/80 space-y-2 text-xs font-mono">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-foreground">Chief Okoye</span>
+                  <span className="px-2 py-0.5 rounded-full bg-accent/20 text-accent-foreground text-[10px] font-bold border border-accent/30 uppercase">
+                    ₦15,000 UNPAID
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-muted-foreground text-[11px]">
+                  <span>Paid ₦30,000 transfer</span>
+                  <span className="text-success font-bold">Partial Settlement</span>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-border/70 text-xs font-mono text-foreground font-medium">
                 Living Ledger & Debts →
               </div>
             </div>

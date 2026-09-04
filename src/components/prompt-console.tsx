@@ -39,20 +39,20 @@ const formSchema = z.object({
 });
 
 const ACTION_META: Record<string, { label: string; color: string; bg: string }> = {
-  SALE:           { label: 'Sale recorded',    color: 'text-emerald-700 dark:text-emerald-300', bg: 'bg-emerald-100 dark:bg-emerald-900/40' },
-  EXPENSE:        { label: 'Expense logged',   color: 'text-orange-700 dark:text-orange-300',   bg: 'bg-orange-100 dark:bg-orange-900/40' },
-  STOCK_IN:       { label: 'Restocked',        color: 'text-blue-700 dark:text-blue-300',       bg: 'bg-blue-100 dark:bg-blue-900/40' },
-  STOCK_REMOVE:   { label: 'Stock removed',    color: 'text-red-700 dark:text-red-300',         bg: 'bg-red-100 dark:bg-red-900/40' },
-  STOCK_SET:      { label: 'Stock updated',    color: 'text-blue-700 dark:text-blue-300',       bg: 'bg-blue-100 dark:bg-blue-900/40' },
-  STOCK_CHECK:    { label: 'Stock check',      color: 'text-slate-600 dark:text-slate-400',     bg: 'bg-slate-100 dark:bg-slate-800/40' },
-  LIST_INVENTORY: { label: 'Inventory',        color: 'text-slate-600 dark:text-slate-400',     bg: 'bg-slate-100 dark:bg-slate-800/40' },
-  LOW_STOCK:      { label: 'Low stock',        color: 'text-amber-700 dark:text-amber-300',     bg: 'bg-amber-100 dark:bg-amber-900/40' },
-  CREATE_PRODUCT: { label: 'Product created',  color: 'text-violet-700 dark:text-violet-300',   bg: 'bg-violet-100 dark:bg-violet-900/40' },
-  UPDATE_PRODUCT: { label: 'Product updated',  color: 'text-violet-700 dark:text-violet-300',   bg: 'bg-violet-100 dark:bg-violet-900/40' },
-  DELETE_PRODUCT: { label: 'Product deleted',  color: 'text-red-700 dark:text-red-300',         bg: 'bg-red-100 dark:bg-red-900/40' },
-  PROFIT_QUERY:   { label: 'Profit',           color: 'text-indigo-700 dark:text-indigo-300',   bg: 'bg-indigo-100 dark:bg-indigo-900/40' },
-  BATCH:          { label: 'Batch recorded',   color: 'text-emerald-700 dark:text-emerald-300', bg: 'bg-emerald-100 dark:bg-emerald-900/40' },
-  ERROR:          { label: 'Error',            color: 'text-red-700 dark:text-red-300',         bg: 'bg-red-100 dark:bg-red-900/40' },
+  SALE:           { label: 'Sale Recorded',    color: 'text-success', bg: 'bg-success/10 border-success/30' },
+  EXPENSE:        { label: 'Expense Logged',   color: 'text-destructive', bg: 'bg-destructive/10 border-destructive/30' },
+  STOCK_IN:       { label: 'Stock Restocked',  color: 'text-primary', bg: 'bg-primary/10 border-primary/30' },
+  STOCK_REMOVE:   { label: 'Stock Removed',    color: 'text-destructive', bg: 'bg-destructive/10 border-destructive/30' },
+  STOCK_SET:      { label: 'Stock Updated',    color: 'text-primary', bg: 'bg-primary/10 border-primary/30' },
+  STOCK_CHECK:    { label: 'Stock Check',      color: 'text-muted-foreground', bg: 'bg-muted border-border' },
+  LIST_INVENTORY: { label: 'Inventory',        color: 'text-muted-foreground', bg: 'bg-muted border-border' },
+  LOW_STOCK:      { label: 'Low Stock Alert',  color: 'text-accent-foreground', bg: 'bg-accent/20 border-accent/40' },
+  CREATE_PRODUCT: { label: 'Product Created',  color: 'text-primary', bg: 'bg-primary/10 border-primary/30' },
+  UPDATE_PRODUCT: { label: 'Product Updated',  color: 'text-primary', bg: 'bg-primary/10 border-primary/30' },
+  DELETE_PRODUCT: { label: 'Product Deleted',  color: 'text-destructive', bg: 'bg-destructive/10 border-destructive/30' },
+  PROFIT_QUERY:   { label: 'Profit Math',      color: 'text-success', bg: 'bg-success/10 border-success/30' },
+  BATCH:          { label: 'Batch Recorded',   color: 'text-success', bg: 'bg-success/10 border-success/30' },
+  ERROR:          { label: 'Error',            color: 'text-destructive', bg: 'bg-destructive/10 border-destructive/30' },
 };
 
 const CHAT_ACTIONS = new Set(['CHAT', 'CLARIFY']);
@@ -97,10 +97,10 @@ function pickSuggestions() {
 
 const CoreAvatar = ({ size = 'sm' }: { size?: 'sm' | 'md' }) => (
   <div className={cn(
-    'rounded-full bg-primary flex items-center justify-center shrink-0',
+    'rounded-[0.625rem] bg-primary flex items-center justify-center shrink-0 shadow-sm',
     size === 'sm' ? 'w-7 h-7' : 'w-9 h-9'
   )}>
-    <span className={cn('text-primary-foreground font-bold leading-none tracking-tight', size === 'sm' ? 'text-xs' : 'text-sm')}>C</span>
+    <span className={cn('text-primary-foreground font-heading font-extrabold leading-none tracking-tight', size === 'sm' ? 'text-xs' : 'text-sm')}>C</span>
   </div>
 );
 
@@ -110,10 +110,10 @@ function MessageBubble({ entry }: { entry: ActivityEntry }) {
 
   return (
     <div className="space-y-1.5 animate-in fade-in slide-in-from-bottom-2 duration-200">
-      {/* User message — skip if empty (e.g. onboarding first message) */}
+      {/* User message */}
       {entry.command && (
         <div className="flex justify-end">
-          <div className="max-w-[75%] bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2.5 shadow-sm">
+          <div className="max-w-[80%] bg-primary text-primary-foreground rounded-[0.625rem] px-4 py-2.5 shadow-sm">
             <p className="text-sm leading-relaxed">{entry.command}</p>
           </div>
         </div>
@@ -123,20 +123,20 @@ function MessageBubble({ entry }: { entry: ActivityEntry }) {
       <div className="flex items-end gap-2">
         <CoreAvatar size="sm" />
         <div className={cn(
-          'max-w-[75%] rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm',
+          'max-w-[80%] rounded-[0.625rem] px-4 py-3 shadow-sm',
           entry.success
-            ? 'bg-card border border-border/50'
-            : 'bg-destructive/10 border border-destructive/20'
+            ? 'bg-card border border-border'
+            : 'bg-destructive/10 border border-destructive/30'
         )}>
           {meta && (
             <span className={cn(
-              'inline-block text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full mb-2',
+              'inline-block text-[10px] font-mono font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full mb-2 border',
               meta.color, meta.bg
             )}>
               {meta.label}
             </span>
           )}
-          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words tabular">
             {entry.message}
           </p>
         </div>
