@@ -73,3 +73,8 @@ export const emailAuthLimiter = createSafeLimiter({
   prefix: 'rl:auth:email',
   analytics: true,
 });
+
+export const earlyAccessLimiter = createSafeLimiter({
+  limiter: Ratelimit.slidingWindow(5, '15 m'),
+  prefix: 'rl:early-access',
+});

@@ -18,19 +18,28 @@ export function EarlyAccessModal({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [form, setForm] = useState({ name: '', business: '', contact: '' });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.contact) return;
     setLoading(true);
+    setError('');
 
-    // Simulate saving or log waitlist signup
     try {
-      console.log('Waitlist submission:', form);
-      // Wait briefly for smooth feedback
-      await new Promise(resolve => setTimeout(resolve, 600));
+      const response = await fetch('/api/early-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (!response.ok) {
+        const result: { error?: string } = await response.json();
+        throw new Error(result.error || 'Could not submit your request. Please try again.');
+      }
       setSubmitted(true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not submit your request. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -39,6 +48,7 @@ export function EarlyAccessModal({ children }: { children: React.ReactNode }) {
   const handleOpenChange = (val: boolean) => {
     setOpen(val);
     if (!val) {
+      setError('');
       setTimeout(() => setSubmitted(false), 300);
     }
   };
@@ -86,6 +96,7 @@ export function EarlyAccessModal({ children }: { children: React.ReactNode }) {
                 <Input
                   id="name"
                   required
+                  maxLength={100}
                   placeholder="e.g. Tunde Adeyemi"
                   value={form.name}
                   onChange={e => setForm({ ...form, name: e.target.value })}
@@ -96,6 +107,7 @@ export function EarlyAccessModal({ children }: { children: React.ReactNode }) {
                 <Label htmlFor="business" className="text-xs font-medium">Business Name & Category</Label>
                 <Input
                   id="business"
+                  maxLength={120}
                   placeholder="e.g. Tunde Provisions / Mini Mart"
                   value={form.business}
                   onChange={e => setForm({ ...form, business: e.target.value })}
@@ -107,12 +119,15 @@ export function EarlyAccessModal({ children }: { children: React.ReactNode }) {
                 <Input
                   id="contact"
                   required
+                  maxLength={160}
                   placeholder="e.g. 0801 234 5678 or tunde@gmail.com"
                   value={form.contact}
                   onChange={e => setForm({ ...form, contact: e.target.value })}
                 />
               </div>
             </div>
+
+            {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
 
             <Button
               type="submit"

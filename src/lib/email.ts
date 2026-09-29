@@ -8,6 +8,21 @@ function getResend() {
 }
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.usecoreapp.com';
 
+export async function sendEarlyAccessRequest(request: {
+  name: string;
+  business: string;
+  contact: string;
+}) {
+  const { error } = await getResend().emails.send({
+    from: FROM,
+    to: 'usecoreapp@gmail.com',
+    subject: 'New CORE early access request',
+    text: `Name: ${request.name}\nBusiness: ${request.business || 'Not provided'}\nContact: ${request.contact}`,
+  });
+
+  if (error) throw new Error('Failed to send early access request');
+}
+
 // ─── Daily Nudge ───────────────────────────────────────────────────────────────
 
 export async function sendDailyNudge(user: {

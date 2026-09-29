@@ -27,7 +27,9 @@ export default function LandingPage() {
 
         <nav className="flex items-center gap-4 sm:gap-8">
           <span className="hidden sm:inline text-xs font-mono uppercase text-muted-foreground tracking-wide">Private beta</span>
-          <Link href="/login" className="text-sm font-semibold text-primary hover:underline underline-offset-4">Log in</Link>
+          <EarlyAccessModal>
+            <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">Request early access</Button>
+          </EarlyAccessModal>
         </nav>
       </header>
 
@@ -111,7 +113,7 @@ export default function LandingPage() {
             <span className="text-xs font-mono text-white/55">© 2026 CORE Technologies Inc.</span>
           </div>
 
-          <Link href="/login" className="text-xs font-mono text-white/75 hover:text-white transition-colors">Log in <ArrowUpRight className="inline h-3 w-3" /></Link>
+          <Link href="/login" className="text-xs font-mono text-white/75 hover:text-white transition-colors">Already invited? Log in <ArrowUpRight className="inline h-3 w-3" /></Link>
         </div>
       </footer>
     </div>

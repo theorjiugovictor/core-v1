@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
+import { EarlyAccessModal } from '@/components/early-access-modal';
 import { loginAction } from '@/lib/auth-actions';
 import { Loader2, Eye, EyeOff, TrendingUp, Boxes, Zap } from 'lucide-react';
 
@@ -163,9 +164,11 @@ export default function LoginPage() {
 
           <p className="text-center text-sm text-muted-foreground">
             Don&apos;t have an account?{' '}
-            <Link href="/register" className="font-semibold text-foreground hover:text-primary transition-colors">
-              Sign up free
-            </Link>
+            <EarlyAccessModal>
+              <button type="button" className="font-semibold text-foreground hover:text-primary transition-colors">
+                Request early access
+              </button>
+            </EarlyAccessModal>
           </p>
         </div>
       </div>

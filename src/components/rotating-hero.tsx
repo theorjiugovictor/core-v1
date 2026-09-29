@@ -63,7 +63,7 @@ export function RotatingHero() {
           {businesses.map((business, index) => (
             <div key={business.name} aria-hidden={index !== activeIndex} className={`absolute inset-0 flex items-center transition-opacity duration-1000 motion-reduce:transition-none ${index === activeIndex ? 'opacity-100' : 'opacity-0'}`}>
               <p className="text-sm leading-6 text-white/90 [text-shadow:0_1px_6px_rgba(0,0,0,0.75)]">
-                Built for <em className="font-serif text-[15px] font-normal text-white sm:text-base">{business.name}</em>
+                Built for <em className="font-serif text-[15px] font-normal text-accent sm:text-base">{business.name}</em>
               </p>
             </div>
           ))}
