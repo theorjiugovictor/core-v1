@@ -46,13 +46,17 @@ export async function sendTelegramMessage(
   }
 }
 
-// Call once after deploying to register your webhook URL with Telegram
+// Call once after deploying to register your webhook URL with Telegram.
+// secret_token makes Telegram send X-Telegram-Bot-Api-Secret-Token on every
+// update; the webhook route rejects requests without it.
 export async function registerTelegramWebhook(appUrl: string) {
+  const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  if (!secret) throw new Error('TELEGRAM_WEBHOOK_SECRET must be set before registering the webhook');
   const webhookUrl = `${appUrl}/api/webhooks/telegram`;
   const res = await fetch(`${TG_API_URL}/setWebhook`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url: webhookUrl }),
+    body: JSON.stringify({ url: webhookUrl, secret_token: secret }),
   });
   return res.json();
 }

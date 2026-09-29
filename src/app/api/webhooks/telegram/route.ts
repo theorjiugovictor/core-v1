@@ -1,45 +1,16 @@
-import { NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { NextResponse, after } from 'next/server';
 import { usersService } from '@/lib/firebase/users';
-import { executeCommandForUser } from '@/lib/actions';
 import { sendTelegramMessage } from '@/lib/messaging';
 import { telemetry } from '@/lib/telemetry';
-import type { BedrockMessage } from '@/lib/bedrock';
+import { claimOnce } from '@/lib/redis';
+import { verifyTelegramSecret } from '@/lib/webhook-security';
+import { handleChannelMessage } from '@/lib/channel-messages';
 
 export const runtime = 'nodejs';
+// Processing (AI call + reply) runs in after(), inside this budget.
+export const maxDuration = 60;
 
-const redis =
-  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
-    ? new Redis({
-        url: process.env.UPSTASH_REDIS_REST_URL,
-        token: process.env.UPSTASH_REDIS_REST_TOKEN,
-      })
-    : null;
-
-// Keep last 20 turns (10 exchanges) per user, expire after 2 hours of inactivity
-const HISTORY_KEY = (userId: string) => `tg:conv:${userId}`;
-const MAX_TURNS = 20;
-const TTL_SECONDS = 60 * 60 * 2;
-
-async function loadHistory(userId: string): Promise<BedrockMessage[]> {
-  if (!redis) return [];
-  try {
-    const raw = await redis.get<BedrockMessage[]>(HISTORY_KEY(userId));
-    return Array.isArray(raw) ? raw : [];
-  } catch {
-    return [];
-  }
-}
-
-async function saveHistory(userId: string, history: BedrockMessage[]) {
-  if (!redis) return;
-  try {
-    const trimmed = history.slice(-MAX_TURNS);
-    await redis.set(HISTORY_KEY(userId), trimmed, { ex: TTL_SECONDS });
-  } catch {
-    // Non-fatal — conversation just loses memory
-  }
-}
+const DEDUPE_TTL_SECONDS = 60 * 60 * 24;
 
 const UNLINKED_MESSAGE =
   "Hi! I don't recognize your Telegram account yet.\n\nTo use CORE on Telegram:\n1. Log in at usecoreapp.com\n2. Go to Settings → Connected Channels\n3. Enter your Telegram ID: {telegramId}\n\nThen come back and try again!";
@@ -51,92 +22,73 @@ const SLASH_COMMANDS: Record<string, string> = {
   '/lowstock': 'which items are low on stock',
 };
 
+const WELCOME = (telegramId: string) =>
+  `Welcome to CORE!\n\nYour Telegram ID is: <b>${telegramId}</b>\n\nTo get started:\n1. Log in at usecoreapp.com\n2. Go to Settings → Connected Channels\n3. Enter your Telegram ID above\n\nThen come back and talk to me — record sales, check stock, ask about your business, anything.`;
+
+const HELP =
+  `<b>CORE Assistant</b>\n\nJust talk to me naturally:\n\n` +
+  `<b>Record transactions</b>\n• "Sold 5 bags of rice at ₦2000 each"\n• "Add 10 tins of tomato at ₦500"\n• "Spent ₦3000 on transport"\n\n` +
+  `<b>Check your business</b>\n• "How much did I make today?"\n• "What's my profit this week?"\n• "Which items are running low?"\n• "How many bags of flour do I have?"\n\n` +
+  `<b>Quick shortcuts</b>\n/sales /stock /profit /lowstock`;
+
 export async function POST(request: Request) {
-  try {
-    const update = await request.json();
-
-    const message = update?.message;
-    if (!message?.text) return NextResponse.json({ ok: true });
-
-    const chatId: number = message.chat.id;
-    const telegramId: string = String(message.from.id);
-    const text: string = message.text.trim();
-
-    // /start — show onboarding (no auth needed)
-    if (!text || text === '/start') {
-      await sendTelegramMessage(chatId,
-        `Welcome to CORE!\n\nYour Telegram ID is: <b>${telegramId}</b>\n\nTo get started:\n1. Log in at usecoreapp.com\n2. Go to Settings → Connected Channels\n3. Enter your Telegram ID above\n\nThen come back and talk to me — record sales, check stock, ask about your business, anything.`,
-        { parse_mode: 'HTML' }
-      );
-      return NextResponse.json({ ok: true });
-    }
-
-    // /help — static guide (no auth needed)
-    if (text === '/help') {
-      await sendTelegramMessage(chatId,
-        `<b>CORE Assistant</b>\n\nJust talk to me naturally:\n\n` +
-        `<b>Record transactions</b>\n• "Sold 5 bags of rice at ₦2000 each"\n• "Add 10 tins of tomato at ₦500"\n• "Spent ₦3000 on transport"\n\n` +
-        `<b>Check your business</b>\n• "How much did I make today?"\n• "What's my profit this week?"\n• "Which items are running low?"\n• "How many bags of flour do I have?"\n\n` +
-        `<b>Quick shortcuts</b>\n/sales /stock /profit /lowstock`,
-        { parse_mode: 'HTML' }
-      );
-      return NextResponse.json({ ok: true });
-    }
-
-    // Look up CORE user by Telegram ID
-    const user = await usersService.getByTelegramId(telegramId);
-
-    if (!user) {
-      telemetry.error('Telegram message from unlinked account', undefined, {
-        'event.name': 'telegram.unlinked_user',
-        'telegram.id': telegramId,
-        'telegram.chat_id': chatId,
-      });
-      await sendTelegramMessage(chatId,
-        UNLINKED_MESSAGE.replace('{telegramId}', telegramId)
-      );
-      return NextResponse.json({ ok: true });
-    }
-
-    // Map slash commands to natural language
-    const input = SLASH_COMMANDS[text.toLowerCase()] ?? text;
-
-    // Load conversation history from Redis
-    const history = await loadHistory(user.id);
-
-    // Process with full conversation context
-    const result = await executeCommandForUser(user.id, input, history);
-
-    const reply = result.success
-      ? result.message || 'Done.'
-      : (result.error || 'Something went wrong. Please try again.');
-
-    if (!result.success) {
-      telemetry.error('Telegram AI command failed', user.id, {
-        'event.name': 'telegram.command_failed',
-        'ai.input': input.slice(0, 200),
-        'error.message': result.error || 'unknown',
-      });
-    }
-
-    // Persist updated history (append this exchange)
-    if (result.success) {
-      const updated: BedrockMessage[] = [
-        ...history,
-        { role: 'user', content: input },
-        { role: 'assistant', content: reply },
-      ];
-      await saveHistory(user.id, updated);
-    }
-
-    await sendTelegramMessage(chatId, reply);
-    return NextResponse.json({ ok: true });
-  } catch (error) {
-    console.error('Telegram webhook error:', error);
-    telemetry.error('Unhandled error in Telegram webhook', undefined, {
-      'event.name': 'telegram.webhook_error',
-      'error.message': error instanceof Error ? error.message : String(error),
+  // 1. Authenticate: Telegram echoes the secret_token we registered with setWebhook.
+  if (!verifyTelegramSecret(request.headers.get('x-telegram-bot-api-secret-token'))) {
+    telemetry.error('Rejected Telegram webhook with invalid secret', undefined, {
+      'event.name': 'telegram.invalid_secret',
     });
+    return new Response('Unauthorized', { status: 401 });
+  }
+
+  let update: any;
+  try {
+    update = await request.json();
+  } catch {
+    return new Response('Bad request', { status: 400 });
+  }
+
+  const message = update?.message;
+  const text: string = message?.text?.trim() ?? '';
+  if (!text || typeof update?.update_id !== 'number') {
     return NextResponse.json({ ok: true });
   }
+
+  // 2. Dedupe on update_id so a retry never records a sale twice.
+  if (!(await claimOnce(`wh:tg:${update.update_id}`, DEDUPE_TTL_SECONDS))) {
+    return NextResponse.json({ ok: true, duplicate: true });
+  }
+
+  const chatId: number = message.chat.id;
+  const telegramId = String(message.from.id);
+  const send = (reply: string, opts?: { parse_mode?: 'HTML' }) =>
+    sendTelegramMessage(chatId, reply, opts);
+
+  // 3. Acknowledge immediately; do the slow work after the response is sent.
+  after(async () => {
+    try {
+      if (text === '/start') return await send(WELCOME(telegramId), { parse_mode: 'HTML' });
+      if (text === '/help') return await send(HELP, { parse_mode: 'HTML' });
+
+      const user = await usersService.getByTelegramId(telegramId);
+      if (!user) {
+        telemetry.error('Telegram message from unlinked account', undefined, {
+          'event.name': 'telegram.unlinked_user',
+          'telegram.id': telegramId,
+          'telegram.chat_id': chatId,
+        });
+        return await send(UNLINKED_MESSAGE.replace('{telegramId}', telegramId));
+      }
+
+      const input = SLASH_COMMANDS[text.toLowerCase()] ?? text;
+      await handleChannelMessage({ channel: 'telegram', userId: user.id, input, send: (r) => send(r) });
+    } catch (error) {
+      console.error('Telegram processing failed:', error);
+      telemetry.error('Unhandled error in Telegram webhook', undefined, {
+        'event.name': 'telegram.webhook_error',
+        'error.message': error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  return NextResponse.json({ ok: true });
 }

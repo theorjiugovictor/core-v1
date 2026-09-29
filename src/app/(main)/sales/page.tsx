@@ -45,6 +45,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { getSalesAction, createSaleAction, updateSaleAction, deleteSaleAction, getProductsAction } from '@/lib/actions';
+
+// Most recent sales shown in the table. Full history is available via Settings → Export.
+const SALES_PAGE_LIMIT = 500;
 import type { Sale, Product } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
@@ -61,7 +64,7 @@ export default function SalesPage() {
   }, []);
 
   const loadData = async () => {
-    const [salesData, productsData] = await Promise.all([getSalesAction(), getProductsAction()]);
+    const [salesData, productsData] = await Promise.all([getSalesAction(SALES_PAGE_LIMIT), getProductsAction()]);
     setSales(salesData);
     setProducts(productsData);
   };
