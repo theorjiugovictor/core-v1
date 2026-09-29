@@ -193,23 +193,39 @@ src/
 | `NEXTAUTH_SECRET` | Yes | Secret for NextAuth JWT signing |
 | `NEXTAUTH_URL` | Yes | Application URL |
 | `NODE_ENV` | No | Environment (development/production) |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Yes (prod) | Rate limiting, webhook dedupe, cron dedupe. In production, AI and logins are refused without them |
+| `WHATSAPP_APP_SECRET` | Yes (WhatsApp) | Meta app secret; verifies `X-Hub-Signature-256` on every webhook |
+| `WHATSAPP_PHONE_NUMBER_ID` / `WHATSAPP_ACCESS_TOKEN` / `WHATSAPP_VERIFY_TOKEN` | Yes (WhatsApp) | Meta Cloud API credentials |
+| `TELEGRAM_BOT_TOKEN` | Yes (Telegram) | Bot token |
+| `TELEGRAM_WEBHOOK_SECRET` | Yes (Telegram) | Sent by Telegram as `X-Telegram-Bot-Api-Secret-Token`; must match `secret_token` in `setWebhook` |
+| `CRON_SECRET` | Yes | Authorizes Vercel Cron requests |
 
 ## Deployment
 
-### Firebase App Hosting
+CORE is deployed on **Vercel** (Pro plan, needed for commercial use). Firestore is the database.
 
-The project is configured for Firebase App Hosting:
+### One-time production setup
 
-```bash
-firebase deploy --only hosting
-```
+1. **Firestore indexes.** Sales and expenses are queried by `userId` + `date`. Create the indexes before deploying the code that uses them:
+   ```bash
+   firebase deploy --only firestore:indexes
+   ```
+   Wait until they show as *Enabled* in the Firebase console.
+2. **Function region.** In Vercel → Project → Settings → Functions, set the region closest to your Firestore location (Firebase console → Firestore → location). Every request makes several Firestore calls, so this matters more than distance to users.
+3. **Environment variables.** Set everything in the table above for Production.
+4. **Telegram.** After setting `TELEGRAM_WEBHOOK_SECRET`, re-register the webhook so Telegram starts sending the secret:
+   ```bash
+   curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook" \
+     -d "url=https://usecoreapp.com/api/webhooks/telegram" \
+     -d "secret_token=$TELEGRAM_WEBHOOK_SECRET"
+   ```
+5. **Spend limit.** Vercel → Settings → Billing → Spend Management: set a limit so a traffic spike can't run up an unbounded bill.
 
-### Vercel
+### How the background work runs
 
-1. Push code to GitHub
-2. Connect repository to Vercel
-3. Add environment variables in Vercel dashboard
-4. Deploy
+- **Webhooks** (`/api/webhooks/whatsapp`, `/api/webhooks/telegram`) verify the platform signature, dedupe on the message id in Redis, return `200` immediately, and do the AI call and reply in `after()`.
+- **Crons** (`vercel.json`) process users 100 per invocation, 10 at a time. When there are more users, the handler starts the next page as a new invocation. Each user is claimed in Redis per job per Lagos day, so retries never send duplicate emails.
+- **Dates** are Lagos time (`Africa/Lagos`, UTC+1) everywhere: "today", "this week", KPIs, charts and cron windows. See `src/lib/time.ts`.
 
 ## Contributing
 
