@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Mic, Check, MessageSquare, ArrowRight, ShieldCheck, Zap, Sparkles } from 'lucide-react';
+import { Mic, MessageSquare, Zap, ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Scenario {
@@ -81,19 +81,20 @@ export function DynamicHeroShowcase() {
   const active = SCENARIOS.find((s) => s.id === activeTab) || SCENARIOS[0];
 
   return (
-    <div className="w-full max-w-3xl mx-auto">
-      {/* Interactive Tabs with Brand Handoff Styling */}
-      <div className="flex items-center justify-center gap-1.5 p-1.5 rounded-[0.625rem] bg-secondary/80 border border-border max-w-lg mx-auto mb-8 shadow-sm">
+    <div className="w-full max-w-5xl mx-auto">
+      <div className="flex items-center justify-center gap-1 p-1 bg-white border border-primary/15 max-w-lg mx-auto mb-5 rounded-md">
         {SCENARIOS.map((scenario) => {
           const isSelected = scenario.id === activeTab;
           return (
             <button
               key={scenario.id}
+              type="button"
               onClick={() => setActiveTab(scenario.id)}
+              aria-pressed={isSelected}
               className={cn(
-                'flex-1 py-2 px-3 sm:px-4 rounded-[0.625rem] text-xs font-medium transition-all duration-200 cursor-pointer text-center truncate',
+                'flex-1 min-w-0 py-2 px-1 sm:px-4 rounded text-[11px] sm:text-xs font-medium transition-colors cursor-pointer text-center',
                 isSelected
-                  ? 'bg-card text-primary font-semibold shadow-sm border border-border/60'
+                  ? 'bg-primary text-white font-semibold'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
@@ -103,101 +104,44 @@ export function DynamicHeroShowcase() {
         })}
       </div>
 
-      {/* Main Dynamic Showcase Card with Floating Status Badge */}
-      <div className="relative rounded-[0.625rem] border border-border bg-card shadow-xl p-6 sm:p-10 text-left transition-all duration-300">
-        {/* Floating Live Micro-UI Status Badge */}
-        {active.debtBadge && (
-          <div className="absolute -top-3.5 right-6 sm:right-10 z-20">
-            <span
-              className={cn(
-                'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-bold uppercase tracking-wider shadow-md border',
-                active.debtBadge.type === 'paid' && 'bg-success/10 text-success border-success/30',
-                active.debtBadge.type === 'partial' && 'bg-accent/20 text-accent-foreground border-accent/40',
-                active.debtBadge.type === 'unpaid' && 'bg-destructive/10 text-destructive border-destructive/30'
-              )}
-            >
-              <span
-                className={cn(
-                  'w-2 h-2 rounded-full animate-pulse',
-                  active.debtBadge.type === 'paid' && 'bg-success',
-                  active.debtBadge.type === 'partial' && 'bg-accent-foreground',
-                  active.debtBadge.type === 'unpaid' && 'bg-destructive'
-                )}
-              />
-              {active.debtBadge.label}
-            </span>
-          </div>
-        )}
-
-        {/* Header Bar */}
-        <div className="flex items-center justify-between pb-6 border-b border-border/70">
-          <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-muted-foreground">
-            <span className="w-2 h-2 rounded-full bg-accent" />
+      <div className="grid md:grid-cols-[1fr_1.1fr] overflow-hidden rounded-md border border-primary/20 bg-white shadow-[0_28px_75px_-40px_rgba(16,19,34,0.55)] text-left">
+        <div className="bg-[#142821] text-white p-6 sm:p-9 flex flex-col justify-between min-h-[235px] md:min-h-[320px]">
+          <div className="flex items-center justify-between gap-3 border-b border-white/20 pb-4 text-[11px] font-mono uppercase tracking-wide text-white/70">
             <span>{active.badge}</span>
+            <span className="text-accent">01 / Input</span>
           </div>
-          <span className="text-xs font-mono text-muted-foreground">
-            {active.context}
-          </span>
+          <div className="py-7">
+            <div className="mb-4 flex h-9 w-9 items-center justify-center rounded bg-accent text-accent-foreground">
+              {active.iconType === 'chat' && <MessageSquare className="h-5 w-5" />}
+              {active.iconType === 'shorthand' && <Zap className="h-5 w-5" />}
+              {active.iconType === 'voice' && <Mic className="h-5 w-5" />}
+            </div>
+            <p className="font-heading text-lg sm:text-2xl font-semibold leading-snug">{active.input}</p>
+          </div>
+          <span className="text-xs font-mono text-white/60">{active.inputType}</span>
         </div>
 
-        {/* Input Bubble */}
-        <div className="my-8 p-5 sm:p-6 rounded-[0.625rem] bg-secondary/50 border border-border/80 flex items-start gap-4">
-          <div className="w-10 h-10 rounded-[0.625rem] bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-sm mt-0.5">
-            {active.iconType === 'chat' && <MessageSquare className="w-5 h-5" />}
-            {active.iconType === 'shorthand' && <Zap className="w-5 h-5" />}
-            {active.iconType === 'voice' && <Mic className="w-5 h-5" />}
+        <div className="p-6 sm:p-9 flex flex-col justify-between">
+          <div className="flex items-center justify-between border-b border-primary/15 pb-4 text-[11px] font-mono uppercase tracking-wide text-primary/60">
+            <span>CORE / The clear picture</span>
+            <span className="text-success">02 / Result</span>
           </div>
-          <div className="space-y-1 min-w-0">
-            <div className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
-              {active.inputType}
+          <div className="py-5 sm:py-7">
+            <div className="flex items-end justify-between gap-3 border-b border-primary/10 py-3">
+              <span className="text-sm text-muted-foreground">Sale recorded</span>
+              <span className="font-heading font-semibold text-xl sm:text-2xl text-primary tabular">{active.revenue}</span>
             </div>
-            <p className="font-heading text-lg sm:text-2xl font-semibold text-foreground leading-snug tracking-tight">
-              {active.input}
-            </p>
+            <div className="flex items-end justify-between gap-3 border-b border-primary/10 py-3">
+              <span className="text-sm text-muted-foreground">Stock updated</span>
+              <span className="inline-flex items-center gap-1 font-semibold text-foreground text-sm sm:text-lg"><ArrowDownRight className="h-4 w-4 text-success" />{active.inventory}</span>
+            </div>
+            <div className="flex items-end justify-between gap-3 py-3">
+              <span className="text-sm text-muted-foreground">Profit after stock cost</span>
+              <span className="inline-flex items-center gap-1 font-heading font-semibold text-xl sm:text-2xl text-success tabular"><ArrowUpRight className="h-5 w-5" />{active.profit}</span>
+            </div>
           </div>
-        </div>
-
-        {/* Instant 3-Part Ledger Breakdown */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 my-8">
-          <div className="p-4 sm:p-5 rounded-[0.625rem] bg-background border border-border/80 shadow-sm transition-transform hover:-translate-y-0.5">
-            <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-              Gross Revenue
-            </div>
-            <div className="text-2xl sm:text-3xl font-bold tabular text-primary mt-1.5">
-              {active.revenue}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Recognized to ledger</div>
-          </div>
-
-          <div className="p-4 sm:p-5 rounded-[0.625rem] bg-background border border-border/80 shadow-sm transition-transform hover:-translate-y-0.5">
-            <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-              True Net Profit
-            </div>
-            <div className="text-2xl sm:text-3xl font-bold tabular text-success mt-1.5">
-              {active.profit}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">After FIFO inventory cost</div>
-          </div>
-
-          <div className="p-4 sm:p-5 rounded-[0.625rem] bg-background border border-border/80 shadow-sm transition-transform hover:-translate-y-0.5">
-            <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-              Stock Deducted
-            </div>
-            <div className="text-2xl sm:text-3xl font-bold tabular text-foreground mt-1.5">
-              {active.inventory}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Real-time inventory updated</div>
-          </div>
-        </div>
-
-        {/* Bottom Status / Double Entry Line */}
-        <div className="pt-6 border-t border-border/70 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-mono text-muted-foreground">
-          <div className="flex items-center gap-2 text-primary font-medium">
-            <Check className="w-4 h-4 text-success" />
-            <span>Double-entry ledger balanced in <span className="tabular font-bold text-foreground">{active.settledIn}</span></span>
-          </div>
-          <div className="px-3 py-1 rounded-[0.625rem] bg-secondary text-foreground border border-border text-[11px]">
-            Strict FIFO Accounting • Zero Spreadsheets
+          <div className="border-t border-primary/15 pt-4 text-xs font-mono text-primary/70">
+            {active.debtBadge?.label || 'Sale added to your records'}
           </div>
         </div>
       </div>
