@@ -27,9 +27,7 @@ export default function LandingPage() {
 
         <nav className="flex items-center gap-4 sm:gap-8">
           <span className="hidden sm:inline text-xs font-mono uppercase text-muted-foreground tracking-wide">Private beta</span>
-          <EarlyAccessModal>
-            <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">Request early access</Button>
-          </EarlyAccessModal>
+          <Link href="/login" className="text-sm font-semibold text-primary hover:underline underline-offset-4">Log in</Link>
         </nav>
       </header>
 

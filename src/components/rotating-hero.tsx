@@ -51,7 +51,7 @@ export function RotatingHero() {
   }, []);
 
   return (
-    <section className="relative isolate flex min-h-[540px] sm:min-h-[600px] items-end overflow-hidden bg-[#142821] px-5 pb-12 pt-20 text-white sm:px-10 sm:pb-16 lg:px-16">
+    <section className="relative isolate flex min-h-[max(540px,calc(100svh-8rem))] sm:min-h-[max(600px,calc(100svh-10rem))] items-end overflow-hidden bg-[#142821] px-5 pb-12 pt-20 text-white sm:px-10 sm:pb-16 lg:px-16">
       {businesses.map((business, index) => (
         <div key={business.name} className={`absolute inset-0 transition-opacity duration-1000 motion-reduce:transition-none ${index === activeIndex ? 'opacity-100' : 'opacity-0'}`} aria-hidden={index !== activeIndex}>
           <Image src={business.photo} alt={index === activeIndex ? business.alt : ''} fill priority={index === 0} sizes="100vw" className="object-cover object-center" />
