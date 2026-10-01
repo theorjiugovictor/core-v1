@@ -1,34 +1,47 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Archivo, IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 
-const inter = Inter({
+// Archivo is used strictly for headings at weights 600 and 800 per brand guidelines
+const archivo = Archivo({
   subsets: ['latin'],
-  variable: '--font-inter',
+  weight: ['600', '800'],
+  variable: '--font-archivo',
+});
+
+const plexSans = IBM_Plex_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-plex-sans',
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--font-plex-mono',
 });
 
 export const metadata: Metadata = {
-  title: 'CORE | Intelligent Business Control',
-  description: 'Your business, under control. The zero-friction management platform for Nigerian SMEs.',
-  icons: {
-    icon: '/logo.svg',
-  },
-
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://usecoreapp.com'),
+  title: 'CORE | You sell. We handle the rest.',
+  description:
+    'Infrastructure for the smallest businesses on earth. Speak a sale, and CORE handles the accounting, the inventory and the maths.',
+  icons: { icon: '/logo.svg' },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={cn(
-        "min-h-screen bg-background font-sans antialiased",
-        inter.variable
-      )}>
+      <body
+        className={cn(
+          'min-h-screen bg-background font-sans antialiased',
+          archivo.variable,
+          plexSans.variable,
+          plexMono.variable
+        )}
+      >
         {children}
         <Toaster />
       </body>

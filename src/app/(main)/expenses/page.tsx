@@ -47,7 +47,7 @@ export default function ExpensesPage() {
     const { toast } = useToast();
 
     React.useEffect(() => {
-        loadData();
+        void getExpensesAction().then(setExpenses);
     }, []);
 
     const loadData = async () => {

@@ -17,6 +17,7 @@ const PROTECTED_PREFIXES = [
  * Used by middleware. The full config with providers lives in auth.ts.
  */
 export const authConfig: NextAuthConfig = {
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
   pages: {
     signIn: '/login',
     error: '/login',
