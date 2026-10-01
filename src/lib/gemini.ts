@@ -19,7 +19,7 @@ export async function callGemini(
     throw new Error('GEMINI_API_KEY is not set');
   }
 
-  const modelName = options?.model || 'gemini-2.5-flash';
+  const modelName = options?.model || process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
 
   // Format contents for REST API
@@ -109,6 +109,8 @@ LIST_INVENTORY, LOW_STOCK, UPDATE_PRODUCT, DELETE_PRODUCT, EXPENSE, PROFIT_QUERY
 - "How much I get?" / "wetin my profit?" / "how my business?" = PROFIT_QUERY or CHAT
 - "My X don finish" / "X is out" = STOCK_CHECK for that item
 - Credit sales: "on credit" / "go pay later" / "owe me" → isCredit: true
+- "Emeka paid 5k" / "Fatima don pay 10000" / "debt payment from X" → PAY_DEBT (set "customer": "Emeka", "price": 5000)
+- "Who owes me money?" / "Who dey owe me?" / "Wetin Emeka owe me?" → DEBT_CHECK (set "customer" if specific name mentioned)
 
 ━━ EXPENSE CATEGORIES ━━
 Detect category from description:
@@ -152,7 +154,7 @@ General:
 "wetin my profit for this week?" → [{"action":"PROFIT_QUERY","period":"week"}]
 "how my business dey?" → [{"action":"CHAT","message":"how my business dey?"}]
 
-Respond ONLY with a valid JSON ARRAY. No explanation, no markdown.
+Respond ONLY with a valid JSON ARRAY. No explanation, no markdown, no emojis.
 [{
   "action": "SALE|STOCK_IN|STOCK_REMOVE|STOCK_SET|CREATE_PRODUCT|STOCK_CHECK|LIST_INVENTORY|LOW_STOCK|UPDATE_PRODUCT|DELETE_PRODUCT|EXPENSE|PROFIT_QUERY|CHAT|CLARIFY",
   "item": "product or material name",
@@ -216,6 +218,7 @@ RULES:
 - If you can't answer from the data, say "I don't have that information yet" and tell them what to do.
 - When something looks wrong (e.g. negative profit, low stock), point it out and suggest a next step.
 - Always end with a small actionable nudge if relevant — something they can do right now.
+- Do NOT use emojis under any circumstances. Keep responses clean, serious, and professional.
 - Do NOT use bullet points for simple answers. Use them only for lists of 3+ items.
 
 GUIDING USERS TO RECORD THINGS:

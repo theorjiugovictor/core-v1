@@ -1,16 +1,25 @@
 'use server';
 
-import { parseBusinessCommand as parseWithAI, generateBusinessInsights as generateWithAI, chatConversational } from './ai';
+import { generateBusinessInsights as generateWithAI } from './ai';
 import type { BedrockMessage } from './bedrock';
 import { salesService } from './firebase/sales';
 import { materialsService } from './firebase/materials';
 import { productsService } from './firebase/products';
 import { usersService } from './firebase/users';
 import { expensesService } from './firebase/expenses';
+import { debtsService } from './firebase/debts';
 import { revalidatePath, unstable_cache } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { aiLimiter } from '@/lib/ratelimit';
 import { telemetry } from '@/lib/telemetry';
+import { executeCommandForUser } from './commands';
+import {
+  businessMonth,
+  parseNormalizedDate,
+  periodStart,
+  startOfBusinessDay,
+  startOfBusinessMonth,
+} from './time';
 
 export type ParseBusinessCommandInput = {
   input: string;
@@ -18,536 +27,6 @@ export type ParseBusinessCommandInput = {
   conversationHistory?: BedrockMessage[];
 };
 
-function parseNormalizedDate(dateStr: string): Date {
-  if (!dateStr) return new Date(0);
-  if (dateStr.length === 10 && dateStr.includes('-')) {
-    const [y, m, d] = dateStr.split('-').map(Number);
-    return new Date(y, m - 1, d);
-  }
-  return new Date(dateStr);
-}
-
-// Fallback regex-based parser
-function parseCommandWithRegex(input: string) {
-  const normalized = input.toLowerCase().trim();
-
-  // Sale pattern
-  const salePattern = /(?:sold?|add)\s+(\d+)\s+(.+?)\s+(?:at|@|for)\s*(?:₦|naira)?\s*(\d+(?:,\d{3})*(?:\.\d{2})?)\s*(?:each|per)?/i;
-  const saleMatch = normalized.match(salePattern);
-
-  if (saleMatch) {
-    const [_, quantity, item, price] = saleMatch;
-    const action = normalized.startsWith('sold') ? 'SALE' : 'STOCK_IN';
-
-    // Return array to match new interface
-    return {
-      success: true,
-      data: [{
-        action,
-        item: item.trim(),
-        quantity: parseInt(quantity),
-        price: parseFloat(price.replace(/,/g, '')),
-        date: new Date().toISOString().split('T')[0]
-      }]
-    };
-  }
-
-  // Product creation pattern: "create product fried rice selling at 1500"
-  const productPattern = /(?:create\s+product|new\s+product|create)\s+(.+?)\s+(?:selling\s+)?(?:at|@|for)\s*(?:₦|naira)?\s*(\d+(?:,\d{3})*(?:\.\d{2})?)/i;
-  const productMatch = normalized.match(productPattern);
-
-  if (productMatch) {
-    const [_, item, price] = productMatch;
-    return {
-      success: true,
-      data: [{
-        action: 'CREATE_PRODUCT',
-        item: item.trim(),
-        quantity: 0,
-        price: parseFloat(price.replace(/,/g, '')),
-        date: new Date().toISOString().split('T')[0]
-      }]
-    };
-  }
-
-  // Stock check: "how many bags of rice?"
-  if (normalized.includes('how many') || normalized.includes('check stock') || normalized.includes('count')) {
-    return {
-      success: true,
-      data: [{
-        action: 'STOCK_CHECK',
-        item: normalized.replace('how many', '').replace('check stock', '').replace('count', '').trim(),
-        quantity: 0,
-        price: 0
-      }]
-    }
-  }
-
-  return {
-    success: false,
-    error: 'Could not understand command. Try: "Sold 5 bags of Rice at 1000 each"'
-  };
-}
-
-// Core execution logic — shared by the web console and messaging webhooks
-export async function executeCommandForUser(
-  userId: string,
-  rawInput: string,
-  conversationHistory: BedrockMessage[] = [],
-) {
-  let parsedResult;
-  try {
-    parsedResult = await parseWithAI(rawInput, conversationHistory);
-    if (!parsedResult.success || !parsedResult.data) {
-      throw new Error("AI parsing failed or returned no data");
-    }
-  } catch (error) {
-    console.error('AI parsing failed, using fallback:', error);
-    parsedResult = parseCommandWithRegex(rawInput);
-  }
-
-  if (!parsedResult.success || !parsedResult.data) {
-    return { success: false, error: parsedResult.error || "Could not parse command." };
-  }
-
-  const actions = Array.isArray(parsedResult.data) ? parsedResult.data : [parsedResult.data];
-  let finalMessage = "";
-  const processedActions = [];
-
-  try {
-    for (const actionData of actions) {
-      const { action, item, quantity, price, isCredit, recipe } = actionData;
-      let message = "";
-
-      switch (action) {
-        case 'CLARIFY': {
-          // Parser determined it needs more info — return the question directly
-          message = actionData.message || "Could you give me a bit more detail? e.g. the quantity and price.";
-          break;
-        }
-
-        case 'SALE': {
-          // Guard: missing price on a sale
-          if (!price || price === 0) {
-            message = actionData.message || `What price did you sell the ${item || 'item'} at? e.g. ₦2,000 each`;
-            break;
-          }
-          const products = await productsService.getAll(userId);
-          const product = products.find(p => p.name.toLowerCase() === (item || '').toLowerCase());
-          const materials = await materialsService.getAll(userId);
-          const qty = quantity || 1;
-          const hasRecipe = product && product.materials && product.materials.length > 0;
-
-          // ── Pre-sale stock validation (must happen before any DB write) ──
-          if (hasRecipe) {
-            for (const ingredient of product!.materials) {
-              const mat = materials.find(m => m.id === ingredient.materialId);
-              if (mat) {
-                const needed = ingredient.quantity * qty;
-                if (mat.quantity < needed) {
-                  message = mat.quantity === 0
-                    ? `${mat.name} is out of stock. Restock before selling.`
-                    : `Not enough ${mat.name}: need ${needed} ${mat.unit}(s), only ${mat.quantity} in stock. Sale not recorded.`;
-                  break;
-                }
-              }
-            }
-          } else {
-            const directMat = materials.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
-            if (directMat && directMat.quantity < qty) {
-              message = directMat.quantity === 0
-                ? `${directMat.name} is out of stock. Restock before selling.`
-                : `Only ${directMat.quantity} ${directMat.unit}(s) of ${directMat.name} in stock. You tried to sell ${qty}. Sale not recorded.`;
-            }
-          }
-
-          // Abort if validation failed
-          if (message) break;
-
-          // ── Calculate unit cost ──
-          let unitCost = 0;
-          if (product) {
-            if (hasRecipe) {
-              unitCost = product.materials.reduce((acc, curr) => {
-                const mat = materials.find(m => m.id === curr.materialId);
-                return acc + (mat ? mat.costPrice * curr.quantity : 0);
-              }, 0);
-            } else {
-              unitCost = product.costPrice || 0;
-            }
-          } else {
-            const directMat = materials.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
-            if (directMat) unitCost = directMat.costPrice;
-          }
-
-          // ── Apply discount ──
-          const discountPct: number = actionData.discount ?? 0;
-          const unitPrice = price || product?.sellingPrice || 0;
-          const finalUnitPrice = discountPct > 0 ? unitPrice * (1 - discountPct / 100) : unitPrice;
-          const totalAmount = qty * finalUnitPrice;
-          const discountNote = discountPct > 0
-            ? ` (${discountPct}% discount, saved ₦${(qty * (unitPrice - finalUnitPrice)).toLocaleString()})`
-            : '';
-
-          // ── Record sale ──
-          await salesService.create({
-            userId,
-            productName: item || 'Unknown Product',
-            quantity: qty,
-            totalAmount,
-            costAmount: unitCost * qty,
-            paymentMethod: isCredit ? 'Transfer' : 'Cash',
-            date: new Date().toISOString()
-          });
-
-          // ── Deduct inventory ──
-          if (hasRecipe) {
-            for (const ingredient of product!.materials) {
-              const material = materials.find(m => m.id === ingredient.materialId);
-              if (material) {
-                await materialsService.update(material.id, userId, {
-                  quantity: material.quantity - ingredient.quantity * qty
-                });
-              }
-            }
-            message = `Sold ${qty}x ${item} @ ₦${finalUnitPrice.toLocaleString()} (Ingredients deducted)${discountNote}`;
-          } else {
-            const material = materials.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
-            if (material) {
-              const remaining = material.quantity - qty;
-              await materialsService.update(material.id, userId, { quantity: remaining });
-              message = remaining === 0
-                ? `Sold ${qty}x ${item}${discountNote}. ${item} is now out of stock — remember to restock.`
-                : `Sold ${qty}x ${item} @ ₦${finalUnitPrice.toLocaleString()}${discountNote} (${remaining} ${material.unit}(s) remaining)`;
-            } else {
-              message = `Recorded sale: ${qty}x ${item} @ ₦${finalUnitPrice.toLocaleString()}${discountNote}`;
-            }
-          }
-          break;
-        }
-
-        case 'STOCK_IN': {
-          const qty = quantity ?? 0;
-          if (qty < 0) {
-            message = `Cannot add negative quantity. To remove stock, say "Remove ${Math.abs(qty)} ${item}".`;
-            break;
-          }
-          if (qty === 0) {
-            message = `Quantity must be greater than 0.`;
-            break;
-          }
-          const allMaterials = await materialsService.getAll(userId);
-          const existingMaterial = allMaterials.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
-          if (!existingMaterial) {
-            message = `"${item}" isn't in your inventory yet. Go to the Materials page to add it first, then come back to restock. Or say "Add ${item} to inventory" to create it.`;
-            break;
-          }
-          const newQty = existingMaterial.quantity + qty;
-          await materialsService.update(existingMaterial.id, userId, {
-            quantity: newQty,
-            costPrice: price || existingMaterial.costPrice
-          });
-          message = `Restocked ${item}: +${qty} (now ${newQty} ${existingMaterial.unit}(s))`;
-          break;
-        }
-
-        case 'CREATE_PRODUCT': {
-          const newProductMaterials = [];
-          if (recipe && Array.isArray(recipe)) {
-            const currentMaterials = await materialsService.getAll(userId);
-            for (const ingredient of recipe) {
-              let matId = '';
-              const existingMat = currentMaterials.find(m => m.name.toLowerCase() === ingredient.item.toLowerCase());
-              if (existingMat) {
-                matId = existingMat.id;
-              } else {
-                const newMat = await materialsService.create({
-                  userId, name: ingredient.item, quantity: 0,
-                  unit: 'unit', costPrice: 0, createdAt: new Date().toISOString()
-                });
-                matId = newMat.id;
-              }
-              newProductMaterials.push({ materialId: matId, quantity: ingredient.quantity });
-            }
-          }
-          await productsService.create({
-            userId, name: item || 'New Product', sellingPrice: price || 0,
-            costPrice: 0, materials: newProductMaterials, createdAt: new Date().toISOString()
-          });
-          message = `Product created: ${item} @ ₦${price}${newProductMaterials.length > 0 ? ` with ${newProductMaterials.length} ingredients` : ''}`;
-          break;
-        }
-
-        case 'STOCK_CHECK': {
-          const stockMaterials = await materialsService.getAll(userId);
-          const found = stockMaterials.find(m => m.name.toLowerCase().includes((item || '').toLowerCase()));
-          if (!found) {
-            message = `"${item}" not found in your inventory. Check spelling or go to Materials to add it.`;
-          } else if (found.quantity === 0) {
-            message = `${found.name} is out of stock (0 ${found.unit}s). Time to restock.`;
-          } else {
-            const threshold = found.lowStockThreshold ?? 5;
-            const lowWarning = found.quantity <= threshold ? ` Running low — consider restocking soon.` : '';
-            message = `${found.name}: ${found.quantity} ${found.unit}(s) in stock.${lowWarning}`;
-          }
-          break;
-        }
-
-        case 'LIST_INVENTORY': {
-          const allStock = await materialsService.getAll(userId);
-          if (allStock.length === 0) {
-            message = `Your inventory is empty. Add materials via the Materials page or say "Create product [name]".`;
-          } else {
-            const lines = allStock.map(m => {
-              const low = m.quantity <= (m.lowStockThreshold ?? 5) ? ' (low)' : '';
-              return `• ${m.name}: ${m.quantity} ${m.unit}(s)${low}`;
-            });
-            message = `Inventory (${allStock.length} items):\n${lines.join('\n')}`;
-          }
-          break;
-        }
-
-        case 'LOW_STOCK': {
-          const allItems = await materialsService.getAll(userId);
-          const lowItems = allItems.filter(m => m.quantity <= (m.lowStockThreshold ?? 5));
-          if (lowItems.length === 0) {
-            message = `All items are sufficiently stocked. Nothing needs restocking right now.`;
-          } else {
-            const lines = lowItems.map(m =>
-              `• ${m.name}: ${m.quantity} ${m.unit}(s)${m.quantity === 0 ? ' (out of stock)' : ''}`
-            );
-            message = `${lowItems.length} item(s) running low:\n${lines.join('\n')}`;
-          }
-          break;
-        }
-
-        case 'STOCK_REMOVE': {
-          const qty = quantity ?? 0;
-          if (qty <= 0) {
-            message = `Quantity to remove must be greater than 0.`;
-            break;
-          }
-          const allMats = await materialsService.getAll(userId);
-          const target = allMats.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
-          if (!target) {
-            message = `"${item}" not found in inventory.`;
-            break;
-          }
-          if (qty > target.quantity) {
-            message = `Cannot remove ${qty} ${target.unit}(s) — only ${target.quantity} in stock.`;
-            break;
-          }
-          const afterRemoval = target.quantity - qty;
-          await materialsService.update(target.id, userId, { quantity: afterRemoval });
-          const reason = actionData.reason ? ` (reason: ${actionData.reason})` : '';
-          message = afterRemoval === 0
-            ? `Removed ${qty}x ${target.name}${reason}. Stock is now 0 — out of stock.`
-            : `Removed ${qty}x ${target.name}${reason}. Remaining: ${afterRemoval} ${target.unit}(s).`;
-          break;
-        }
-
-        case 'STOCK_SET': {
-          const newQty = quantity ?? 0;
-          if (newQty < 0) {
-            message = `Stock cannot be set to a negative number.`;
-            break;
-          }
-          const allMats = await materialsService.getAll(userId);
-          const target = allMats.find(m => m.name.toLowerCase() === (item || '').toLowerCase());
-          if (!target) {
-            message = `"${item}" not found in inventory.`;
-            break;
-          }
-          const diff = newQty - target.quantity;
-          await materialsService.update(target.id, userId, { quantity: newQty });
-          const diffNote = diff > 0 ? ` (+${diff} adjusted up)` : diff < 0 ? ` (${diff} adjusted down)` : ` (no change)`;
-          message = `${target.name} stock corrected to ${newQty} ${target.unit}(s)${diffNote}.`;
-          break;
-        }
-
-        case 'UPDATE_PRODUCT': {
-          const allProducts = await productsService.getAll(userId);
-          const prod = allProducts.find(p => p.name.toLowerCase() === (item || '').toLowerCase());
-          if (!prod) {
-            message = `Product "${item}" not found. Check the name or go to Products page.`;
-            break;
-          }
-          await productsService.update(prod.id, userId, {
-            name: prod.name,
-            sellingPrice: price ?? prod.sellingPrice,
-            costPrice: prod.costPrice,
-            materials: prod.materials,
-          });
-          message = `${prod.name} selling price updated to ₦${(price ?? prod.sellingPrice).toLocaleString()}.`;
-          break;
-        }
-
-        case 'DELETE_PRODUCT': {
-          const allProducts = await productsService.getAll(userId);
-          const prod = allProducts.find(p => p.name.toLowerCase() === (item || '').toLowerCase());
-          if (!prod) {
-            message = `Product "${item}" not found.`;
-            break;
-          }
-          // Check for stock of any linked material
-          const allMats = await materialsService.getAll(userId);
-          const linkedWithStock = (prod.materials || [])
-            .map(r => allMats.find(m => m.id === r.materialId))
-            .filter(m => m && m.quantity > 0);
-          if (linkedWithStock.length > 0) {
-            const names = linkedWithStock.map(m => m!.name).join(', ');
-            message = `Cannot delete "${prod.name}" — linked ingredients still have stock: ${names}. Clear the stock first or edit the recipe.`;
-            break;
-          }
-          await productsService.delete(prod.id, userId);
-          message = `Product "${prod.name}" deleted.`;
-          break;
-        }
-
-        case 'EXPENSE': {
-          if (!price || price === 0) {
-            message = `How much did you spend on ${item || 'that'}? e.g. ₦3,000`;
-            break;
-          }
-          const expenseCategory = actionData.category || 'General';
-          await expensesService.create({
-            userId, amount: price, description: item || 'Expense',
-            category: expenseCategory, date: new Date().toISOString()
-          });
-          message = `Recorded: ₦${price.toLocaleString()} spent on ${item}${expenseCategory !== 'General' ? ` (${expenseCategory})` : ''}.`;
-          break;
-        }
-
-        case 'PROFIT_QUERY': {
-          const period: string = actionData.period || 'today';
-          const allSales = await salesService.getAll(userId);
-          const allExpenses = await expensesService.getAll(userId);
-          const now = new Date();
-
-          const inPeriod = (dateStr: string) => {
-            const d = parseNormalizedDate(dateStr);
-            if (period === 'today') return d.toDateString() === now.toDateString();
-            if (period === 'week') { const w = new Date(now); w.setDate(now.getDate() - 7); return d >= w; }
-            if (period === 'month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-            return true; // all-time
-          };
-
-          const sales = allSales.filter(s => inPeriod(s.date));
-          const expenses = allExpenses.filter(e => inPeriod(e.date));
-
-          const revenue = sales.reduce((s, r) => s + (r.totalAmount || 0), 0);
-          const cogs = sales.reduce((s, r) => s + (r.costAmount || 0), 0);
-          const expenseTotal = expenses.reduce((s, e) => s + (e.amount || 0), 0);
-          const grossProfit = revenue - cogs;
-          const netProfit = grossProfit - expenseTotal;
-
-          const label = ({ today: 'Today', week: 'This Week', month: 'This Month', all: 'All Time' } as Record<string, string>)[period] ?? period;
-
-          if (sales.length === 0 && expenses.length === 0) {
-            message = `No sales or expenses recorded ${label.toLowerCase()} yet. Start by saying something like "Sold 5 bags of rice at ₦2,000 each".`;
-          } else {
-            const netLabel = netProfit >= 0 ? `✅ ₦${netProfit.toLocaleString()} profit` : `⚠️ ₦${Math.abs(netProfit).toLocaleString()} loss`;
-            message = `${label} Summary\n• Revenue: ₦${revenue.toLocaleString()}\n• Cost of Goods: ₦${cogs.toLocaleString()}\n• Expenses: ₦${expenseTotal.toLocaleString()}\n• ${netLabel}`;
-          }
-          break;
-        }
-
-        case 'CHAT': {
-          // Fetch live business data to ground the AI's response
-          const [chatMats, chatProds, chatSales, chatExps] = await Promise.all([
-            materialsService.getAll(userId),
-            productsService.getAll(userId),
-            salesService.getAll(userId),
-            expensesService.getAll(userId),
-          ]);
-
-          const now = new Date();
-          const todaySales = chatSales.filter(s => new Date(s.date).toDateString() === now.toDateString());
-          const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7);
-          const weekSales = chatSales.filter(s => new Date(s.date) >= weekAgo);
-          const monthSales = chatSales.filter(s => {
-            const d = new Date(s.date);
-            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-          });
-
-          const todayRevenue = todaySales.reduce((s, r) => s + (r.totalAmount || 0), 0);
-          const weekRevenue  = weekSales.reduce((s, r) => s + (r.totalAmount || 0), 0);
-          const monthRevenue = monthSales.reduce((s, r) => s + (r.totalAmount || 0), 0);
-          const totalCogs    = chatSales.reduce((s, r) => s + (r.costAmount || 0), 0);
-          const totalRev     = chatSales.reduce((s, r) => s + (r.totalAmount || 0), 0);
-          const totalExp     = chatExps.reduce((s, e) => s + (e.amount || 0), 0);
-
-          const lowStock = chatMats.filter(m => m.quantity <= (m.lowStockThreshold ?? 5));
-
-          // Top products by revenue
-          const revByProduct: Record<string, number> = {};
-          chatSales.forEach(s => {
-            revByProduct[s.productName] = (revByProduct[s.productName] || 0) + (s.totalAmount || 0);
-          });
-          const topProducts = Object.entries(revByProduct)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 5)
-            .map(([name, rev]) => `${name} (₦${rev.toLocaleString()})`);
-
-          const businessContext = [
-            `INVENTORY (${chatMats.length} items):`,
-            chatMats.slice(0, 20).map(m =>
-              `- ${m.name}: ${m.quantity} ${m.unit}(s), cost ₦${m.costPrice}/unit`
-            ).join('\n'),
-            '',
-            `LOW STOCK (${lowStock.length} items):`,
-            lowStock.length > 0
-              ? lowStock.map(m => `- ${m.name}: ${m.quantity} left (threshold ${m.lowStockThreshold ?? 5})`).join('\n')
-              : '- None',
-            '',
-            `PRODUCTS / MENU (${chatProds.length} items):`,
-            chatProds.slice(0, 15).map(p =>
-              `- ${p.name}: sells @ ₦${p.sellingPrice}${p.costPrice ? `, cost ₦${p.costPrice}` : ''}`
-            ).join('\n'),
-            '',
-            `SALES SUMMARY:`,
-            `- Today: ₦${todayRevenue.toLocaleString()} (${todaySales.length} sales)`,
-            `- This week: ₦${weekRevenue.toLocaleString()} (${weekSales.length} sales)`,
-            `- This month: ₦${monthRevenue.toLocaleString()} (${monthSales.length} sales)`,
-            `- All-time revenue: ₦${totalRev.toLocaleString()}, COGS: ₦${totalCogs.toLocaleString()}, gross profit: ₦${(totalRev - totalCogs).toLocaleString()}`,
-            `- All-time expenses: ₦${totalExp.toLocaleString()}, net profit: ₦${(totalRev - totalCogs - totalExp).toLocaleString()}`,
-            '',
-            `TOP PRODUCTS BY REVENUE:`,
-            topProducts.length > 0 ? topProducts.map(p => `- ${p}`).join('\n') : '- No sales yet',
-          ].join('\n');
-
-          // Build the message thread: history + current user message
-          const thread: BedrockMessage[] = [
-            ...conversationHistory,
-            { role: 'user', content: rawInput },
-          ];
-
-          const chatResponse = await chatConversational(thread, businessContext);
-          message = chatResponse.content;
-          break;
-        }
-
-        default:
-          message = `Unknown action: ${action}`;
-      }
-      processedActions.push(message);
-    }
-
-    finalMessage = processedActions.join('\n');
-    revalidatePath('/dashboard');
-    revalidatePath('/materials');
-    revalidatePath('/sales');
-    revalidatePath('/products');
-
-    return { success: true, message: finalMessage, data: actions };
-  } catch (dbError) {
-    console.error("Database execution failed:", dbError);
-    return {
-      success: false,
-      error: `Error: ${dbError instanceof Error ? dbError.message : String(dbError)}`
-    };
-  }
-}
 
 export async function processBusinessCommand(input: ParseBusinessCommandInput) {
   const session = await auth();
@@ -579,9 +58,10 @@ export async function getBusinessInsights() {
     // unstable_cache is Vercel-compatible (persists across serverless invocations via CDN cache)
     const fetchInsights = unstable_cache(
       async () => {
+        // Last 90 days is plenty for trend insights and keeps reads bounded.
         const [materials, sales, products] = await Promise.all([
           materialsService.getAll(userId),
-          salesService.getAll(userId),
+          salesService.getInRange(userId, startOfBusinessDay(new Date(), -89)),
           productsService.getAll(userId),
         ]);
         return generateWithAI({ materials, sales, products });
@@ -685,11 +165,32 @@ export async function deleteProductAction(id: string) {
 }
 
 // Sales
-export async function getSalesAction() {
+// Most recent sales, newest first. `limit` caps the read for UI lists; the CSV
+// export calls this without a limit to get the full history.
+export async function getSalesAction(limit?: number) {
   const session = await auth();
   if (!session?.user?.id) return [];
   const userId = session.user.id;
-  return await salesService.getAll(userId);
+  return await salesService.getAll(userId, limit);
+}
+
+// Today's sales and expenses (Lagos day) for the dashboard, plus whether the
+// account has recorded anything at all. Reads today's documents and at most
+// one document per collection for the "has data" check.
+export async function getTodayActivityAction() {
+  const session = await auth();
+  if (!session?.user?.id) return { sales: [], expenses: [], hasData: false };
+  const userId = session.user.id;
+  const todayStart = startOfBusinessDay();
+
+  const [sales, expenses, anySale, anyExpense] = await Promise.all([
+    salesService.getInRange(userId, todayStart),
+    expensesService.getInRange(userId, todayStart),
+    salesService.getAll(userId, 1),
+    expensesService.getAll(userId, 1),
+  ]);
+
+  return { sales, expenses, hasData: anySale.length > 0 || anyExpense.length > 0 };
 }
 
 export async function createSaleAction(data: { productName: string; quantity: number; totalAmount: number; paymentMethod: 'Cash' | 'Card' | 'Transfer'; }) {
@@ -863,55 +364,39 @@ export async function getKpisAction(period: KpiPeriod = 'month') {
   if (!session?.user?.id) return [];
   const userId = session.user.id;
 
-  const [materials, allSales, allExpenses, products] = await Promise.all([
-    materialsService.getAll(userId),
-    salesService.getAll(userId),
-    expensesService.getAll(userId),
-    productsService.getAll(userId),
-  ]);
-
   const now = new Date();
 
-  // Period boundaries
-  const periodStart = (() => {
-    if (period === 'today') { const d = new Date(now); d.setHours(0,0,0,0); return d; }
-    if (period === 'week')  { const d = new Date(now); d.setDate(now.getDate() - 6); d.setHours(0,0,0,0); return d; }
-    if (period === 'month') return new Date(now.getFullYear(), now.getMonth(), 1);
-    return new Date(0); // all
-  })();
+  // Period boundaries, in Lagos time
+  const start = periodStart(period, now);
 
-  // Previous period boundaries (for % change — only meaningful for today/week/month)
+  // Previous period [prevStart, prevEnd) for % change (today/week/month only)
   const prevStart = (() => {
-    if (period === 'today') { const d = new Date(now); d.setDate(now.getDate() - 1); d.setHours(0,0,0,0); return d; }
-    if (period === 'week')  { const d = new Date(now); d.setDate(now.getDate() - 13); d.setHours(0,0,0,0); return d; }
-    if (period === 'month') return new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    if (period === 'today') return startOfBusinessDay(now, -1);
+    if (period === 'week')  return startOfBusinessDay(now, -13);
+    if (period === 'month') return startOfBusinessMonth(now, -1);
     return null;
   })();
-  const prevEnd = (() => {
-    if (period === 'today') { const d = new Date(now); d.setDate(now.getDate() - 1); d.setHours(23,59,59,999); return d; }
-    if (period === 'week')  { const d = new Date(now); d.setDate(now.getDate() - 7); d.setHours(23,59,59,999); return d; }
-    if (period === 'month') return new Date(now.getFullYear(), now.getMonth(), 0);
-    return null;
-  })();
+  const prevEnd = start;
 
-  const inPeriod = (dateStr: string) => parseNormalizedDate(dateStr) >= periodStart;
-  const inPrev   = (dateStr: string) => prevStart && prevEnd
-    ? parseNormalizedDate(dateStr) >= prevStart && parseNormalizedDate(dateStr) <= prevEnd
-    : false;
+  // Only read documents from the window we actually report on. For 'all',
+  // Firestore aggregates the totals instead of us downloading every sale.
+  const [materials, products, saleTotals, expenseTotals, prevSaleTotals] = await Promise.all([
+    materialsService.getAll(userId),
+    productsService.getAll(userId),
+    salesService.getTotals(userId, start),
+    expensesService.getTotal(userId, start),
+    prevStart ? salesService.getTotals(userId, prevStart, prevEnd) : Promise.resolve(null),
+  ]);
 
-  const sales    = allSales.filter(s => inPeriod(s.date));
-  const expenses = allExpenses.filter(e => inPeriod(e.date));
-  const prevSales = allSales.filter(s => inPrev(s.date));
-
-  const revenue      = sales.reduce((s, r) => s + (r.totalAmount || 0), 0);
-  const cogs         = sales.reduce((s, r) => s + (r.costAmount || 0), 0);
-  const expenseTotal = expenses.reduce((s, e) => s + (e.amount || 0), 0);
+  const revenue      = saleTotals.revenue;
+  const cogs         = saleTotals.cost;
+  const expenseTotal = expenseTotals.total;
   const grossProfit  = revenue - cogs;
   const netProfit    = grossProfit - expenseTotal;
   const grossMargin  = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
   const netMargin    = revenue > 0 ? (netProfit / revenue) * 100 : 0;
 
-  const prevRevenue  = prevSales.reduce((s, r) => s + (r.totalAmount || 0), 0);
+  const prevRevenue  = prevSaleTotals?.revenue ?? 0;
   const revenueChange = prevRevenue > 0 ? ((revenue - prevRevenue) / prevRevenue) * 100 : 0;
 
   const inventoryValue = materials.reduce((s, m) => s + ((m.quantity || 0) * (m.costPrice || 0)), 0);
@@ -932,7 +417,7 @@ export async function getKpisAction(period: KpiPeriod = 'month') {
     {
       title: 'Expenses',
       value: `₦${expenseTotal.toLocaleString()}`,
-      change: `${expenses.length} ${expenses.length === 1 ? 'record' : 'records'}`,
+      change: `${expenseTotals.count} ${expenseTotals.count === 1 ? 'record' : 'records'}`,
       changeType: 'decrease' as const,
       description: 'logged',
       iconName: 'TrendingDown',
@@ -977,26 +462,24 @@ export async function getRevenueChartData() {
   if (!session?.user?.id) return [];
   const userId = session.user.id;
 
-  const sales = await salesService.getAll(userId);
-
-  // Group by month for the last 6 months
+  // Only the last 6 Lagos months of sales
   const now = new Date();
+  const sales = await salesService.getInRange(userId, startOfBusinessMonth(now, -5));
+
   const last6Months = Array.from({ length: 6 }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const monthStart = startOfBusinessMonth(now, -i);
+    const { year, monthIndex } = businessMonth(monthStart);
     return {
-      name: d.toLocaleString('default', { month: 'short' }),
-      year: d.getFullYear(),
-      monthIndex: d.getMonth(),
+      name: new Date(Date.UTC(year, monthIndex, 15)).toLocaleString('en-NG', { month: 'short', timeZone: 'UTC' }),
+      year,
+      monthIndex,
       value: 0
     };
   }).reverse();
 
   sales.forEach(sale => {
-    const saleDate = new Date(sale.date);
-    const saleMonth = saleDate.getMonth();
-    const saleYear = saleDate.getFullYear();
-
-    const monthData = last6Months.find(m => m.monthIndex === saleMonth && m.year === saleYear);
+    const { year, monthIndex } = businessMonth(parseNormalizedDate(sale.date));
+    const monthData = last6Months.find(m => m.monthIndex === monthIndex && m.year === year);
     if (monthData) {
       monthData.value += sale.totalAmount || 0;
     }

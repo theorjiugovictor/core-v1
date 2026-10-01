@@ -1,17 +1,15 @@
 import { Ratelimit } from '@upstash/ratelimit';
-import { Redis } from '@upstash/redis';
+import { redis, isProduction } from './redis';
 
-const hasRedisConfig = Boolean(
-  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
-);
-
-const redis = hasRedisConfig
-  ? new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-    })
-  : null;
-
+/**
+ * Behaviour when Redis is unavailable:
+ * - Not configured in production: fail CLOSED. Running without rate limits in
+ *   production means unlimited AI spend and unlimited login attempts, so a
+ *   missing env var should be loud, not silent.
+ * - Not configured locally: allow (so `npm run dev` works without Upstash).
+ * - Configured but erroring (transient outage): allow and log. Blocking every
+ *   login during a short Upstash blip is worse than briefly losing limits.
+ */
 function createSafeLimiter(limiterConfig: {
   limiter: ReturnType<typeof Ratelimit.slidingWindow>;
   prefix: string;
@@ -27,6 +25,13 @@ function createSafeLimiter(limiterConfig: {
   return {
     async limit(key: string): Promise<{ success: boolean; limit?: number; remaining?: number; reset?: number }> {
       if (!instance) {
+        if (isProduction) {
+          console.error(
+            `Rate limiter ${limiterConfig.prefix} has no Redis configured in production; denying request. ` +
+            'Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN.'
+          );
+          return { success: false };
+        }
         return { success: true };
       }
       try {
@@ -67,4 +72,9 @@ export const emailAuthLimiter = createSafeLimiter({
   limiter: Ratelimit.slidingWindow(5, '30 m'),
   prefix: 'rl:auth:email',
   analytics: true,
+});
+
+export const earlyAccessLimiter = createSafeLimiter({
+  limiter: Ratelimit.slidingWindow(5, '15 m'),
+  prefix: 'rl:early-access',
 });

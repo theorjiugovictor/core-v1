@@ -1,47 +1,22 @@
-import { NextResponse } from 'next/server';
-import { Redis } from '@upstash/redis';
+import { NextResponse, after } from 'next/server';
 import { usersService } from '@/lib/firebase/users';
-import { executeCommandForUser } from '@/lib/actions';
 import { sendWhatsAppMessage } from '@/lib/messaging';
 import { telemetry } from '@/lib/telemetry';
-import type { BedrockMessage } from '@/lib/bedrock';
+import { claimOnce } from '@/lib/redis';
+import { verifyWhatsAppSignature } from '@/lib/webhook-security';
+import { handleChannelMessage } from '@/lib/channel-messages';
 
 export const runtime = 'nodejs';
+// Processing (AI call + reply) runs in after(), inside this budget.
+export const maxDuration = 60;
 
-const redis =
-  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
-    ? new Redis({
-        url: process.env.UPSTASH_REDIS_REST_URL,
-        token: process.env.UPSTASH_REDIS_REST_TOKEN,
-      })
-    : null;
-
-const HISTORY_KEY = (userId: string) => `wa:conv:${userId}`;
-const MAX_TURNS = 20;
-const TTL_SECONDS = 60 * 60 * 2;
-
-async function loadHistory(userId: string): Promise<BedrockMessage[]> {
-  if (!redis) return [];
-  try {
-    const raw = await redis.get<BedrockMessage[]>(HISTORY_KEY(userId));
-    return Array.isArray(raw) ? raw : [];
-  } catch {
-    return [];
-  }
-}
-
-async function saveHistory(userId: string, history: BedrockMessage[]) {
-  if (!redis) return;
-  try {
-    const trimmed = history.slice(-MAX_TURNS);
-    await redis.set(HISTORY_KEY(userId), trimmed, { ex: TTL_SECONDS });
-  } catch {
-    // Non-fatal
-  }
-}
+// Meta retries for up to ~7 days in some failure modes; a day covers normal retries.
+const DEDUPE_TTL_SECONDS = 60 * 60 * 24;
 
 const UNLINKED_MESSAGE =
-  "👋 Hi! I don't recognize this number yet.\n\nTo use CORE on WhatsApp:\n1. Log in at usecoreapp.com\n2. Go to Settings → Connected Channels\n3. Enter this WhatsApp number\n\nThen come back and try again!";
+  "Hi! I don't recognize this number yet.\n\nTo use CORE on WhatsApp:\n1. Log in at usecoreapp.com\n2. Go to Settings → Connected Channels\n3. Enter this WhatsApp number\n\nThen come back and try again!";
+
+type WhatsAppTextMessage = { id: string; from: string; type: string; text?: { body?: string } };
 
 // ─── Webhook verification (Meta sends a GET to confirm the endpoint) ──────────
 export async function GET(request: Request) {
@@ -50,7 +25,7 @@ export async function GET(request: Request) {
   const token = searchParams.get('hub.verify_token');
   const challenge = searchParams.get('hub.challenge');
 
-  if (mode === 'subscribe' && token === process.env.WHATSAPP_VERIFY_TOKEN) {
+  if (mode === 'subscribe' && token && token === process.env.WHATSAPP_VERIFY_TOKEN) {
     return new Response(challenge, { status: 200 });
   }
 
@@ -59,69 +34,66 @@ export async function GET(request: Request) {
 
 // ─── Incoming messages ────────────────────────────────────────────────────────
 export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-
-    const entry = body?.entry?.[0];
-    const change = entry?.changes?.[0];
-    const message = change?.value?.messages?.[0];
-
-    if (!message || message.type !== 'text') {
-      return NextResponse.json({ ok: true });
-    }
-
-    const from: string = message.from;
-    const text: string = message.text?.body?.trim() || '';
-
-    if (!text) return NextResponse.json({ ok: true });
-
-    const user = await usersService.getByWhatsappPhone(from);
-
-    if (!user) {
-      telemetry.error('WhatsApp message from unlinked number', undefined, {
-        'event.name': 'whatsapp.unlinked_user',
-        'whatsapp.from': from,
-      });
-      await sendWhatsAppMessage(from, UNLINKED_MESSAGE);
-      return NextResponse.json({ ok: true });
-    }
-
-    // Load conversation history from Redis
-    const history = await loadHistory(user.id);
-
-    // Process with full conversation context
-    const result = await executeCommandForUser(user.id, text, history);
-
-    const reply = result.success
-      ? result.message || '✅ Done!'
-      : `❌ ${result.error || 'Something went wrong. Please try again.'}`;
-
-    if (!result.success) {
-      telemetry.error('WhatsApp AI command failed', user.id, {
-        'event.name': 'whatsapp.command_failed',
-        'ai.input': text.slice(0, 200),
-        'error.message': result.error || 'unknown',
-      });
-    }
-
-    // Persist updated history
-    if (result.success) {
-      const updated: BedrockMessage[] = [
-        ...history,
-        { role: 'user', content: text },
-        { role: 'assistant', content: reply },
-      ];
-      await saveHistory(user.id, updated);
-    }
-
-    await sendWhatsAppMessage(from, reply);
-    return NextResponse.json({ ok: true });
-  } catch (error) {
-    console.error('WhatsApp webhook error:', error);
-    telemetry.error('Unhandled error in WhatsApp webhook', undefined, {
-      'event.name': 'whatsapp.webhook_error',
-      'error.message': error instanceof Error ? error.message : String(error),
+  // 1. Authenticate: the body must be signed by Meta with our app secret.
+  const rawBody = await request.text();
+  if (!verifyWhatsAppSignature(rawBody, request.headers.get('x-hub-signature-256'))) {
+    telemetry.error('Rejected WhatsApp webhook with invalid signature', undefined, {
+      'event.name': 'whatsapp.invalid_signature',
     });
-    return NextResponse.json({ ok: true });
+    return new Response('Invalid signature', { status: 401 });
   }
+
+  let body: any;
+  try {
+    body = JSON.parse(rawBody);
+  } catch {
+    return new Response('Bad request', { status: 400 });
+  }
+
+  // 2. Collect every text message in the payload (Meta can batch several).
+  const messages: WhatsAppTextMessage[] = [];
+  for (const entry of body?.entry ?? []) {
+    for (const change of entry?.changes ?? []) {
+      for (const message of change?.value?.messages ?? []) {
+        if (message?.type === 'text' && message.id && message.from && message.text?.body?.trim()) {
+          messages.push(message);
+        }
+      }
+    }
+  }
+
+  // 3. Dedupe on the WhatsApp message id so a retry never records a sale twice.
+  const fresh: WhatsAppTextMessage[] = [];
+  for (const message of messages) {
+    if (await claimOnce(`wh:wa:${message.id}`, DEDUPE_TTL_SECONDS)) {
+      fresh.push(message);
+    }
+  }
+
+  // 4. Acknowledge immediately; do the slow work after the response is sent.
+  if (fresh.length > 0) {
+    after(async () => {
+      for (const message of fresh) {
+        const from = message.from;
+        const text = message.text!.body!.trim();
+        const send = (reply: string) => sendWhatsAppMessage(from, reply);
+
+        const user = await usersService.getByWhatsappPhone(from);
+        if (!user) {
+          telemetry.error('WhatsApp message from unlinked number', undefined, {
+            'event.name': 'whatsapp.unlinked_user',
+            'whatsapp.from': from,
+          });
+          await send(UNLINKED_MESSAGE).catch((err) =>
+            console.error('WhatsApp unlinked reply failed:', err)
+          );
+          continue;
+        }
+
+        await handleChannelMessage({ channel: 'whatsapp', userId: user.id, input: text, send });
+      }
+    });
+  }
+
+  return NextResponse.json({ ok: true });
 }

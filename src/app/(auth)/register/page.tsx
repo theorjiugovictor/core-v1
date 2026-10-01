@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
@@ -55,11 +55,11 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<RegisterFormData>({
+  const { register, handleSubmit, control, formState: { errors } } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
   });
 
-  const passwordValue = watch('password', '');
+  const passwordValue = useWatch({ control, name: 'password', defaultValue: '' });
 
   const onSubmit = (data: RegisterFormData) => {
     setError(null);
@@ -83,10 +83,10 @@ export default function RegisterPage() {
     <div className="flex min-h-screen">
       {/* Left — Brand Panel */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between bg-foreground text-background p-12 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(243,75%,45%,0.4),transparent_50%),radial-gradient(circle_at_80%_80%,hsl(270,50%,30%,0.3),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(231,56%,27%,0.4),transparent_50%),radial-gradient(circle_at_80%_80%,hsl(230,65%,54%,0.3),transparent_50%)]" />
 
         <div className="relative z-10">
-          <Logo showText size={36} className="[&_span]:text-background" />
+          <Logo size="lg" tone="inverse" />
         </div>
 
         <div className="relative z-10 space-y-6">
@@ -96,7 +96,7 @@ export default function RegisterPage() {
               Every business<br />deserves to be<br />taken seriously.
             </h2>
             <p className="mt-4 text-background/60 text-lg leading-relaxed">
-              No matter how small, no matter where you're starting from.
+              No matter how small, no matter where you&apos;re starting from.
             </p>
           </div>
 
@@ -125,7 +125,7 @@ export default function RegisterPage() {
       {/* Right — Form Panel */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-12 bg-background overflow-y-auto">
         <div className="lg:hidden mb-8">
-          <Logo size={36} />
+          <Logo size="md" />
         </div>
 
         <div className="w-full max-w-sm space-y-7">

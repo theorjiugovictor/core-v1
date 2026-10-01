@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CORE brand v2 — indigo + cowrie. All values converted from the identity sheet. */
+
+:root {
+  --background: 220 18% 97%;        /* Paper       #F5F6F8 */
+  --foreground: 230 36% 10%;        /* Ink         #101322 */
+
+  --card: 0 0% 100%;                /*             #FFFFFF */
+  --card-foreground: 230 36% 10%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 230 36% 10%;
+
+  --primary: 231 56% 27%;           /* Indigo      #1E2A6B */
+  --primary-foreground: 0 0% 100%;
+
+  --accent: 42 100% 62%;            /* Cowrie      #FFC53D — CTA only */
+  --accent-foreground: 230 36% 10%;
+
+  --secondary: 223 21% 94%;         /*             #EBEDF2 */
+  --secondary-foreground: 231 56% 27%;
+
+  --muted: 223 21% 94%;
+  --muted-foreground: 227 9% 48%;   /* Muted label #6E7385 */
+
+  --destructive: 8 68% 50%;         /* Loss        #D6402A */
+  --destructive-foreground: 0 0% 100%;
+
+  --success: 160 84% 34%;           /* Profit      #0E9F6E */
+  --success-foreground: 0 0% 100%;
+
+  --border: 223 15% 91%;            /* Hairline    #E4E6EB */
+  --input: 223 15% 91%;
+  --ring: 230 65% 54%;              /* Bright indigo #3B54D6 — focus only */
+
+  --radius: 0.625rem;               /* 10px, matches the button spec */
+
+  --chart-1: 231 56% 27%;           /* Indigo */
+  --chart-2: 230 65% 54%;           /* Bright indigo */
+  --chart-3: 42 100% 62%;           /* Cowrie */
+  --chart-4: 160 84% 34%;           /* Profit green */
+  --chart-5: 8 68% 50%;             /* Loss red */
+}
+
+.dark {
+  --background: 230 36% 10%;        /* Ink         #101322 */
+  --foreground: 220 18% 97%;
+
+  --card: 230 33% 14%;              /*             #171B2E */
+  --card-foreground: 220 18% 97%;
+
+  --popover: 230 36% 10%;
+  --popover-foreground: 220 18% 97%;
+
+  --primary: 231 76% 63%;           /* Indigo, lifted for dark surfaces */
+  --primary-foreground: 230 36% 10%;
+
+  --accent: 42 100% 62%;            /* Cowrie is identical in both themes */
+  --accent-foreground: 230 36% 10%;
+
+  --secondary: 229 33% 16%;
+  --secondary-foreground: 220 18% 97%;
+
+  --muted: 229 33% 16%;
+  --muted-foreground: 226 15% 65%;
+
+  --destructive: 8 68% 50%;
+  --destructive-foreground: 0 0% 100%;
+
+  --success: 160 84% 34%;
+  --success-foreground: 0 0% 100%;
+
+  --border: 231 31% 24%;
+  --input: 231 31% 24%;
+  --ring: 231 76% 63%;
+
+  --chart-1: 231 76% 63%;
+  --chart-2: 230 65% 64%;
+  --chart-3: 42 100% 62%;
+  --chart-4: 160 70% 45%;
+  --chart-5: 8 75% 60%;
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .text-pretty  { text-wrap: pretty; }
+
+  /* Display type: Archivo, 600/800 only, tracking -5% */
+  .font-display   { @apply font-heading font-extrabold tracking-[-0.05em]; }
+  .font-display-2 { @apply font-heading font-semibold tracking-[-0.025em]; }
+
+  /* Numbers, currency, SKUs, timestamps */
+  .tabular { @apply font-mono tabular-nums tracking-[0.02em]; }
+
+  /* The full stop. Square, never round, never rotated. */
+  .brand-dot { @apply inline-block h-[0.14em] w-[0.14em] bg-current align-baseline; }
+}
+
+* { @apply border-border; }
+
+body { @apply bg-background text-foreground antialiased; }
