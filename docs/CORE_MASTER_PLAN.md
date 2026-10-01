@@ -1,16 +1,16 @@
-# CORE Master Product & Engineering Plan
+# CORE Product Ideas
 **Mission: Infrastructure for the Smallest Businesses on Earth**
 
 ---
 
 ## Executive Summary
-This document outlines the phased roadmap for CORE—from frictionless bookkeeping and the proprietary "Text-to-Account" harness, to automated bank reconciliation, contextual supply chain procurement, and working capital underwriting. 
+These are product ideas, not a release schedule or a description of shipped features. Check the application and current issues before planning work from this document.
 
-The plan is strictly ordered from **Lowest-Hanging Fruit (Immediate Wins)** to **Most Difficult (Long-term Moats)**.
+The sections are grouped by increasing implementation scope, not priority or delivery date.
 
 ---
 
-## Phase 1: Lowest-Hanging Fruit (Immediate / 1–2 Weeks)
+## Near-term ideas
 
 ### 1. Frictionless Onboarding & Email-Only Auth
 * **Goal:** Zero barrier to entry.
@@ -22,12 +22,11 @@ The plan is strictly ordered from **Lowest-Hanging Fruit (Immediate Wins)** to *
 ### 2. Generous Free Tier with Smart Cost Guardrails
 * **Goal:** Maximum active daily usage with zero customer acquisition friction.
 * **Mechanism:**
-  * **Transactional Commands (Sales, Stock, Expenses):** Unlimited. Powered by `gemini-3.1-flash-lite` (costs less than ₦5 per 100 sales).
-  * **Conversational Advisory Chat:** Capped at 10–15 prompts/day on the free tier. Prompts the user to upgrade for unlimited strategic business advice.
-  * **Burst Rate Limit:** 10 requests/minute to prevent bot abuse and scraping.
+  * Explore cost-aware limits for transactional commands and advisory chat based on measured usage and provider costs.
+  * Apply abuse protection to expensive operations.
 
 ### 3. Fast-Path Deterministic Regex & Catalog Matcher
-* **Goal:** Cut latency from 3 seconds to under 50ms and eliminate 70% of LLM token costs.
+* **Goal:** Reduce latency and model usage for repeat, well-formed sales.
 * **Mechanism:**
   * Cache the merchant's top 30 active inventory items on the client / edge.
   * If a command follows a standard pattern (e.g., *"Sold 2 rice at 1500"* or shorthand *"s 2 r 1500"*), match the SKU locally using fuzzy string distance.
@@ -46,7 +45,7 @@ The plan is strictly ordered from **Lowest-Hanging Fruit (Immediate Wins)** to *
 
 ---
 
-## Phase 2: High Impact / Medium Effort (3–5 Weeks)
+## Medium-term ideas
 
 ### 5. Inverse Accounting ("The Leftover Count")
 * **Goal:** Reconcile high-velocity micro-merchants (bakeries, food stalls, provision kiosks) without forcing them to log individual ₦500 sales.
@@ -72,7 +71,7 @@ The plan is strictly ordered from **Lowest-Hanging Fruit (Immediate Wins)** to *
 
 ---
 
-## Phase 3: Deep Technical Infrastructure (6–10 Weeks)
+## Infrastructure ideas
 
 ### 8. Bank Alert & Transfer Ingestion
 * **Goal:** Close the reconciliation loop using the primary payment method in Nigeria (instant transfers).
@@ -91,7 +90,7 @@ The plan is strictly ordered from **Lowest-Hanging Fruit (Immediate Wins)** to *
 
 ---
 
-## Phase 4: Long-Term Enterprise Moats (3–6 Months)
+## Longer-term ideas
 
 ### 10. Contextual Supply Chain Procurement (The "Ad" Pivot)
 * **Goal:** Monetize through B2B commerce take-rates instead of intrusive display ads.
