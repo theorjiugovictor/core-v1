@@ -5,15 +5,15 @@ import { format } from 'date-fns';
 import { ArrowUpRight, ArrowDownRight, TrendingUp, DollarSign } from 'lucide-react';
 
 interface DailySummaryProps {
+    /** Today's sales (Lagos day), already filtered on the server. */
     sales: any[];
+    /** Today's expenses (Lagos day), already filtered on the server. */
     expenses: any[];
 }
 
 export function DailySummary({ sales, expenses }: DailySummaryProps) {
-    const today = new Date().toISOString().split('T')[0];
-
-    const todaySales = sales.filter(s => s.date.startsWith(today));
-    const todayExpenses = expenses.filter(e => e.date.startsWith(today));
+    const todaySales = sales;
+    const todayExpenses = expenses;
 
     const totalSales = todaySales.reduce((sum, s) => sum + s.totalAmount, 0);
     const totalExpensesAmount = todayExpenses.reduce((sum, e) => sum + e.amount, 0);
@@ -26,7 +26,7 @@ export function DailySummary({ sales, expenses }: DailySummaryProps) {
                 <div className="flex justify-between items-center">
                     <CardTitle className="text-lg font-bold flex items-center gap-2">
                         <DollarSign className="h-5 w-5 text-primary" />
-                        Today's Overview
+                        Today&apos;s Overview
                     </CardTitle>
                     <span className="text-sm text-muted-foreground">{format(new Date(), 'MMM do, yyyy')}</span>
                 </div>

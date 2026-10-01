@@ -1,68 +1,32 @@
-import { NextResponse } from 'next/server';
-import { usersService } from '@/lib/firebase/users';
 import { materialsService } from '@/lib/firebase/materials';
 import { sendLowStockAlert } from '@/lib/email';
-import { telemetry } from '@/lib/telemetry';
+import { createCronHandler } from '@/lib/cron';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 const DEFAULT_THRESHOLD = 5;
 
-export async function GET(request: Request) {
-  const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+// Low-stock email for every user with items at or below their threshold, in batches.
+export const GET = createCronHandler({
+  name: 'low_stock',
+  async run(user) {
+    const materials = await materialsService.getAll(user.id);
+    const lowItems = materials
+      .filter((m) => m.quantity <= (m.lowStockThreshold ?? DEFAULT_THRESHOLD))
+      .map((m) => ({
+        name: m.name,
+        quantity: m.quantity,
+        unit: m.unit,
+        threshold: m.lowStockThreshold ?? DEFAULT_THRESHOLD,
+      }));
 
-  try {
-    const users = await usersService.getAll();
-    const results: { email: string; status: string; lowItems?: number }[] = [];
+    if (lowItems.length === 0) return 'skipped';
 
-    for (const user of users) {
-      try {
-        const materials = await materialsService.getAll(user.id);
-        const lowItems = materials
-          .filter((m) => {
-            const threshold = m.lowStockThreshold ?? DEFAULT_THRESHOLD;
-            return m.quantity <= threshold;
-          })
-          .map((m) => ({
-            name: m.name,
-            quantity: m.quantity,
-            unit: m.unit,
-            threshold: m.lowStockThreshold ?? DEFAULT_THRESHOLD,
-          }));
-
-        if (lowItems.length === 0) {
-          results.push({ email: user.email, status: 'skipped', lowItems: 0 });
-          continue;
-        }
-
-        await sendLowStockAlert(
-          { email: user.email, name: user.name, businessName: user.businessName },
-          lowItems
-        );
-
-        results.push({ email: user.email, status: 'sent', lowItems: lowItems.length });
-      } catch (err) {
-        console.error(`Low stock alert failed for ${user.email}:`, err);
-        telemetry.error('Low stock alert failed for user', user.id, {
-          'event.name': 'cron.low_stock.user_failed',
-          'user.email': user.email,
-          'error.message': err instanceof Error ? err.message : String(err),
-        });
-        results.push({ email: user.email, status: 'failed' });
-      }
-    }
-
-    return NextResponse.json({ ok: true, results });
-  } catch (error) {
-    console.error('Low stock cron failed:', error);
-    telemetry.error('Low stock cron job crashed', undefined, {
-      'event.name': 'cron.low_stock.crashed',
-      'error.message': error instanceof Error ? error.message : String(error),
-    });
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
-  }
-}
+    await sendLowStockAlert(
+      { email: user.email, name: user.name, businessName: user.businessName },
+      lowItems
+    );
+    return 'sent';
+  },
+});
