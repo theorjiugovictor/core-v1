@@ -112,7 +112,7 @@ export default function IdeasPage() {
                         <DialogHeader>
                             <DialogTitle>Capture New Idea</DialogTitle>
                             <DialogDescription>
-                                What's on your mind? A strategy, a reminder, or a task for the AI?
+                                What&apos;s on your mind? A strategy, a reminder, or a task for the AI?
                             </DialogDescription>
                         </DialogHeader>
                         <form onSubmit={handleCreate} className="space-y-4">
