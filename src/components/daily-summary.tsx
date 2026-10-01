@@ -26,7 +26,7 @@ export function DailySummary({ sales, expenses }: DailySummaryProps) {
                 <div className="flex justify-between items-center">
                     <CardTitle className="text-lg font-bold flex items-center gap-2">
                         <DollarSign className="h-5 w-5 text-primary" />
-                        Today's Overview
+                        Today&apos;s Overview
                     </CardTitle>
                     <span className="text-sm text-muted-foreground">{format(new Date(), 'MMM do, yyyy')}</span>
                 </div>

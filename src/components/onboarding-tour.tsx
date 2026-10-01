@@ -89,7 +89,7 @@ export function OnboardingTour() {
                     <Button onClick={handleNext} className="gap-2">
                         {step === steps.length - 1 ? (
                             <>
-                                Let's Go <Check className="w-4 h-4" />
+                                Let&apos;s Go <Check className="w-4 h-4" />
                             </>
                         ) : (
                             <>

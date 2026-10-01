@@ -60,7 +60,10 @@ export default function SalesPage() {
   const { toast } = useToast();
 
   React.useEffect(() => {
-    loadData();
+    void Promise.all([getSalesAction(SALES_PAGE_LIMIT), getProductsAction()]).then(([salesData, productsData]) => {
+      setSales(salesData);
+      setProducts(productsData);
+    });
   }, []);
 
   const loadData = async () => {
@@ -73,13 +76,6 @@ export default function SalesPage() {
   const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null);
   const [qty, setQty] = React.useState("1");
   const [totalAmountState, setTotalAmountState] = React.useState<string>("");
-
-  React.useEffect(() => {
-    if (selectedProduct) {
-      const calculated = selectedProduct.sellingPrice * (Number(qty) || 1);
-      setTotalAmountState(String(calculated));
-    }
-  }, [selectedProduct, qty]);
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -173,7 +169,11 @@ export default function SalesPage() {
             <form onSubmit={handleCreate} className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Product</Label>
-                <Select name="productName" onValueChange={(val) => setSelectedProduct(products.find(p => p.name === val) || null)} required>
+                <Select name="productName" onValueChange={(val) => {
+                  const product = products.find(p => p.name === val) || null;
+                  setSelectedProduct(product);
+                  setTotalAmountState(product ? String(product.sellingPrice * (Number(qty) || 1)) : "");
+                }} required>
                   <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Select Product" />
                   </SelectTrigger>
@@ -186,7 +186,10 @@ export default function SalesPage() {
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Quantity</Label>
-                <Input name="quantity" type="number" className="col-span-3" value={qty} onChange={e => setQty(e.target.value)} required min="1" />
+                <Input name="quantity" type="number" className="col-span-3" value={qty} onChange={e => {
+                  setQty(e.target.value);
+                  if (selectedProduct) setTotalAmountState(String(selectedProduct.sellingPrice * (Number(e.target.value) || 1)));
+                }} required min="1" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Total (₦)</Label>

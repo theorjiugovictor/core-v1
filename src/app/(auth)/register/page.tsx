@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
@@ -55,11 +55,11 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<RegisterFormData>({
+  const { register, handleSubmit, control, formState: { errors } } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
   });
 
-  const passwordValue = watch('password', '');
+  const passwordValue = useWatch({ control, name: 'password', defaultValue: '' });
 
   const onSubmit = (data: RegisterFormData) => {
     setError(null);
@@ -96,7 +96,7 @@ export default function RegisterPage() {
               Every business<br />deserves to be<br />taken seriously.
             </h2>
             <p className="mt-4 text-background/60 text-lg leading-relaxed">
-              No matter how small, no matter where you're starting from.
+              No matter how small, no matter where you&apos;re starting from.
             </p>
           </div>
 

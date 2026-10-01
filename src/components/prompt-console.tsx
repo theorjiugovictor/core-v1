@@ -364,7 +364,7 @@ export function PromptConsole({ hasData = true }: { hasData?: boolean }) {
         {/* Input bar */}
         <div className="px-3 py-3 border-t border-border/50 bg-muted/20">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
+            <form onSubmit={event => void form.handleSubmit(onSubmit)(event)}>
               <FormField
                 control={form.control}
                 name="prompt"

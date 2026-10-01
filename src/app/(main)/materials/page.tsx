@@ -144,7 +144,7 @@ export default function MaterialsPage() {
               <DialogHeader>
                 <DialogTitle>Add Material</DialogTitle>
                 <DialogDescription>
-                  Add a new raw material to your inventory. Click save when you're done.
+                  Add a new raw material to your inventory. Click save when you&apos;re done.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleCreate} className="grid gap-4 py-4">
