@@ -110,7 +110,7 @@ export function DataExport() {
     };
 
     return (
-        <Card className="max-w-2xl mx-auto border-none shadow-lg bg-card/50 backdrop-blur-md">
+        <Card className="max-w-2xl mx-auto border-none shadow-lg bg-card">
             <CardHeader>
                 <CardTitle>Export Data</CardTitle>
                 <CardDescription>

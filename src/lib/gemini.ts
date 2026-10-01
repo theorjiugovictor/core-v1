@@ -1,14 +1,8 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { BedrockMessage, BedrockResponse } from './bedrock';
 
-function getClient() {
-  if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is not set');
-  return new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-}
-
 /**
- * Call Google Gemini — drop-in equivalent of callBedrock.
- * Gemini roles: 'user' | 'model' (not 'assistant')
+ * Call Google Gemini REST API directly using fetch.
+ * This bypasses SDK header parsing bugs with new "AQ." prefix API keys.
  */
 export async function callGemini(
   prompt: string,
@@ -20,34 +14,62 @@ export async function callGemini(
     messages?: BedrockMessage[];
   }
 ): Promise<BedrockResponse> {
-  const client = getClient();
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY is not set');
+  }
 
-  const model = client.getGenerativeModel({
-    model: options?.model || 'gemini-1.5-flash',
-    systemInstruction: systemPrompt,
+  const modelName = options?.model || process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
+
+  // Format contents for REST API
+  let contents = [];
+  if (options?.messages && options.messages.length > 0) {
+    contents = options.messages.map(m => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }],
+    }));
+  } else {
+    contents = [{ role: 'user', parts: [{ text: prompt }] }];
+  }
+
+  const payload = {
+    contents,
     generationConfig: {
       maxOutputTokens: options?.maxTokens || 1000,
       temperature: options?.temperature ?? 0.7,
     },
+    systemInstruction: systemPrompt
+      ? {
+          parts: [{ text: systemPrompt }],
+        }
+      : undefined,
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': apiKey,
+    },
+    body: JSON.stringify(payload),
   });
 
-  // Multi-turn: convert history and send last message via chat
-  if (options?.messages && options.messages.length > 0) {
-    const allMessages = options.messages;
-    const history = allMessages.slice(0, -1).map(m => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }],
-    }));
-    const lastMessage = allMessages[allMessages.length - 1];
-
-    const chat = model.startChat({ history });
-    const result = await chat.sendMessage(lastMessage.content);
-    return { content: result.response.text() };
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${errText}`);
   }
 
-  // Single-turn
-  const result = await model.generateContent(prompt);
-  return { content: result.response.text() };
+  const data = await response.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  if (!text) {
+    const blockReason = data.promptFeedback?.blockReason;
+    const finishReason = data.candidates?.[0]?.finishReason;
+    throw new Error(
+      `Gemini API returned no content (blockReason: ${blockReason ?? 'none'}, finishReason: ${finishReason ?? 'none'})`
+    );
+  }
+  return { content: text };
 }
 
 /** Parse business command — same interface as bedrock.parseBusinessCommand */
@@ -87,6 +109,8 @@ LIST_INVENTORY, LOW_STOCK, UPDATE_PRODUCT, DELETE_PRODUCT, EXPENSE, PROFIT_QUERY
 - "How much I get?" / "wetin my profit?" / "how my business?" = PROFIT_QUERY or CHAT
 - "My X don finish" / "X is out" = STOCK_CHECK for that item
 - Credit sales: "on credit" / "go pay later" / "owe me" → isCredit: true
+- "Emeka paid 5k" / "Fatima don pay 10000" / "debt payment from X" → PAY_DEBT (set "customer": "Emeka", "price": 5000)
+- "Who owes me money?" / "Who dey owe me?" / "Wetin Emeka owe me?" → DEBT_CHECK (set "customer" if specific name mentioned)
 
 ━━ EXPENSE CATEGORIES ━━
 Detect category from description:
@@ -130,7 +154,7 @@ General:
 "wetin my profit for this week?" → [{"action":"PROFIT_QUERY","period":"week"}]
 "how my business dey?" → [{"action":"CHAT","message":"how my business dey?"}]
 
-Respond ONLY with a valid JSON ARRAY. No explanation, no markdown.
+Respond ONLY with a valid JSON ARRAY. No explanation, no markdown, no emojis.
 [{
   "action": "SALE|STOCK_IN|STOCK_REMOVE|STOCK_SET|CREATE_PRODUCT|STOCK_CHECK|LIST_INVENTORY|LOW_STOCK|UPDATE_PRODUCT|DELETE_PRODUCT|EXPENSE|PROFIT_QUERY|CHAT|CLARIFY",
   "item": "product or material name",
@@ -194,6 +218,7 @@ RULES:
 - If you can't answer from the data, say "I don't have that information yet" and tell them what to do.
 - When something looks wrong (e.g. negative profit, low stock), point it out and suggest a next step.
 - Always end with a small actionable nudge if relevant — something they can do right now.
+- Do NOT use emojis under any circumstances. Keep responses clean, serious, and professional.
 - Do NOT use bullet points for simple answers. Use them only for lists of 3+ items.
 
 GUIDING USERS TO RECORD THINGS:
