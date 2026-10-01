@@ -34,10 +34,10 @@ export default function HelpPage() {
                                 <CardDescription>Speak naturally to record transactions.</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-3 pt-2">
-                                <div className="bg-muted p-2 rounded-md text-sm font-mono">"Sold 5 Meatpie"</div>
-                                <div className="bg-muted p-2 rounded-md text-sm font-mono">"Sold 3 Rice at 2500 each"</div>
-                                <div className="bg-muted p-2 rounded-md text-sm font-mono">"Sold 10 Gala and 5 Lacasera"</div>
-                                <div className="bg-muted p-2 rounded-md text-sm font-mono">"Sold 20 bags of cement on credit to Mr John"</div>
+                                <div className="bg-muted p-2 rounded-md text-sm font-mono">&quot;Sold 5 Meatpie&quot;</div>
+                                <div className="bg-muted p-2 rounded-md text-sm font-mono">&quot;Sold 3 Rice at 2500 each&quot;</div>
+                                <div className="bg-muted p-2 rounded-md text-sm font-mono">&quot;Sold 10 Gala and 5 Lacasera&quot;</div>
+                                <div className="bg-muted p-2 rounded-md text-sm font-mono">&quot;Sold 20 bags of cement on credit to Mr John&quot;</div>
                                 <p className="text-xs text-muted-foreground">
                                     <span className="font-semibold text-primary">Tip:</span> You can mention price, quantity, and customer name in one sentence.
                                 </p>
@@ -111,7 +111,7 @@ export default function HelpPage() {
                                 <ul className="list-disc list-inside text-sm space-y-1">
                                     <li>Create products with just a Name and Price.</li>
                                     <li>When you sell, we track Revenue.</li>
-                                    <li>Use "Add Stock" to track how many items you have left.</li>
+                                    <li>Use &quot;Add Stock&quot; to track how many items you have left.</li>
                                 </ul>
                             </div>
 
@@ -144,9 +144,9 @@ export default function HelpPage() {
                                 <div>
                                     <h4 className="font-semibold">Recording a Sale (Fastest Way)</h4>
                                     <p className="text-sm text-muted-foreground mb-2">
-                                        Don't waste time clicking. Just tap the microphone or type in the "AI Console" on the dashboard.
+                                        Don&apos;t waste time clicking. Just tap the microphone or type in the &quot;AI Console&quot; on the dashboard.
                                     </p>
-                                    <code className="text-xs bg-muted px-2 py-1 rounded">"Sold 2 Coke"</code>
+                                    <code className="text-xs bg-muted px-2 py-1 rounded">&quot;Sold 2 Coke&quot;</code>
                                 </div>
                             </div>
                             <Separator />
@@ -174,7 +174,7 @@ export default function HelpPage() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <p className="text-sm">
-                                CORE is designed to be the "Operating System" for African SMEs. It combines the power of an ERP with the simplicity of a chat app.
+                                CORE is designed to be the &quot;Operating System&quot; for African SMEs. It combines the power of an ERP with the simplicity of a chat app.
                             </p>
                             <div className="grid grid-cols-2 gap-4 text-sm">
                                 <div>
