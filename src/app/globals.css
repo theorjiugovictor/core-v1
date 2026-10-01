@@ -2,141 +2,129 @@
 @tailwind components;
 @tailwind utilities;
 
-
+/* CORE brand v2 — indigo + cowrie. All values converted from the identity sheet. */
 
 :root {
-  /* Deep Space Light Theme - Clean, crisp, professional */
-  --background: 210 40% 98%;
-  /* Very light cool blue-grey */
-  --foreground: 222 47% 11%;
-  /* Deep navy */
+  --background: 220 18% 97%;        /* Paper       #F5F6F8 */
+  --foreground: 230 36% 10%;        /* Ink         #101322 */
 
-  --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
+  --card: 0 0% 100%;                /*             #FFFFFF */
+  --card-foreground: 230 36% 10%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
+  --popover-foreground: 230 36% 10%;
 
-  --primary: 243 75% 59%;
-  /* Rich Indigo/Violet */
-  --primary-foreground: 210 40% 98%;
+  --primary: 231 56% 27%;           /* Indigo      #1E2A6B */
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222 47% 11.2%;
+  --accent: 42 100% 62%;            /* Cowrie      #FFC53D — CTA only */
+  --accent-foreground: 230 36% 10%;
 
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
+  --secondary: 223 21% 94%;         /*             #EBEDF2 */
+  --secondary-foreground: 231 56% 27%;
 
-  --accent: 243 75% 59%;
-  /* Matching primary for consistency in accents */
-  --accent-foreground: 210 40% 98%;
+  --muted: 223 21% 94%;
+  --muted-foreground: 227 9% 48%;   /* Muted label #6E7385 */
 
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
+  --destructive: 8 68% 50%;         /* Loss        #D6402A */
+  --destructive-foreground: 0 0% 100%;
 
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 243 75% 59%;
+  --success: 160 84% 34%;           /* Profit      #0E9F6E */
+  --success-foreground: 0 0% 100%;
 
-  --radius: 0.75rem;
+  --border: 223 15% 91%;            /* Hairline    #E4E6EB */
+  --input: 223 15% 91%;
+  --ring: 230 65% 54%;              /* Bright indigo #3B54D6 — focus only */
 
-  /* Chart colors - Vivid and distinct */
-  --chart-1: 243 75% 59%;
-  /* Indigo */
-  --chart-2: 270 50% 40%;
-  /* Deep Purple */
-  --chart-3: 190 90% 40%;
-  /* Teal/Cyan */
-  --chart-4: 30 80% 55%;
-  /* Amber/Orange */
-  --chart-5: 340 75% 55%;
-  /* Pink/Rose */
+  --radius: 0.625rem;               /* 10px, matches the button spec */
+
+  --chart-1: 231 56% 27%;           /* Indigo */
+  --chart-2: 230 65% 54%;           /* Bright indigo */
+  --chart-3: 42 100% 62%;           /* Cowrie */
+  --chart-4: 160 84% 34%;           /* Profit green */
+  --chart-5: 8 68% 50%;             /* Loss red */
 }
-
-
 
 .dark {
-  /* Deep Space Dark Theme - Immersive, premium dark mode */
-  --background: 222 47% 11%;
-  /* Deep Navy/Slate background */
-  --foreground: 210 40% 98%;
+  --background: 230 36% 10%;        /* Ink         #101322 */
+  --foreground: 220 18% 97%;
 
-  --card: 222 47% 13%;
-  /* Slightly lighter than bg */
-  --card-foreground: 210 40% 98%;
+  --card: 230 33% 14%;              /*             #171B2E */
+  --card-foreground: 220 18% 97%;
 
-  --popover: 222 47% 11%;
-  --popover-foreground: 210 40% 98%;
+  --popover: 230 36% 10%;
+  --popover-foreground: 220 18% 97%;
 
-  --primary: 243 75% 65%;
-  /* Lighter Indigo for dark mode visibility */
-  --primary-foreground: 222 47% 11%;
+  --primary: 231 76% 63%;           /* Indigo, lifted for dark surfaces */
+  --primary-foreground: 230 36% 10%;
 
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
+  --accent: 42 100% 62%;            /* Cowrie is identical in both themes */
+  --accent-foreground: 230 36% 10%;
 
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
+  --secondary: 229 33% 16%;
+  --secondary-foreground: 220 18% 97%;
 
-  --accent: 243 75% 65%;
-  --accent-foreground: 222 47% 11%;
+  --muted: 229 33% 16%;
+  --muted-foreground: 226 15% 65%;
 
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
+  --destructive: 8 68% 50%;
+  --destructive-foreground: 0 0% 100%;
 
-  --border: 217.2 32.6% 25%;
-  /* Slightly higher contrast border */
-  --input: 217.2 32.6% 17.5%;
-  --ring: 243 75% 65%;
+  --success: 160 84% 34%;
+  --success-foreground: 0 0% 100%;
 
-  --chart-1: 243 75% 65%;
-  --chart-2: 270 50% 60%;
-  --chart-3: 190 90% 50%;
-  --chart-4: 30 80% 65%;
-  --chart-5: 340 75% 65%;
+  --border: 231 31% 24%;
+  --input: 231 31% 24%;
+  --ring: 231 76% 63%;
+
+  --chart-1: 231 76% 63%;
+  --chart-2: 230 65% 64%;
+  --chart-3: 42 100% 62%;
+  --chart-4: 160 70% 45%;
+  --chart-5: 8 75% 60%;
 }
-
 
 @layer utilities {
-  .glass {
-    @apply bg-white/10 backdrop-blur-lg border border-white/20 shadow-xl;
+  .text-balance { text-wrap: balance; }
+  .text-pretty  { text-wrap: pretty; }
+
+  /* Display type: Archivo, 600/800 only, tracking -5% */
+  .font-display   { @apply font-heading font-extrabold tracking-[-0.05em]; }
+  .font-display-2 { @apply font-heading font-semibold tracking-[-0.025em]; }
+
+  /* Numbers, currency, SKUs, timestamps */
+  .tabular { @apply font-mono tabular-nums tracking-[0.02em]; }
+
+  /* The full stop. Square, never round, never rotated. */
+  .brand-dot { @apply inline-block h-[0.14em] w-[0.14em] bg-current align-baseline; }
+}
+
+* { @apply border-border; }
+
+body { @apply bg-background text-foreground antialiased; }
+
+@keyframes float-slow-1 {
+  0%, 100% {
+    transform: translate(-50%, -8%) scale(1);
   }
-
-  .glass-dark {
-    @apply bg-black/10 backdrop-blur-lg border border-white/10 shadow-xl;
-  }
-
-  .text-balance {
-    text-wrap: balance;
+  50% {
+    transform: translate(-46%, -4%) scale(1.08);
   }
 }
 
-* {
-  @apply border-border;
+@keyframes float-slow-2 {
+  0%, 100% {
+    transform: translate(-50%, 2%) scale(1);
+  }
+  50% {
+    transform: translate(-54%, -6%) scale(1.06);
+  }
 }
 
-body {
-  @apply bg-background text-foreground;
+.animate-glow-1 {
+  animation: float-slow-1 18s ease-in-out infinite;
 }
 
-/* Animated background orbs */
-@keyframes orb-drift-1 {
-  0%, 100% { translate: 0 0; }
-  33%       { translate: 60px -80px; }
-  66%       { translate: -40px 40px; }
+.animate-glow-2 {
+  animation: float-slow-2 24s ease-in-out infinite;
 }
-
-@keyframes orb-drift-2 {
-  0%, 100% { translate: 0 0; }
-  33%       { translate: -70px 60px; }
-  66%       { translate: 50px -50px; }
-}
-
-@keyframes orb-drift-3 {
-  0%, 100% { translate: 0 0; }
-  50%       { translate: 40px 70px; }
-}
-
-.orb-1 { animation: orb-drift-1 28s ease-in-out infinite; }
-.orb-2 { animation: orb-drift-2 34s ease-in-out infinite; }
-.orb-3 { animation: orb-drift-3 22s ease-in-out infinite; }

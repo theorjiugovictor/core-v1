@@ -45,6 +45,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { getSalesAction, createSaleAction, updateSaleAction, deleteSaleAction, getProductsAction } from '@/lib/actions';
+
+// Most recent sales shown in the table. Full history is available via Settings → Export.
+const SALES_PAGE_LIMIT = 500;
 import type { Sale, Product } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
@@ -57,14 +60,22 @@ export default function SalesPage() {
   const { toast } = useToast();
 
   React.useEffect(() => {
-    loadData();
+    void Promise.all([getSalesAction(SALES_PAGE_LIMIT), getProductsAction()]).then(([salesData, productsData]) => {
+      setSales(salesData);
+      setProducts(productsData);
+    });
   }, []);
 
   const loadData = async () => {
-    const [salesData, productsData] = await Promise.all([getSalesAction(), getProductsAction()]);
+    const [salesData, productsData] = await Promise.all([getSalesAction(SALES_PAGE_LIMIT), getProductsAction()]);
     setSales(salesData);
     setProducts(productsData);
   };
+
+  // Auto-calculate total based on product price for manual entry
+  const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null);
+  const [qty, setQty] = React.useState("1");
+  const [totalAmountState, setTotalAmountState] = React.useState<string>("");
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -74,14 +85,22 @@ export default function SalesPage() {
     const totalAmount = Number(formData.get('totalAmount'));
     const paymentMethod = formData.get('paymentMethod') as 'Cash' | 'Card' | 'Transfer';
 
+    if (!productName) {
+      toast({ title: "Validation Error", description: "Please select a product", variant: "destructive" });
+      return;
+    }
+
     const result = await createSaleAction({ productName, quantity, totalAmount, paymentMethod });
 
     if (result.success) {
       toast({ title: "Success", description: "Sale recorded successfully" });
       setIsCreateOpen(false);
+      setSelectedProduct(null);
+      setQty("1");
+      setTotalAmountState("");
       loadData();
     } else {
-      toast({ title: "Error", description: "Failed to record sale", variant: "destructive" });
+      toast({ title: "Error", description: result.error || "Failed to record sale", variant: "destructive" });
     }
   };
 
@@ -101,7 +120,7 @@ export default function SalesPage() {
       setEditingSale(null);
       loadData();
     } else {
-      toast({ title: "Error", description: "Failed to update sale", variant: "destructive" });
+      toast({ title: "Error", description: result.error || "Failed to update sale", variant: "destructive" });
     }
   };
 
@@ -112,20 +131,14 @@ export default function SalesPage() {
       toast({ title: "Deleted", description: "Sale deleted successfully" });
       loadData();
     } else {
-      toast({ title: "Error", description: "Failed to delete sale", variant: "destructive" });
+      toast({ title: "Error", description: result.error || "Failed to delete sale", variant: "destructive" });
     }
   };
 
   const openEditDialog = (sale: Sale) => {
     setEditingSale(sale);
     setIsEditOpen(true);
-  }
-
-  // Auto-calculate total based on product price for manual entry
-  const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null);
-  const [qty, setQty] = React.useState("1");
-
-  const estimatedTotal = selectedProduct ? (selectedProduct.sellingPrice * Number(qty)) : 0;
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(amount);
@@ -156,7 +169,11 @@ export default function SalesPage() {
             <form onSubmit={handleCreate} className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Product</Label>
-                <Select name="productName" onValueChange={(val) => setSelectedProduct(products.find(p => p.name === val) || null)} required>
+                <Select name="productName" onValueChange={(val) => {
+                  const product = products.find(p => p.name === val) || null;
+                  setSelectedProduct(product);
+                  setTotalAmountState(product ? String(product.sellingPrice * (Number(qty) || 1)) : "");
+                }} required>
                   <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Select Product" />
                   </SelectTrigger>
@@ -169,11 +186,14 @@ export default function SalesPage() {
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Quantity</Label>
-                <Input name="quantity" type="number" className="col-span-3" value={qty} onChange={e => setQty(e.target.value)} required min="1" />
+                <Input name="quantity" type="number" className="col-span-3" value={qty} onChange={e => {
+                  setQty(e.target.value);
+                  if (selectedProduct) setTotalAmountState(String(selectedProduct.sellingPrice * (Number(e.target.value) || 1)));
+                }} required min="1" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Total (₦)</Label>
-                <Input name="totalAmount" type="number" className="col-span-3" defaultValue={estimatedTotal} required />
+                <Input name="totalAmount" type="number" className="col-span-3" value={totalAmountState} onChange={e => setTotalAmountState(e.target.value)} required />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Payment</Label>

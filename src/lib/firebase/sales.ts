@@ -1,31 +1,61 @@
+import { AggregateField } from 'firebase-admin/firestore';
 import { db, Collections } from './config';
 import type { Sale } from '../types';
 
 export const salesService = {
-  // Get all sales for a user
-  async getAll(userId: string): Promise<Sale[]> {
+  // Get sales for a user, newest first. Pass `limit` for UI lists; omit it only
+  // for exports, since it reads every sale the user has ever recorded.
+  // Uses the composite index (userId ASC, date DESC) in firestore.indexes.json.
+  async getAll(userId: string, limit?: number): Promise<Sale[]> {
     try {
-      const snapshot = await db
+      let query = db
         .collection(Collections.SALES)
         .where('userId', '==', userId)
-        .get();
+        .orderBy('date', 'desc');
+      if (typeof limit === 'number' && limit > 0) query = query.limit(limit);
 
-      // Sort in memory to avoid composite index requirement
-      const sales = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Sale[];
-
-      return sales
-        .sort((a, b) => {
-          const dateA = new Date(a.date || 0).getTime();
-          const dateB = new Date(b.date || 0).getTime();
-          return dateB - dateA; // desc order
-        })
-        .slice(0, 100); // limit to 100 results
+      const snapshot = await query.get();
+      return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Sale[];
     } catch (error) {
       console.error('Error getting sales:', error);
       throw new Error('Failed to fetch sales');
+    }
+  },
+
+  // Sales in [start, end), newest first. Reads only the documents in range,
+  // so cost stays flat as a customer's history grows.
+  async getInRange(userId: string, start: Date | null, end?: Date | null): Promise<Sale[]> {
+    try {
+      let query = db.collection(Collections.SALES).where('userId', '==', userId);
+      if (start) query = query.where('date', '>=', start.toISOString());
+      if (end) query = query.where('date', '<', end.toISOString());
+      const snapshot = await query.orderBy('date', 'desc').get();
+      return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Sale[];
+    } catch (error) {
+      console.error('Error getting sales in range:', error);
+      throw new Error('Failed to fetch sales');
+    }
+  },
+
+  // Revenue, cost and count in [start, end) computed by Firestore itself.
+  // Billed at 1 read per 1,000 index entries instead of 1 read per sale.
+  async getTotals(userId: string, start?: Date | null, end?: Date | null) {
+    try {
+      let query = db.collection(Collections.SALES).where('userId', '==', userId);
+      if (start) query = query.where('date', '>=', start.toISOString());
+      if (end) query = query.where('date', '<', end.toISOString());
+      const snapshot = await query
+        .aggregate({
+          revenue: AggregateField.sum('totalAmount'),
+          cost: AggregateField.sum('costAmount'),
+          count: AggregateField.count(),
+        })
+        .get();
+      const data = snapshot.data();
+      return { revenue: data.revenue || 0, cost: data.cost || 0, count: data.count || 0 };
+    } catch (error) {
+      console.error('Error getting sales totals:', error);
+      throw new Error('Failed to fetch sales totals');
     }
   },
 

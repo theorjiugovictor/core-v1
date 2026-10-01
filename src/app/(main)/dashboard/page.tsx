@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { PromptConsole } from "@/components/prompt-console";
 import { KpiSection } from "@/components/kpi-section";
 import { RevenueChart } from "@/components/revenue-chart";
-import { getKpisAction, getRevenueChartData, getSalesAction, getExpensesAction } from "@/lib/actions";
+import { getKpisAction, getRevenueChartData, getTodayActivityAction } from "@/lib/actions";
 import { DashboardInsights } from "@/components/dashboard-insights";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import { DailySummary } from "@/components/daily-summary";
 
 function DashboardInsightsSkeleton() {
     return (
-        <Card className="h-full border-none shadow-lg bg-gradient-to-br from-card to-secondary/30 backdrop-blur-md">
+        <Card className="h-full border-none shadow-lg bg-gradient-to-br from-card to-secondary/30">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <div className="space-y-1">
                     <CardTitle className="flex items-center gap-2 font-heading text-lg">
@@ -36,15 +36,14 @@ function DashboardInsightsSkeleton() {
 }
 
 export default async function DashboardPage() {
-    const [kpis, revenueData, sales, expenses] = await Promise.all([
+    const [kpis, revenueData, today] = await Promise.all([
         getKpisAction('month'),
         getRevenueChartData(),
-        getSalesAction(),
-        getExpensesAction(),
+        getTodayActivityAction(),
     ]);
 
-    // Detect new users — no sales, no expenses, no materials recorded yet
-    const hasData = sales.length > 0 || expenses.length > 0;
+    // Detect new users — no sales and no expenses recorded yet
+    const { hasData } = today;
 
     return (
         <div className="space-y-8 animate-fade-in-up">
@@ -58,7 +57,7 @@ export default async function DashboardPage() {
 
             {/* 3. Daily Summary */}
             <section>
-                <DailySummary sales={sales} expenses={expenses} />
+                <DailySummary sales={today.sales} expenses={today.expenses} />
             </section>
 
             {/* 4. Deep Insights & Visuals Layer - Bento Grid Row 2 */}
