@@ -26,7 +26,7 @@ export function RevenueChart({ data }: { data: RevenueData[] }) {
   const isTrendingUp = percentageChange >= 0;
 
   return (
-    <Card className="h-full border-none shadow-lg bg-card/50 backdrop-blur-md">
+    <Card className="h-full border-none shadow-lg bg-card">
       <CardHeader>
         <CardTitle className="font-heading text-lg">Revenue Trend</CardTitle>
         <CardDescription>Performance over last 6 months</CardDescription>

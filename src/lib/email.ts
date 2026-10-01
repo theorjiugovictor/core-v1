@@ -8,6 +8,21 @@ function getResend() {
 }
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.usecoreapp.com';
 
+export async function sendEarlyAccessRequest(request: {
+  name: string;
+  business: string;
+  contact: string;
+}) {
+  const { error } = await getResend().emails.send({
+    from: FROM,
+    to: 'usecoreapp@gmail.com',
+    subject: 'New CORE early access request',
+    text: `Name: ${request.name}\nBusiness: ${request.business || 'Not provided'}\nContact: ${request.contact}`,
+  });
+
+  if (error) throw new Error('Failed to send early access request');
+}
+
 // ─── Daily Nudge ───────────────────────────────────────────────────────────────
 
 export async function sendDailyNudge(user: {
@@ -30,7 +45,7 @@ export async function sendDailyNudge(user: {
     to: user.email,
     subject: `Good morning, ${user.name}! Ready to log today's sales?`,
     html: emailWrapper(`
-      <h2 style="margin:0 0 8px;font-size:22px;color:#111;">Good morning, ${user.name} 👋</h2>
+      <h2 style="margin:0 0 8px;font-size:22px;color:#111;">Good morning, ${user.name}</h2>
       <p style="margin:0 0 20px;color:#555;font-size:15px;">${user.businessName}</p>
 
       <div style="background:#f9fafb;border-radius:10px;padding:20px;margin-bottom:24px;">
@@ -108,7 +123,7 @@ export async function sendLowStockAlert(user: {
   await getResend().emails.send({
     from: FROM,
     to: user.email,
-    subject: `⚠️ Low stock alert — ${lowItems.length} item${lowItems.length !== 1 ? 's' : ''} running low`,
+    subject: `Low stock alert — ${lowItems.length} item${lowItems.length !== 1 ? 's' : ''} running low`,
     html: emailWrapper(`
       <h2 style="margin:0 0 8px;font-size:22px;color:#111;">Low Stock Alert</h2>
       <p style="margin:0 0 24px;color:#555;font-size:15px;">${user.businessName} · ${lowItems.length} item${lowItems.length !== 1 ? 's' : ''} need restocking</p>
