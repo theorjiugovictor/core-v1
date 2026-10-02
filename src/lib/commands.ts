@@ -16,6 +16,9 @@ import { expensesService } from './firebase/expenses';
 import { debtsService } from './firebase/debts';
 import { revalidatePath } from 'next/cache';
 import { parseNormalizedDate, periodStart, startOfBusinessDay, type Period } from './time';
+import { telemetry } from './telemetry';
+
+const MAX_INPUT_LENGTH = 1000;
 
 // Fallback regex-based parser
 function parseCommandWithRegex(input: string) {
@@ -85,15 +88,32 @@ export async function executeCommandForUser(
   rawInput: string,
   conversationHistory: BedrockMessage[] = [],
 ) {
+  if (typeof rawInput !== 'string') {
+    return { success: false, error: 'Input is required.' };
+  }
+
+  const input = rawInput.trim();
+  if (!input) {
+    return { success: false, error: 'Input cannot be empty.' };
+  }
+  if (input.length > MAX_INPUT_LENGTH) {
+    telemetry.error('AI input exceeded max length', userId, {
+      'event.name': 'ai.input_too_long',
+      'input.length': input.length,
+      'input.max': MAX_INPUT_LENGTH,
+    });
+    return { success: false, error: `Input too long. Please keep commands under ${MAX_INPUT_LENGTH} characters.` };
+  }
+
   let parsedResult;
   try {
-    parsedResult = await parseWithAI(rawInput, conversationHistory);
+    parsedResult = await parseWithAI(input, conversationHistory);
     if (!parsedResult.success || !parsedResult.data) {
       throw new Error("AI parsing failed or returned no data");
     }
   } catch (error) {
     console.error('AI parsing failed, using fallback:', error);
-    parsedResult = parseCommandWithRegex(rawInput);
+    parsedResult = parseCommandWithRegex(input);
   }
 
   if (!parsedResult.success || !parsedResult.data) {
