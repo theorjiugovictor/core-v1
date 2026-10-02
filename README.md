@@ -14,6 +14,11 @@ Next.js 16, React 18, TypeScript, Firebase Firestore, Auth.js credentials authen
 
 CI generates Next.js types, then runs `npm run lint` and `npm run typecheck`. The environment variable template in `.env.example` is the source of truth for integration settings.
 
+## Other documentation
+
+- [Brand reference](brand-handoff/README.md) describes the visual identity; the live theme files are authoritative.
+- [Product ideas](docs/CORE_MASTER_PLAN.md) collects proposals, not committed delivery dates or shipped features.
+
 ## Deployment
 
 - Configure the production environment variables from `.env.example` in Vercel. Keep credentials out of GitHub Actions and pull requests; rotate compromised keys immediately.

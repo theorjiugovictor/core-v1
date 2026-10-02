@@ -1,28 +1,16 @@
-# CORE brand handoff — v2
+# CORE brand reference
 
-Drop-in replacements for the theme layer. Nothing here touches component logic.
+The brand is already applied in the application. The files in this folder are the original handoff snapshot, not files to copy over the live theme. For the current implementation, see `src/app/globals.css`, `tailwind.config.ts`, `src/app/layout.tsx`, and `src/components/logo.tsx`.
 
-## Files
+## Design principles
 
-| File | Goes to | What changed |
-| --- | --- | --- |
-| `globals.css` | `src/app/globals.css` | Whole token block replaced. New `--success`, radius 0.75 → 0.625rem. |
-| `tailwind.config.ts` | `tailwind.config.ts` | Three font families, `success` colour, display type scale, container 1400 → 1200. |
-| `layout.tsx` | `src/app/layout.tsx` | Inter → Archivo + IBM Plex Sans + IBM Plex Mono. New title/description. |
-| `logo.tsx` | `src/components/logo.tsx` | New wordmark component. Replaces `/logo.svg` in the header. |
-
-## Removed on purpose
-
-- **`.glass` / `.glass-dark`** — frosted panels don't exist in this identity. Surfaces are flat white cards on paper, or flat indigo. Replace usages with `bg-card border border-border`.
-- **`.orb-1/2/3` and the `orb-drift` keyframes** — the drifting gradient orbs read as generic AI SaaS and fight the new palette. Delete the elements that use them.
-- **`--font-geist-mono`** — no longer loaded; mono is now IBM Plex Mono.
-
-Grep for `glass`, `orb-`, and `font-geist` before deploying.
+- Prefer flat surfaces over glass effects and decorative gradient orbs.
+- Use the live theme tokens rather than copying colors from this snapshot.
 
 ## Colour rules that the tokens can't enforce
 
-1. **Cowrie (`accent`, #FFC53D) is for one element per screen** — the primary action. Never a background, never a large fill, never behind body copy. Always with `accent-foreground` (ink), never with white text.
-2. **Bright indigo (`ring`, #3B54D6) is interactive only** — links, focus rings, selected state. It is not a fill colour.
+1. **Cowrie (`accent`, #FFC53D) is for the primary action** — never behind body copy. Pair it with `accent-foreground` (ink), not white text.
+2. **Bright indigo (`ring`, #3B54D6) is interactive** — links, focus rings, selected state. It is not a large fill colour.
 3. **Green and red are financial, not decorative** — `success` means money in, `destructive` means money out or a real error. Never use them for tags or illustration.
 4. **Two colours on screen at a time.** Indigo plus one.
 
