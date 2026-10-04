@@ -111,6 +111,10 @@ export default function LandingPage() {
             <span className="text-xs font-mono text-white/55">© 2026 CORE Technologies Inc.</span>
           </div>
 
+          <div className="flex items-center gap-5 text-xs font-mono text-white/75">
+            <Link href="/privacy" className="hover:text-white">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-white">Terms of Service</Link>
+          </div>
           <Link href="/login" className="text-xs font-mono text-white/75 hover:text-white transition-colors">Already invited? Log in <ArrowUpRight className="inline h-3 w-3" /></Link>
         </div>
       </footer>
