@@ -35,6 +35,10 @@ export default function TermsPage() {
             <p className="mt-2">If you connect WhatsApp or Telegram, you authorize CORE to receive your messages and reply through that platform. Only link a number or account you control. Your use of these channels is also subject to the platform&apos;s terms. Channel availability and delivery depend on those third parties; do not use chat as your only copy of an important record.</p>
           </section>
           <section>
+            <h2 className="font-display-2 text-xl text-primary">Account and data deletion</h2>
+            <p className="mt-2">You can request deletion of your CORE account and associated data at any time. See our <Link className="underline underline-offset-4" href="/data-deletion">User Data Deletion instructions</Link> for how to submit a request, how we verify it and what information may need to be retained.</p>
+          </section>
+          <section>
             <h2 className="font-display-2 text-xl text-primary">Availability and changes</h2>
             <p className="mt-2">The service may change or be temporarily unavailable, particularly while features are in beta. We may restrict access to protect users, investigate misuse or comply with law. We may update these terms; the date above identifies the current version. Continued use after an update means you accept the revised terms.</p>
           </section>
