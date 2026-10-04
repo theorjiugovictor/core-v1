@@ -36,7 +36,7 @@ export default function PrivacyPage() {
           </section>
           <section>
             <h2 className="font-display-2 text-xl text-primary">Your choices</h2>
-            <p className="mt-2">You can update connected channel details in Settings and export available business records from the app. To request access, correction or deletion of your personal information, contact us at <a className="underline underline-offset-4" href="mailto:support@usecoreapp.com">support@usecoreapp.com</a>. We may need to verify your identity before acting on a request. Your rights depend on applicable law.</p>
+            <p className="mt-2">You can update connected channel details in Settings and export available business records from the app. To request access or correction of your personal information, contact us at <a className="underline underline-offset-4" href="mailto:support@usecoreapp.com">support@usecoreapp.com</a>. To request deletion, follow our <Link className="underline underline-offset-4" href="/data-deletion">User Data Deletion instructions</Link>. We may need to verify your identity before acting on a request. Your rights depend on applicable law.</p>
           </section>
           <section>
             <h2 className="font-display-2 text-xl text-primary">Updates and contact</h2>
