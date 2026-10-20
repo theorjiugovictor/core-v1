@@ -13,6 +13,8 @@
  * semantic search, auto-heal, and incident analysis on CORE events.
  */
 
+import { after } from 'next/server';
+
 const SERVICE_NAME = 'core-app';
 const SCOPE_NAME   = 'core-logger';
 
@@ -68,14 +70,21 @@ function emit(body: string, severity: Severity, attrs: LogAttributes = {}) {
 
   const payload = buildPayload(body, severity, attrs);
 
-  // Fire-and-forget — never await, never throw
-  fetch(`${url}/v1/logs`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  }).catch(() => {
-    // Swallow — telemetry must never break the app
-  });
+  try {
+    after(async () => {
+      await fetch(`${url}/v1/logs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(process.env.ROOTOPS_OTLP_TOKEN
+            ? { Authorization: `Bearer ${process.env.ROOTOPS_OTLP_TOKEN}` }
+            : {}),
+        },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(10_000),
+      }).catch(() => {});
+    });
+  } catch {}
 }
 
 // ─── Public API ───────────────────────────────────────────────────
