@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendEarlyAccessRequest } from '@/lib/email';
 import { earlyAccessLimiter } from '@/lib/ratelimit';
+import {
+  addToEarlyAccessSegment,
+  parseContact,
+  saveEarlyAccessRequest,
+  whatsappLink,
+} from '@/lib/early-access';
 
 export const runtime = 'nodejs';
 
@@ -26,11 +32,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Please enter a name and a valid contact.' }, { status: 400 });
   }
 
-  try {
-    await sendEarlyAccessRequest({ name: name.trim(), business: business.trim(), contact: contact.trim() });
-    return NextResponse.json({ ok: true });
-  } catch (error) {
-    console.error('Early access email failed:', error);
+  const input = { name: name.trim(), business: business.trim(), contact: contact.trim() };
+  const parsed = parseContact(input.contact);
+
+  // Firestore is the record of who asked; the email is the alert. The signup
+  // counts as received if either one lands.
+  const [saved, notified, segmented] = await Promise.allSettled([
+    saveEarlyAccessRequest(input, parsed),
+    sendEarlyAccessRequest({
+      ...input,
+      contactType: parsed.type,
+      email: parsed.type === 'email' ? parsed.email : undefined,
+      whatsapp: parsed.type === 'phone' ? whatsappLink(parsed.phone) : undefined,
+    }),
+    addToEarlyAccessSegment(input, parsed),
+  ]);
+
+  if (saved.status === 'rejected') console.error('Early access save failed:', saved.reason);
+  if (notified.status === 'rejected') console.error('Early access email failed:', notified.reason);
+  if (segmented.status === 'rejected') console.error('Early access segment add failed:', segmented.reason);
+
+  if (saved.status === 'rejected' && notified.status === 'rejected') {
     return NextResponse.json({ error: 'Could not submit your request. Please try again.' }, { status: 502 });
   }
+  return NextResponse.json({ ok: true });
 }

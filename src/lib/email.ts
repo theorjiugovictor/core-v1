@@ -12,12 +12,30 @@ export async function sendEarlyAccessRequest(request: {
   name: string;
   business: string;
   contact: string;
+  contactType: 'email' | 'phone' | 'unknown';
+  email?: string;
+  whatsapp?: string;
 }) {
+  const to = (process.env.EARLY_ACCESS_NOTIFY_TO || 'usecoreapp@gmail.com')
+    .split(',')
+    .map((address) => address.trim())
+    .filter(Boolean);
+
+  const lines = [
+    `Name: ${request.name}`,
+    `Business: ${request.business || 'Not provided'}`,
+    `Contact: ${request.contact} (${request.contactType})`,
+  ];
+  if (request.whatsapp) lines.push(`WhatsApp: ${request.whatsapp}`);
+  if (request.email) lines.push('', 'Reply to this email to answer them directly.');
+  lines.push('', 'Saved to Firestore: earlyAccessRequests');
+
   const { error } = await getResend().emails.send({
     from: FROM,
-    to: 'usecoreapp@gmail.com',
-    subject: 'New CORE early access request',
-    text: `Name: ${request.name}\nBusiness: ${request.business || 'Not provided'}\nContact: ${request.contact}`,
+    to,
+    replyTo: request.email,
+    subject: `New CORE early access request: ${request.name}`,
+    text: lines.join('\n'),
   });
 
   if (error) throw new Error('Failed to send early access request');
