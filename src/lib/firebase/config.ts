@@ -49,4 +49,5 @@ export const Collections = {
   EXPENSES: 'expenses',
   IDEAS: 'ideas',
   DEBTS: 'debts',
+  EARLY_ACCESS: 'earlyAccessRequests',
 } as const;
